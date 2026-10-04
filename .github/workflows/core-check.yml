@@ -1,0 +1,24 @@
+name: Barbadox - Core Check
+
+on:
+  workflow_dispatch: {}   # manual only, run it whenever you want a sanity check, never on a schedule
+
+permissions:
+  contents: read   # this one only reads data and prints a report, nothing to commit
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -r requirements.txt
+
+      - name: Check the core against matches already played
+        env:
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+        run: python core_calibration_check.py
