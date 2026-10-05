@@ -77,7 +77,8 @@ def walk_forward(pools, leagues, test_seasons, market, threshold):
                     skipped += 1
                     continue
                 rows.append({"date": m["dt"].date().isoformat(), "league": lg, "season": season,
-                            "home": m["home"], "away": m["away"],
+                            "home": m["home"], "away": m["away"], "hk": m["hk"], "ak": m["ak"],
+                            "dt": m["dt"], "total_goals": m["hg"] + m["ag"],
                             "core": p, "actual_over": (m["hg"] + m["ag"]) > market})
     return rows, skipped
 
@@ -88,17 +89,23 @@ def main():
     ap.add_argument("--market", type=float, default=bc.CFG["market"])
     ap.add_argument("--threshold", type=float, default=bc.CFG["threshold"])
     ap.add_argument("--seasons-back", type=int, default=2,
-                    help="how many seasons to test, counting this one. 2 = this season + 1 full prior season.")
+                    help="how many seasons to WALK FORWARD and test. 2 = this season + 1 full prior.")
+    ap.add_argument("--data-seasons", type=int, default=6,
+                    help="how many seasons of raw data to fetch in total. Always >= seasons-back + 1 "
+                         "(the extra seasons give the earliest tested season a real baseline, and give "
+                         "head-to-head lookups real depth beyond just the tested window).")
     args = ap.parse_args()
     leagues = [x.strip().upper() for x in args.leagues.split(",") if x.strip()]
     test_seasons = [bc.CURRENT_SEASON - i for i in range(args.seasons_back)]
+    data_seasons = max(args.data_seasons, args.seasons_back + 1)
 
     print(f"Testing seasons: {', '.join(f'{s}-{str(s+1)[2:]}' for s in sorted(test_seasons))}")
-    print("Loading data (fetching one extra season back for baselines)...")
+    print(f"Fetching {data_seasons} seasons of raw data total (extra seasons feed baselines "
+          f"and head-to-head depth, they aren't tested themselves)...")
     pools = {lg: [] for lg in bc.LEAGUES}
     for lg in leagues:
         ms = []
-        for season in range(min(test_seasons) - 1, bc.CURRENT_SEASON + 1):
+        for season in range(bc.CURRENT_SEASON - data_seasons + 1, bc.CURRENT_SEASON + 1):
             ms += bc.load_league(lg, season, refresh=False)
         pools[lg] = ms
 
