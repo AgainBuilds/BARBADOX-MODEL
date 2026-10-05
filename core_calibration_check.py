@@ -88,9 +88,9 @@ def main():
     ap.add_argument("--leagues", default="PL,PD,FL1,BL1,SA")
     ap.add_argument("--market", type=float, default=bc.CFG["market"])
     ap.add_argument("--threshold", type=float, default=bc.CFG["threshold"])
-    ap.add_argument("--seasons-back", type=int, default=2,
+    ap.add_argument("--seasons-back", type=int, default=3,
                     help="how many seasons to WALK FORWARD and test. 2 = this season + 1 full prior.")
-    ap.add_argument("--data-seasons", type=int, default=6,
+    ap.add_argument("--data-seasons", type=int, default=4,
                     help="how many seasons of raw data to fetch in total. Always >= seasons-back + 1 "
                          "(the extra seasons give the earliest tested season a real baseline, and give "
                          "head-to-head lookups real depth beyond just the tested window).")
