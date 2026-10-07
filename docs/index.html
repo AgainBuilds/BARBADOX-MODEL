@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Barbadox's Model</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 640px; margin: 0 auto;
+         padding: 16px; background: Canvas; color: CanvasText; }
+  h1 { font-size: 1.3rem; margin-bottom: 4px; }
+  .updated { color: GrayText; font-size: 0.85rem; margin-bottom: 16px; }
+  .summary { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stat { background: color-mix(in srgb, CanvasText 6%, Canvas); border-radius: 10px;
+          padding: 10px 14px; flex: 1; min-width: 100px; text-align: center; }
+  .stat .n { font-size: 1.4rem; font-weight: 700; display: block; }
+  .stat .l { font-size: 0.75rem; color: GrayText; }
+  .pick { border-radius: 10px; padding: 10px 14px; margin-bottom: 8px;
+          background: color-mix(in srgb, CanvasText 5%, Canvas); border-left: 4px solid GrayText; }
+  .pick.hit { border-left-color: #2e9e44; }
+  .pick.miss { border-left-color: #d14343; }
+  .pick.postponed { border-left-color: #c9a227; }
+  .pick-top { display: flex; justify-content: space-between; font-size: 0.8rem; color: GrayText; }
+  .badge { font-weight: 600; text-transform: uppercase; font-size: 0.72rem; }
+  .hit .badge { color: #2e9e44; }
+  .miss .badge { color: #d14343; }
+  .match { font-weight: 600; margin: 4px 0; }
+  .pick-bottom { display: flex; justify-content: space-between; font-size: 0.9rem; }
+  .empty { color: GrayText; text-align: center; padding: 40px 0; }
+</style>
+</head>
+<body>
+<h1>Barbadox's Model</h1>
+<div class="updated">Updated 2026-10-07 13:04 UTC</div>
+<div class="summary">
+  <div class="stat"><span class="n">0/0</span><span class="l">hit</span></div>
+  <div class="stat"><span class="n">0%</span><span class="l">hit rate</span></div>
+  <div class="stat"><span class="n">1</span><span class="l">pending</span></div>
+</div>
+<div class="pick pending"><div class="pick-top"><span class="date">2026-10-09</span><span class="league">BL1</span><span class="badge">pending</span></div><div class="match">Borussia Dortmund vs SV Werder Bremen</div><div class="pick-bottom"><span>Over 1.5: 81.0%</span><span>-</span></div></div>
+</body>
+</html>
