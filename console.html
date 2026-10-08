@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BARBADOX — Match Intelligence System</title>
+<title>BARBADOX - Match Intelligence System</title>
 <style>
 :root {
   --bg: #0B1020; --panel: #131A2E; --panel2: #1A2340; --line: #2A3558;
@@ -376,9 +376,9 @@ function renderResults() {
   if (!snap) {
     n = "Tap RUN MODEL to generate the first analysis of the day.";
   } else if (age === "fresh") {
-    n = "Initial scan complete. <b>Check back in ~5 minutes</b> for an updated run with the latest match context.";
+    n = "Core scan complete (factors 1–2). <b>Wait ~5 minutes</b> while match context is refined, then tap RUN MODEL again for the full analysis.";
   } else {
-    n = "Last run was " + age.split(":")[1] + " minutes ago. Context may have been updated — tap RUN MODEL for a fresh analysis.";
+    n = "Context should now be refined. <b>Tap RUN MODEL again</b> for the full analysis. (Last run: " + age.split(":")[1] + " min ago)";
   }
   $("fiveMin").innerHTML = '<div class="notice">' + n + "</div>";
 }
@@ -450,7 +450,7 @@ async function pollStatus() {
     setRunNote("ANALYSIS COMPLETE — results updated below.", "ok");
     await refreshData(false);
     const fresh = freshnessNote() === "fresh";
-    if (fresh) setTimeout(() => setRunNote("Initial scan complete. Check back in ~5 minutes for an updated run — context gets refreshed in between.", "warn"), 3500);
+    if (fresh) setTimeout(() => setRunNote("Core scan complete (factors 1–2). Wait ~5 minutes while match context is refined, then tap RUN again for the full analysis.", "warn"), 3500);
   } else {
     setRunNote("RUN FAILED — the last successful analysis is preserved below.", "err");
   }
