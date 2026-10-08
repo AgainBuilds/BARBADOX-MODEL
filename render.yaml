@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: barbadox
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server:app
+    envVars:
+      - key: FOOTBALL_DATA_KEY
+        sync: false
+      - key: API_FOOTBALL_KEY
+        sync: false
