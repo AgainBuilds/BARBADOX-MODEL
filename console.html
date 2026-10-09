@@ -396,11 +396,16 @@ function renderResults() {
       "NO ANALYSIS YET.<br>TAP RUN MODEL TO SCAN TODAY'S FIXTURES.") + "</div>";
   }
   const pend0 = snap ? (snap.owner_pending || 0) : 0;
-  $("fiveMin").innerHTML = !snap ? '<div class="notice">Tap RUN MODEL to generate the first analysis of the day.</div>'
-    : (pend0 > 0 ? '<div class="notice"><b>⚠ WAIT FOR THE OWNER.</b> ' + pend0 + ' match(es) in context.csv are not confirmed yet. They are NOT being used as picks.</div>' : "");
+  const ghOff = !!snap && snap.github === "off";
+  const ghNote = ghOff ? '<div class="notice"><b>⚠ GITHUB SYNC IS OFF.</b> Add GITHUB_TOKEN in Render, otherwise the owner cannot edit context.csv and nothing can be confirmed.</div>' : "";
+  $("fiveMin").innerHTML = ghNote + (!snap ? '<div class="notice">Tap RUN MODEL to generate the first analysis of the day.</div>'
+    : (pend0 > 0 ? '<div class="notice"><b>⚠ WAIT FOR THE OWNER.</b> ' + pend0 + ' match(es) in context.csv are not confirmed yet. They are NOT being used as picks.</div>' : ""));
   const pending = snap ? (snap.owner_pending || 0) : 0;
-  const ready = !!snap && pending === 0;
-  $("contextReady").innerHTML = ready
+  const ready = !!snap && pending === 0 && (snap.fixtures || []).length > 0;
+  const noScan = !!snap && fxs.length === 0;
+  $("contextReady").innerHTML = noScan
+    ? "<b>NO MATCHES SCANNED.</b> The last run found nothing to analyse, so nothing is confirmed or ready."
+    : ready
     ? "<b>✔ READY:</b> every eligible match is confirmed in context.csv. Predictions below use the owner-checked factors."
     : "<b>OWNER CONFIRMATION REQUIRED:</b> " + pending + " fixture(s) remain unchecked. Do not use these picks; keep waiting for the owner.";
   $("contextReady").style.borderColor = ready ? "rgba(61,255,158,.6)" : "rgba(255,177,61,.6)";
@@ -520,7 +525,9 @@ async function pollStatus() {
   $("btnRun").disabled = false; $("btnRun").textContent = "▶ RUN MODEL";
   if (ok) {
     await refreshData(false);
-    if (st.ready === false) {
+    if (st.ready === false && (st.scanned || 0) === 0) {
+      setRunNote("NOT READY — the run finished but scanned 0 matches" + ((st.leagues_empty || []).length ? " (no data from: " + st.leagues_empty.join(", ") + ")" : "") + ". Nothing has been analysed. Check the API key / rate limit, then run again.", "err");
+    } else if (st.ready === false) {
       setRunNote("STILL WAITING FOR THE OWNER: " + (st.owner_pending || 0) + " match(es) in context.csv are unconfirmed. Pending picks are blocked. Tap RUN again after the owner sets checked=1.", "warn");
     } else {
       setRunNote("✔ READY — all context confirmed and applied to the predictions.", "ok");
