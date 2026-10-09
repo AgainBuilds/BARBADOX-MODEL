@@ -709,6 +709,10 @@ def cmd_run(args):
     for fx in fixtures:
         key = (fx["ldate"], fx["hk"], fx["ak"])
         if key not in ctx:
+            # Only fixtures that already reach the threshold get a context row.
+            _probe = analyze(fx, None, env, args.market)
+            if _probe["p"] is None or _probe["p"] < args.threshold:
+                continue
             row = {k: "" for k in CTX_FIELDS}
             row.update({"date": fx["ldate"], "league": fx["league"], "home": fx["home"],
                         "away": fx["away"], "checked": "0"})
