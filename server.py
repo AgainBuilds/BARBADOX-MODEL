@@ -15,6 +15,8 @@ from pathlib import Path
 
 from flask import Flask, jsonify, send_from_directory
 
+import gh_sync
+
 BASE = Path(__file__).resolve().parent
 SNAPSHOT = BASE / "docs" / "data.json"
 SLIP = BASE / "slip.md"
@@ -24,7 +26,8 @@ app = Flask(__name__)
 _lock = threading.Lock()
 WAIT_SECONDS = 300  # the 5-minute owner review window
 _state = {"running": False, "waiting": False, "wait_seconds": 0, "log": "", "finished_at": None,
-          "ok": None, "ready": False, "owner_pending": 0, "context_added": 0}
+          "ok": None, "ready": False, "owner_pending": 0, "context_added": 0,
+          "scanned": 0, "leagues_empty": []}
 
 
 def _export():
@@ -69,8 +72,14 @@ def _do_run():
                 snap = _read_snapshot() or {}
                 _state["owner_pending"] = snap.get("owner_pending", 0)
 
-            _state["ready"] = bool(_state["ok"]) and _state["owner_pending"] == 0
-            if _state["ok"] and not _state["ready"]:
+            _state["scanned"] = snap.get("scanned", len(snap.get("fixtures", [])))
+            _state["leagues_empty"] = snap.get("leagues_empty", [])
+            _state["ready"] = bool(_state["ok"]) and _state["owner_pending"] == 0 and _state["scanned"] > 0
+            if _state["ok"] and _state["scanned"] == 0:
+                log += ("\nNOT READY: 0 matches were scanned. Leagues with no data: " +
+                        (", ".join(_state["leagues_empty"]) or "none") +
+                        ". Check FOOTBALL_DATA_KEY, the API rate limit, or that fixtures exist in the next 3 days.")
+            if _state["ok"] and not _state["ready"] and _state["scanned"] > 0:
                 log += ("\nOWNER WAIT REQUIRED: context.csv still has " + str(_state["owner_pending"]) +
                         " unconfirmed match(es). Do NOT use those picks. Keep waiting for the owner "
                         "to set checked=1, then tap RUN again.")
@@ -122,6 +131,11 @@ def status():
 
 @app.get("/api/slip")
 def slip():
+    if gh_sync.enabled():
+        try:
+            gh_sync.pull("picks.csv")  # the slip must use the repo's picks, not a stale local copy
+        except Exception as e:
+            return jsonify({"ok": False, "slip": "Could not read picks from GitHub: " + str(e)})
     subprocess.run(["python", "barbadox_core.py", "slip"], cwd=str(BASE),
                    capture_output=True, text=True, timeout=300)
     body = SLIP.read_text(encoding="utf-8") if SLIP.exists() else "no slip generated"
