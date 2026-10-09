@@ -709,6 +709,7 @@ def cmd_run(args):
     # User-filled rows (checked=1) for fixtures still in the window are preserved.
     # Same-day re-runs only append newly qualified fixtures; past dates are dropped
     # on the daily rebuild so the file stays small and GitHub-friendly to edit.
+    # The file is ALWAYS written so it never goes missing after a run.
     _tz = timedelta(hours=CFG["kickoff_tz_hours"])
     today_str = (NOW + _tz).date().isoformat()
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -742,6 +743,9 @@ def cmd_run(args):
               f"Only picks at/above {pct(args.threshold)} are listed — edit on GitHub, set checked=1.")
     else:
         ctx = dict(old_ctx)
+        # Drop rows for fixtures no longer in the window / past dates
+        live_keys = set(fixture_by_key.keys())
+        ctx = {k: v for k, v in ctx.items() if k in live_keys}
         added = 0
         for key, fx in fixture_by_key.items():
             if key in ctx:
@@ -754,10 +758,13 @@ def cmd_run(args):
                         "away": fx["away"], "checked": "0"})
             ctx[key] = row
             added += 1
+        # Always write so context.csv never disappears after a run
+        write_context(ctx)
         if added:
-            write_context(ctx)
             print(f"\n{added} new threshold fixture(s) added to context.csv "
                   f"(daily refresh already done for {today_str}).")
+        else:
+            print(f"\ncontext.csv kept ({len(ctx)} threshold fixture(s) for {today_str}).")
 
     picks = read_picks()
     logged_keys = {(p["date"], norm(p["home"]), norm(p["away"])) for p in picks}
