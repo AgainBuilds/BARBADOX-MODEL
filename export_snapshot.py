@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import barbadox_core as bc
+import gh_sync as gh
 
 BASE_DIR = Path(__file__).resolve().parent
 SNAPSHOT_FILE = BASE_DIR / "docs" / "data.json"
@@ -57,88 +58,120 @@ def export(args):
 
     threshold = args.threshold
     market = args.market
+    use_gh = gh.enabled()
+    if use_gh:
+        print("GitHub sync ON: context.csv and picks.csv are read from / saved to the repo.")
+    else:
+        print("!!! GITHUB SYNC OFF (no GITHUB_TOKEN): the owner CANNOT edit context.csv from here.")
 
-    # context.csv: created on first run, then APPEND-ONLY (owner rows are never rewritten).
-    ctx, added_context = bc.sync_context(fixtures, env, market, threshold)
-    if added_context:
-        print("!" * 70)
-        print(f"!!! OWNER WARNING: {added_context} new match(es) appended to context.csv.")
-        print("!!! WAIT 5 MINUTES for the owner to review it and set checked=1.")
-        print("!!! Unconfirmed matches cannot become picks.")
-        print("!" * 70)
+    def build():
+        # context.csv: created on first run, then APPEND-ONLY (owner rows are never rewritten).
+        ctx, added_context = bc.sync_context(fixtures, env, market, threshold)
+        if added_context:
+            print("!" * 70)
+            print(f"!!! OWNER WARNING: {added_context} new match(es) appended to context.csv.")
+            print("!!! WAIT 5 MINUTES for the owner to review it and set checked=1.")
+            print("!!! Unconfirmed matches cannot become picks.")
+            print("!" * 70)
 
-    picks = bc.read_picks()
-    logged_keys = {(p["date"], bc.norm(p["home"]), bc.norm(p["away"])) for p in picks}
-    new_picks = 0
+        picks = bc.read_picks()
+        logged_keys = {(p["date"], bc.norm(p["home"]), bc.norm(p["away"])) for p in picks}
+        new_picks = 0
 
-    out_fixtures = []
-    for fx in sorted(fixtures, key=lambda x: (x["ldate"], x["ltime"])):
-        row = ctx.get((fx["ldate"], fx["hk"], fx["ak"]))
-        res = bc.analyze(fx, row, env, market)
-        entry = {
-            "date": fx["ldate"], "time": fx["ltime"], "league": fx["league"],
-            "home": fx["home"], "away": fx["away"],
-            "checked": bool(row) and str(row.get("checked", "")).strip() == "1",
-        }
-        if res["p"] is None:
-            entry.update({"decision": "skipped", "reason": res.get("reason", "")})
+        out_fixtures = []
+        for fx in sorted(fixtures, key=lambda x: (x["ldate"], x["ltime"])):
+            row = ctx.get((fx["ldate"], fx["hk"], fx["ak"]))
+            res = bc.analyze(fx, row, env, market)
+            entry = {
+                "date": fx["ldate"], "time": fx["ltime"], "league": fx["league"],
+                "home": fx["home"], "away": fx["away"],
+                "checked": bool(row) and str(row.get("checked", "")).strip() == "1",
+            }
+            if res["p"] is None:
+                entry.update({"decision": "skipped", "reason": res.get("reason", "")})
+                out_fixtures.append(entry)
+                continue
+
+            key = (fx["ldate"], fx["hk"], fx["ak"])
+            ready = bool(row) and str(row.get("checked", "")).strip() == "1"
+            if key in logged_keys:
+                decision = "logged"
+            elif ready and res["p"] >= threshold:
+                picks.append(bc.make_pick(fx, res, row, market))
+                logged_keys.add(key)
+                new_picks += 1
+                decision = "logged"
+            elif not ready and res["upper"] >= threshold:
+                decision = "pending-owner"
+            else:
+                decision = "below-line"
+
+            p_form = p_base = None
+            for line in res["sheet"]:
+                if line.startswith("1 form"):
+                    p_form = _pct_from(line)
+                elif line.startswith("2 historical"):
+                    p_base = _pct_from(line)
+
+            entry.update({
+                "decision": decision,
+                "lam_h": round(res["lam_h"], 4),
+                "lam_a": round(res["lam_a"], 4),
+                "core": round(res["core"], 4),
+                "p_form": p_form,
+                "p_base": p_base,
+                "point": round(res["p"], 4),
+                "low": round(res["low"], 4),
+                "high": round(res["high"], 4),
+                "upper": round(res["upper"], 4),
+                "factors": res["factors"],
+                "notes": res["notes"],
+                "sheet": res["sheet"],
+            })
             out_fixtures.append(entry)
-            continue
 
-        key = (fx["ldate"], fx["hk"], fx["ak"])
-        ready = bool(row) and str(row.get("checked", "")).strip() == "1"
-        if key in logged_keys:
-            decision = "logged"
-        elif ready and res["p"] >= threshold:
-            picks.append(bc.make_pick(fx, res, row, market))
-            logged_keys.add(key)
-            new_picks += 1
-            decision = "logged"
-        elif not ready and res["upper"] >= threshold:
-            decision = "pending-owner"
-        else:
-            decision = "below-line"
+        if new_picks:
+            bc.write_picks(picks)
+            bc.write_html_report(picks)
+        owner_pending = sum(1 for f in out_fixtures if f.get("decision") == "pending-owner")
+        snapshot = {
+            "generated_at": bc.NOW.isoformat(),
+            "window": {"from": str(d0), "to": str(d1 - timedelta(days=1))},
+            "threshold": threshold,
+            "market": market,
+            "leagues": bc.LEAGUES,
+            "fixtures": out_fixtures,
+            "picks": picks,
+            "context_added": added_context,
+            "scanned": len(out_fixtures),
+            "leagues_empty": [lg for lg in leagues if not pools.get(lg)],
+            "owner_pending": owner_pending,
+            "context_ready": owner_pending == 0,
+        }
+        return snapshot, out_fixtures, added_context, new_picks
 
-        p_form = p_base = None
-        for line in res["sheet"]:
-            if line.startswith("1 form"):
-                p_form = _pct_from(line)
-            elif line.startswith("2 historical"):
-                p_base = _pct_from(line)
-
-        entry.update({
-            "decision": decision,
-            "lam_h": round(res["lam_h"], 4),
-            "lam_a": round(res["lam_a"], 4),
-            "core": round(res["core"], 4),
-            "p_form": p_form,
-            "p_base": p_base,
-            "point": round(res["p"], 4),
-            "low": round(res["low"], 4),
-            "high": round(res["high"], 4),
-            "upper": round(res["upper"], 4),
-            "factors": res["factors"],
-            "notes": res["notes"],
-            "sheet": res["sheet"],
-        })
-        out_fixtures.append(entry)
-
-    if new_picks:
-        bc.write_picks(picks)
-        bc.write_html_report(picks)
-    owner_pending = sum(1 for f in out_fixtures if f.get("decision") == "pending-owner")
-    snapshot = {
-        "generated_at": bc.NOW.isoformat(),
-        "window": {"from": str(d0), "to": str(d1 - timedelta(days=1))},
-        "threshold": threshold,
-        "market": market,
-        "leagues": bc.LEAGUES,
-        "fixtures": out_fixtures,
-        "picks": picks,
-        "context_added": added_context,
-        "owner_pending": owner_pending,
-        "context_ready": owner_pending == 0,
-    }
+    added_total = 0
+    for attempt in range(4):
+        if use_gh:
+            gh.pull("context.csv")
+            gh.pull("picks.csv")
+        snapshot, out_fixtures, added_context, new_picks = build()
+        try:
+            if use_gh:
+                if added_context:
+                    gh.push("context.csv", f"Barbadox: {added_context} new match(es) need owner review")
+                    added_total += added_context  # counted only once it is really saved
+                    added_context = 0
+                if new_picks:
+                    gh.push("picks.csv", f"Barbadox: {new_picks} owner-confirmed pick(s)")
+            added_total += added_context  # (sync off: local file only)
+            break
+        except gh.Conflict as e:
+            print(f"GitHub file {e} changed while we were working; re-reading it and retrying ({attempt + 1}/4)")
+    else:
+        raise SystemExit("Could not save to GitHub after 4 tries (file keeps changing). Run again.")
+    snapshot["context_added"] = added_total
+    snapshot["github"] = "synced" if use_gh else "off"
     SNAPSHOT_FILE.parent.mkdir(exist_ok=True)
     SNAPSHOT_FILE.write_text(json.dumps(snapshot, indent=1), encoding="utf-8")
     n_logged = sum(1 for f in out_fixtures if f.get("decision") == "logged")
