@@ -9,6 +9,7 @@ Render dashboard.
 import json
 import subprocess
 import threading
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -21,21 +22,64 @@ SLIP = BASE / "slip.md"
 app = Flask(__name__)
 
 _lock = threading.Lock()
-_state = {"running": False, "log": "", "finished_at": None, "ok": None}
+WAIT_SECONDS = 300  # the 5-minute owner review window
+_state = {"running": False, "waiting": False, "wait_seconds": 0, "log": "", "finished_at": None,
+          "ok": None, "ready": False, "owner_pending": 0, "context_added": 0}
+
+
+def _export():
+    return subprocess.run(
+        ["python", "export_snapshot.py", "--days", "3"],
+        capture_output=True, text=True, cwd=str(BASE), timeout=1200,
+    )
+
+
+def _read_snapshot():
+    try:
+        return json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+    except Exception:
+        return None
 
 
 def _do_run():
     try:
-        proc = subprocess.run(
-            ["python", "export_snapshot.py", "--days", "3"],
-            capture_output=True, text=True, cwd=str(BASE), timeout=1200,
-        )
-        _state["log"] = (proc.stdout + "\n" + proc.stderr)[-8000:]
+        proc = _export()
+        log = proc.stdout + "\n" + proc.stderr
         _state["ok"] = proc.returncode == 0
+        if proc.returncode == 0:
+            snap = _read_snapshot() or {}
+            added = snap.get("context_added", 0)
+            _state["context_added"] = added
+            _state["owner_pending"] = snap.get("owner_pending", 0)
+
+            if added:
+                # NEW matches were appended to context.csv: force the 5-minute owner window.
+                _state.update(waiting=True, wait_seconds=WAIT_SECONDS, ready=False)
+                log += ("\n!!! IMPORTANT !!! " + str(added) + " new match(es) added to context.csv.\n"
+                        "WAIT 5 MINUTES for the owner to review/update context.csv (set checked=1).\n"
+                        "Unconfirmed matches are blocked and must NOT be used as picks.\n")
+                for remaining in range(WAIT_SECONDS, 0, -1):
+                    _state["wait_seconds"] = remaining
+                    time.sleep(1)
+                _state["waiting"] = False
+                # Re-run so whatever the owner confirmed is now applied to the predictions.
+                proc2 = _export()
+                log += "\n--- OWNER REVIEW RECHECK ---\n" + proc2.stdout + "\n" + proc2.stderr
+                _state["ok"] = proc2.returncode == 0
+                snap = _read_snapshot() or {}
+                _state["owner_pending"] = snap.get("owner_pending", 0)
+
+            _state["ready"] = bool(_state["ok"]) and _state["owner_pending"] == 0
+            if _state["ok"] and not _state["ready"]:
+                log += ("\nOWNER WAIT REQUIRED: context.csv still has " + str(_state["owner_pending"]) +
+                        " unconfirmed match(es). Do NOT use those picks. Keep waiting for the owner "
+                        "to set checked=1, then tap RUN again.")
+        _state["log"] = log[-8000:]
     except Exception as e:  # keep the service alive no matter what the model does
         _state["log"] = str(e)
         _state["ok"] = False
     finally:
+        _state["waiting"] = False
         _state["running"] = False
         _state["finished_at"] = datetime.now().isoformat()
 
@@ -65,7 +109,8 @@ def run():
         return jsonify({"ok": False, "message": "a run is already in progress"})
     if not _lock.acquire(blocking=False):
         return jsonify({"ok": False, "message": "server busy"})
-    _state.update(running=True, log="starting barbadox_core pipeline...", ok=None)
+    _state.update(running=True, waiting=False, wait_seconds=0, ready=False, owner_pending=0,
+                  context_added=0, log="starting BARBADOX context scan...", ok=None)
     threading.Thread(target=_worker, daemon=True).start()
     return jsonify({"ok": True, "message": "run started"})
 
