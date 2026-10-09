@@ -63,7 +63,7 @@ header { display: flex; justify-content: space-between; align-items: center; fle
 .t-magenta { color: var(--magenta); border: 1px solid rgba(255,61,113,.35); }
 .t-amber { color: var(--amber); border: 1px solid rgba(255,177,61,.35); }
 
-/* run control */
+/* RUN CONTROL */
 .run-row { display: flex; gap: 10px; }
 .runbtn { flex: 1; background: var(--cyan); border: none; color: var(--bg); font-weight: 800; letter-spacing: .12em; font-size: 13px; padding: 15px; border-radius: 14px; cursor: pointer; transition: transform .15s, box-shadow .2s; }
 .runbtn:hover { transform: translateY(-2px); box-shadow: 0 0 18px rgba(55,224,255,.35); }
@@ -71,18 +71,21 @@ header { display: flex; justify-content: space-between; align-items: center; fle
 .runbtn.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
 .runbtn.ghost:hover { border-color: var(--acid); box-shadow: 0 0 14px rgba(184,255,60,.2); }
 .run-status { font-size: 12px; color: var(--dim); line-height: 1.7; margin-top: 12px; }
-.run-status.ok { color: var(--green); } .run-status.err { color: var(--magenta); } .run-status.warn { color: var(--amber); }
+.run-status.ok { color: var(--green); }
+.run-status.err { color: var(--magenta); }
+.run-status.warn { color: var(--amber); }
 
-/* loading steps */
+/* LOADING */
 .loadwrap { display: none; margin-top: 16px; }
 .loadwrap.on { display: block; }
 .loadstep { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--dim); letter-spacing: .08em; padding: 6px 0; animation: fadeIn .3s both; }
-.loadstep.done { color: var(--green); } .loadstep.live { color: var(--cyan); }
+.loadstep.done { color: var(--green); }
+.loadstep.live { color: var(--cyan); }
 .loadstep .ic { width: 16px; text-align: center; }
 .loadbar { height: 6px; background: var(--bg); border-radius: 99px; overflow: hidden; margin-top: 12px; }
 .loadbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--cyan), var(--acid)); border-radius: 99px; transition: width .5s ease; }
 
-/* match cards */
+/* MATCH CARDS */
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
 .mcard { background: var(--panel2); border: 1px solid rgba(255,255,255,.08); border-radius: 18px; padding: 18px; position: relative; overflow: hidden; transition: transform .2s, border-color .2s; animation: cardIn .5s ease-out both; }
 .mcard:hover { transform: translateY(-3px); border-color: rgba(184,255,60,.4); }
@@ -98,14 +101,16 @@ header { display: flex; justify-content: space-between; align-items: center; fle
 .mc-ring { position: absolute; top: -30px; right: -30px; width: 90px; height: 90px; border-radius: 50%; border: 1px solid rgba(55,224,255,.25); }
 .mc-soon { margin-top: 12px; font-size: 9px; letter-spacing: .18em; color: var(--dim); border-top: 1px solid var(--line); padding-top: 10px; }
 .mc-state { font-size: 9px; font-weight: 800; letter-spacing: .15em; }
-.st-in { color: var(--acid); } .st-near { color: var(--amber); } .st-skip { color: var(--dim); }
+.st-in { color: var(--acid); }
+.st-near { color: var(--amber); }
+.st-skip { color: var(--dim); }
 .empty { color: var(--dim); font-size: 12px; text-align: center; padding: 34px 10px; letter-spacing: .08em; line-height: 2; }
 
-/* 5-min notice */
+/* NOTICE */
 .notice { margin-top: 16px; font-size: 11px; letter-spacing: .1em; line-height: 1.8; color: var(--amber); background: rgba(255,177,61,.06); border: 1px solid rgba(255,177,61,.25); border-radius: 14px; padding: 12px 16px; }
 .notice b { color: var(--ink); }
 
-/* performance */
+/* PERFORMANCE */
 .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 16px; }
 .kpi { background: var(--panel2); border-radius: 12px; padding: 14px; text-align: center; }
 .kpi .v { font-size: 22px; font-weight: 800; }
@@ -115,7 +120,7 @@ header { display: flex; justify-content: space-between; align-items: center; fle
 @keyframes grow { from { height: 0; } }
 .perf-sub { font-size: 9px; color: var(--dim); letter-spacing: .15em; margin-top: 8px; }
 
-/* history */
+/* HISTORY */
 .hist { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
 .h-row { display: grid; grid-template-columns: 52px 1fr auto auto auto; gap: 10px; align-items: center; font-size: 12px; padding: 8px 12px; border-radius: 10px; }
 .h-row:nth-child(odd) { background: var(--panel2); }
@@ -127,7 +132,7 @@ header { display: flex; justify-content: space-between; align-items: center; fle
 .chip.miss { background: rgba(255,61,113,.1); color: var(--magenta); }
 .chip.pending { background: rgba(255,177,61,.1); color: var(--amber); }
 
-/* ===== SLIP PAGE (overlay) ===== */
+/* ===== SLIP PAGE ===== */
 #slip { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 50; overflow-y: auto; animation: fadeIn .4s both; }
 #slip.on { display: block; }
 .slip-wrap { max-width: 860px; margin: 0 auto; padding: 30px 20px 60px; }
@@ -136,14 +141,22 @@ header { display: flex; justify-content: space-between; align-items: center; fle
 .slip-back:hover { border-color: var(--magenta); color: var(--magenta); }
 .slip-sub { color: var(--dim); letter-spacing: .35em; font-size: 11px; margin-bottom: 26px; }
 .slip-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
+.slip-group { grid-column: 1 / -1; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px; }
+.slip-group-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; color: var(--acid); font-size: 12px; letter-spacing: .15em; font-weight: 800; }
+.slip-group-head span { color: var(--dim); font-size: 10px; font-weight: 500; }
+.slip-group-bets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 700px) {
+  .slip-group-bets { grid-template-columns: 1fr; }
+}
 .slip-foot { margin-top: 26px; text-align: center; font-size: 11px; color: var(--dim); letter-spacing: .1em; line-height: 2; }
 
-/* ===== FOOTER / ABOUT ===== */
+/* FOOTER */
 footer { margin-top: 30px; text-align: center; }
 .about { background: var(--panel); border: 1px solid var(--line); border-radius: 24px; padding: 26px; max-width: 760px; margin: 0 auto 22px; }
 .about h3 { font-size: 12px; letter-spacing: .25em; margin-bottom: 12px; color: var(--acid); }
 .about p { font-size: 12px; color: var(--dim); line-height: 2; letter-spacing: .04em; }
-.about b { color: var(--ink); } .about em { color: var(--cyan); font-style: normal; }
+.about b { color: var(--ink); }
+.about em { color: var(--cyan); font-style: normal; }
 .foot-line { font-size: 10px; color: var(--dim); letter-spacing: .2em; line-height: 2.2; }
 .foot-credit { font-size: 10px; color: var(--dim); letter-spacing: .12em; font-family: ui-monospace, monospace; padding: 14px 0 30px; }
 .foot-credit b { color: var(--acid); }
@@ -151,7 +164,8 @@ footer { margin-top: 30px; text-align: center; }
 @media (max-width: 640px) {
   header { flex-direction: column; align-items: flex-start; }
   .hstats { width: 100%; justify-content: space-between; }
-  .hstat { text-align: left; } .vdiv { border-left: none; padding-left: 0; }
+  .hstat { text-align: left; }
+  .vdiv { border-left: none; padding-left: 0; }
   .cards { grid-template-columns: 1fr; }
   .h-row { grid-template-columns: 44px 1fr auto; }
   .h-prob, .h-call { display: none; }
@@ -248,30 +262,51 @@ footer { margin-top: 30px; text-align: center; }
       <div class="brand" style="font-size:22px">BARBADOX<i>·</i></div>
       <button class="slip-back" onclick="closeSlip()">← BACK TO CONSOLE</button>
     </div>
-    <div class="slip-sub">TODAY'S ANALYSIS · THE MODEL'S CALLS</div>
+
+    <div class="slip-sub">GENERATE MULTIPLE SLIPS · EXACTLY 3 MATCHES PER SLIP</div>
+
+    <div class="run-row" style="margin:0 0 22px;align-items:center">
+      <label for="slipCount" style="color:var(--dim);font-size:11px;letter-spacing:.12em;white-space:nowrap">NUMBER OF SLIPS</label>
+      <input id="slipCount" type="number" min="1" max="50" value="1" inputmode="numeric"
+        style="width:90px;background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px;font:inherit">
+      <button class="runbtn" id="generateSlips" type="button">GENERATE SLIPS</button>
+    </div>
+
+    <div class="run-status" id="slipStatus" style="margin:0 0 16px"></div>
     <div class="slip-cards" id="slipCards"></div>
     <div class="slip-foot" id="slipFoot"></div>
   </div>
 </div>
 
 <script>
-/* ============ ADAPTER — same service endpoints ============ */
+/* ============ ADAPTER — SAME SERVICE ENDPOINTS ============ */
 const Barbadox = (() => {
-  const LG_NAMES = { PL: "PREMIER LEAGUE", PD: "LA LIGA", FL1: "LIGUE 1", BL1: "BUNDESLIGA",
-                     SA: "SERIE A", CL: "CHAMPIONS LEAGUE", SAUDI: "SAUDI LEAGUE" };
+  const LG_NAMES = {
+    PL: "PREMIER LEAGUE",
+    PD: "LA LIGA",
+    FL1: "LIGUE 1",
+    BL1: "BUNDESLIGA",
+    SA: "SERIE A",
+    CL: "CHAMPIONS LEAGUE",
+    SAUDI: "SAUDI LEAGUE"
+  };
+
   async function getData() {
     const r = await fetch("/api/data", { cache: "no-store" });
     if (!r.ok) return null;
     return await r.json();
   }
+
   async function startRun() {
     const r = await fetch("/api/run", { method: "POST" });
     return await r.json();
   }
+
   async function getStatus() {
     const r = await fetch("/api/status", { cache: "no-store" });
     return await r.json();
   }
+
   return { LG_NAMES, getData, startRun, getStatus };
 })();
 
@@ -280,200 +315,545 @@ const $ = id => document.getElementById(id);
 const pct1 = x => (x * 100).toFixed(1) + "%";
 const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-let snap = null, pollTimer = null;
-let THRESHOLD = 0.79, MARKET = 1.5;
+let snap = null;
+let pollTimer = null;
+let THRESHOLD = 0.79;
+let MARKET = 1.5;
 const FIVE_MIN = 5 * 60 * 1000;
 
 /* BOOT */
 let bootProg = 0;
+
 const bootTimer = setInterval(() => {
   bootProg = Math.min(100, bootProg + 2);
   const filled = Math.round(bootProg / 100 * 18);
-  $("bar").innerHTML = "█".repeat(filled) + '<span class="off">' + "░".repeat(18 - filled) + "</span>";
-  if (bootProg >= 100) { clearInterval(bootTimer); setTimeout(enterDash, 400); }
+
+  $("bar").innerHTML =
+    "█".repeat(filled) +
+    '<span class="off">' +
+    "░".repeat(18 - filled) +
+    "</span>";
+
+  if (bootProg >= 100) {
+    clearInterval(bootTimer);
+    setTimeout(enterDash, 400);
+  }
 }, 40);
+
 function enterDash() {
   $("boot").classList.add("fadeout");
-  setTimeout(() => { $("boot").style.display = "none"; $("dash").style.display = "block"; }, 500);
+
+  setTimeout(() => {
+    $("boot").style.display = "none";
+    $("dash").style.display = "block";
+  }, 500);
 }
 
-/* status helpers */
-function setRunNote(msg, cls) { const el = $("runStatus"); el.textContent = msg; el.className = "run-status " + (cls || ""); }
+/* STATUS HELPERS */
+function setRunNote(msg, cls) {
+  const el = $("runStatus");
+  el.textContent = msg;
+  el.className = "run-status " + (cls || "");
+}
 
-/* loading panel */
-const STEPS = ["CONNECTING TO THE FIXTURE FEED", "PREPARING TODAY'S MATCHES", "ANALYSING FIXTURES", "FINALISING THE RESULTS"];
-let liveStep = 0, stepTimer = null;
+/* LOADING PANEL */
+const STEPS = [
+  "CONNECTING TO THE FIXTURE FEED",
+  "PREPARING TODAY'S MATCHES",
+  "ANALYSING FIXTURES",
+  "FINALISING THE RESULTS"
+];
+
+let liveStep = 0;
+let stepTimer = null;
+
 function showLoading() {
   $("loadWrap").classList.add("on");
-  liveStep = 0; renderSteps();
+  liveStep = 0;
+  renderSteps();
+
   stepTimer = setInterval(() => {
     liveStep = Math.min(STEPS.length - 1, liveStep + 1);
     renderSteps();
-    if (liveStep === STEPS.length - 1) { clearInterval(stepTimer); stepTimer = null; }
+
+    if (liveStep === STEPS.length - 1) {
+      clearInterval(stepTimer);
+      stepTimer = null;
+    }
   }, 3500);
 }
+
 function renderSteps(doneUpto) {
   const upto = doneUpto != null ? doneUpto : liveStep;
+
   $("loadSteps").innerHTML = STEPS.map((s, i) => {
     const cls = i < upto ? "done" : i === upto ? "live" : "";
     const ic = i < upto ? "✓" : i === upto ? "▸" : "·";
-    return '<div class="loadstep ' + cls + '"><span class="ic">' + ic + "</span>" + s + "</div>";
+
+    return '<div class="loadstep ' + cls + '">' +
+      '<span class="ic">' + ic + "</span>" +
+      s +
+      "</div>";
   }).join("");
-  $("loadFill").style.width = (Math.round((upto + 1) / STEPS.length * 90)) + "%";
-}
-function hideLoading(ok) {
-  if (stepTimer) { clearInterval(stepTimer); stepTimer = null; }
-  renderSteps(ok ? STEPS.length : liveStep);
-  $("loadFill").style.width = ok ? "100%" : $("loadFill").style.width;
-  setTimeout(() => $("loadWrap").classList.remove("on"), ok ? 1400 : 2500);
+
+  $("loadFill").style.width =
+    Math.round((upto + 1) / STEPS.length * 90) + "%";
 }
 
-/* snapshot freshness */
+function hideLoading(ok) {
+  if (stepTimer) {
+    clearInterval(stepTimer);
+    stepTimer = null;
+  }
+
+  renderSteps(ok ? STEPS.length : liveStep);
+
+  $("loadFill").style.width =
+    ok ? "100%" : $("loadFill").style.width;
+
+  setTimeout(() => {
+    $("loadWrap").classList.remove("on");
+  }, ok ? 1400 : 2500);
+}
+
+/* SNAPSHOT FRESHNESS */
 function snapAgeMs() {
   if (!snap || !snap.generated_at) return null;
+
   const t = Date.parse(snap.generated_at);
   return isNaN(t) ? null : Date.now() - t;
 }
+
 function freshnessNote() {
   const age = snapAgeMs();
+
   if (age == null) return null;
   if (age < FIVE_MIN) return "fresh";
+
   const mins = Math.floor(age / 60000);
   return "stale:" + mins;
 }
 
-/* RESULTS */
+/* MATCH CARDS */
 function fixtureCards(fxs) {
   return fxs.map((f, i) =>
     '<div class="mcard" style="animation-delay:' + (i * 0.08) + 's">' +
       '<div class="mc-ring"></div>' +
-      '<div class="lg"><span>' + esc(Barbadox.LG_NAMES[f.league] || f.league) + "</span>" +
-        '<span class="mc-state ' + (f.decision === "logged" ? "st-in" : f.decision === "near-line" ? "st-near" : "st-skip") + '">' +
-        (f.decision === "logged" ? "✓ QUALIFIED" : f.decision === "near-line" ? "▲ NEAR" : "○ BELOW LINE") + "</span></div>" +
-      '<div class="mc-teams">' + esc(f.home) + ' <span>vs</span> ' + esc(f.away) + "</div>" +
-      '<div class="mc-meta">' + esc(f.date) + (f.time ? " · " + esc(f.time) : "") + "</div>" +
-      '<div class="mc-market"><span class="mc-call">OVER ' + MARKET + ' GOALS</span>' +
-        '<span class="mc-pct">' + (f.core != null ? pct1(f.core) : "—") + "<small>CORE CONFIDENCE</small></span></div>" +
+
+      '<div class="lg">' +
+        '<span>' +
+          esc(Barbadox.LG_NAMES[f.league] || f.league) +
+        "</span>" +
+
+        '<span class="mc-state ' +
+          (f.decision === "logged"
+            ? "st-in"
+            : f.decision === "near-line"
+              ? "st-near"
+              : "st-skip") +
+        '">' +
+
+        (f.decision === "logged"
+          ? "✓ QUALIFIED"
+          : f.decision === "near-line"
+            ? "▲ NEAR"
+            : "○ BELOW LINE") +
+
+        "</span>" +
+      "</div>" +
+
+      '<div class="mc-teams">' +
+        esc(f.home) +
+        ' <span>vs</span> ' +
+        esc(f.away) +
+      "</div>" +
+
+      '<div class="mc-meta">' +
+        esc(f.date) +
+        (f.time ? " · " + esc(f.time) : "") +
+      "</div>" +
+
+      '<div class="mc-market">' +
+        '<span class="mc-call">OVER ' + MARKET + ' GOALS</span>' +
+
+        '<span class="mc-pct">' +
+          (f.core != null ? pct1(f.core) : "—") +
+          "<small>CORE CONFIDENCE</small>" +
+        "</span>" +
+      "</div>" +
+
       '<div class="mc-soon">MORE BET ANGLES COMING SOON</div>' +
-    "</div>").join("");
+    "</div>"
+  ).join("");
 }
+
+/* RESULTS */
 function renderResults() {
   const fxs = snap ? snap.fixtures : [];
-  if (snap) { THRESHOLD = snap.threshold; MARKET = snap.market; }
-  $("thTag").textContent = Math.round(THRESHOLD * 100) + "% ENTRY BAR";
+
+  if (snap) {
+    THRESHOLD = snap.threshold;
+    MARKET = snap.market;
+  }
+
+  $("thTag").textContent =
+    Math.round(THRESHOLD * 100) + "% ENTRY BAR";
+
   const logged = fxs.filter(f => f.decision === "logged");
-  $("resTag").textContent = logged.length + " QUALIFIED · " + fxs.length + " SCANNED";
+
+  $("resTag").textContent =
+    logged.length + " QUALIFIED · " + fxs.length + " SCANNED";
+
   if (logged.length) {
     $("resCards").innerHTML = fixtureCards(logged);
   } else {
-    $("resCards").innerHTML = '<div class="empty">' +
-      (fxs.length ? "NO FIXTURE CLEARED THE MODEL'S ENTRY BAR TODAY.<br>NO SELECTIONS WERE MANUFACTURED TO FILL THE PAGE." :
-      "NO ANALYSIS YET.<br>TAP RUN MODEL TO SCAN TODAY'S FIXTURES.") + "</div>";
+    $("resCards").innerHTML =
+      '<div class="empty">' +
+      (fxs.length
+        ? "NO FIXTURE CLEARED THE MODEL'S ENTRY BAR TODAY.<br>NO SELECTIONS WERE MANUFACTURED TO FILL THE PAGE."
+        : "NO ANALYSIS YET.<br>TAP RUN MODEL TO SCAN TODAY'S FIXTURES.") +
+      "</div>";
   }
-  /* 5-minute notice */
+
+  /* FIVE-MINUTE NOTICE */
   const age = freshnessNote();
   let n = "";
+
   if (!snap) {
     n = "Tap RUN MODEL to generate the first analysis of the day.";
   } else if (age === "fresh") {
     n = "Core scan complete (factors 1–2). <b>Wait ~5 minutes</b> while match context is refined, then tap RUN MODEL again for the full analysis.";
   } else {
-    n = "Context should now be refined. <b>Tap RUN MODEL again</b> for the full analysis. (Last run: " + age.split(":")[1] + " min ago)";
+    n = "Context should now be refined. <b>Tap RUN MODEL again</b> for the full analysis. (Last run: " +
+      age.split(":")[1] + " min ago)";
   }
-  $("fiveMin").innerHTML = '<div class="notice">' + n + "</div>";
+
+  $("fiveMin").innerHTML =
+    '<div class="notice">' + n + "</div>";
 }
 
 /* PERFORMANCE */
 function renderPerformance() {
   const all = snap ? snap.picks : [];
-  const graded = all.filter(p => p.result === "HIT" || p.result === "MISS");
+
+  const graded = all.filter(
+    p => p.result === "HIT" || p.result === "MISS"
+  );
+
   const hits = graded.filter(p => p.result === "HIT").length;
   const pending = all.filter(p => !p.result).length;
   const hitRate = graded.length ? hits / graded.length : null;
-  $("perfTag").textContent = graded.length ? graded.length + " GRADED" : "AWAITING RESULTS";
+
+  $("perfTag").textContent =
+    graded.length ? graded.length + " GRADED" : "AWAITING RESULTS";
+
   $("perfKpis").innerHTML =
-    '<div class="kpi"><div class="v" style="color:var(--green)">' + hits + "/" + graded.length + '</div><div class="k">HITS / GRADED</div></div>' +
-    '<div class="kpi"><div class="v" style="color:' + (hitRate === null ? "var(--dim)" : hitRate >= THRESHOLD ? "var(--acid)" : "var(--magenta)") + '">' +
-    (hitRate === null ? "—" : pct1(hitRate)) + '</div><div class="k">HIT RATE</div></div>' +
-    '<div class="kpi"><div class="v" style="color:var(--amber)">' + pending + '</div><div class="k">PENDING</div></div>';
-  if (!graded.length) { $("perfBars").innerHTML = ""; $("perfSub").textContent = "NO GRADED PICKS YET — RESULTS ARE GRADED AFTER KICKOFF"; return; }
-  const sorted = [...graded].sort((a, b) => (a.logged_at || "").localeCompare(b.logged_at || ""));
+    '<div class="kpi">' +
+      '<div class="v" style="color:var(--green)">' +
+        hits + "/" + graded.length +
+      '</div>' +
+      '<div class="k">HITS / GRADED</div>' +
+    '</div>' +
+
+    '<div class="kpi">' +
+      '<div class="v" style="color:' +
+        (hitRate === null
+          ? "var(--dim)"
+          : hitRate >= THRESHOLD
+            ? "var(--acid)"
+            : "var(--magenta)") +
+      '">' +
+        (hitRate === null ? "—" : pct1(hitRate)) +
+      '</div>' +
+      '<div class="k">HIT RATE</div>' +
+    '</div>' +
+
+    '<div class="kpi">' +
+      '<div class="v" style="color:var(--amber)">' +
+        pending +
+      '</div>' +
+      '<div class="k">PENDING</div>' +
+    '</div>';
+
+  if (!graded.length) {
+    $("perfBars").innerHTML = "";
+    $("perfSub").textContent =
+      "NO GRADED PICKS YET — RESULTS ARE GRADED AFTER KICKOFF";
+    return;
+  }
+
+  const sorted = [...graded].sort(
+    (a, b) => (a.logged_at || "").localeCompare(b.logged_at || "")
+  );
+
   const recent = sorted.slice(-Math.min(14, sorted.length));
+
   $("perfBars").innerHTML = recent.map((p, i) => {
     const h = Math.round(parseFloat(p.probability) * 100);
     const col = p.result === "HIT" ? "var(--green)" : "var(--magenta)";
-    return '<i style="height:' + h + "%;background:linear-gradient(180deg," + col + "," + col + "22);animation-delay:" + (0.2 + i * 0.05) + 's"></i>';
+
+    return '<i style="height:' + h +
+      "%;background:linear-gradient(180deg," + col + "," + col +
+      '22);animation-delay:' + (0.2 + i * 0.05) + 's"></i>';
   }).join("");
-  $("perfSub").textContent = "LAST " + recent.length + " GRADED PICKS · BAR HEIGHT = CORE CONFIDENCE";
+
+  $("perfSub").textContent =
+    "LAST " + recent.length +
+    " GRADED PICKS · BAR HEIGHT = CORE CONFIDENCE";
 }
 
 /* HISTORY */
 function renderHistory() {
-  const rows = [...(snap ? snap.picks : [])].sort((a, b) =>
-    (b.date + "|" + (b.logged_at || "")).localeCompare(a.date + "|" + (a.logged_at || "")));
+  const rows = [...(snap ? snap.picks : [])].sort(
+    (a, b) =>
+      (b.date + "|" + (b.logged_at || ""))
+        .localeCompare(a.date + "|" + (a.logged_at || ""))
+  );
+
   $("histTag").textContent = rows.length + " LOGGED CALLS";
+
   $("histList").innerHTML = rows.slice(0, 30).map((p, i) => {
     const res = p.result || "PENDING";
-    const cls = res === "HIT" ? "hit" : res === "MISS" ? "miss" : "pending";
-    const score = p.hg !== "" && p.hg != null ? esc(p.hg) + "–" + esc(p.ag) : "—";
-    return '<div class="h-row" style="animation:fadeIn .35s ' + (i * 0.04) + 's both">' +
+
+    const cls =
+      res === "HIT" ? "hit" :
+      res === "MISS" ? "miss" :
+      "pending";
+
+    const score =
+      p.hg !== "" && p.hg != null
+        ? esc(p.hg) + "–" + esc(p.ag)
+        : "—";
+
+    return '<div class="h-row" style="animation:fadeIn .35s ' +
+      (i * 0.04) + 's both">' +
+
       '<span class="h-date">' + esc(p.date) + "</span>" +
-      "<span>" + esc(p.home) + ' <span style="color:var(--dim)">vs</span> ' + esc(p.away) + " · " + score + "</span>" +
+
+      "<span>" +
+        esc(p.home) +
+        ' <span style="color:var(--dim)">vs</span> ' +
+        esc(p.away) + " · " + score +
+      "</span>" +
+
       '<span class="h-call">O' + esc(p.market) + "</span>" +
-      '<span class="h-prob">' + pct1(parseFloat(p.probability)) + "</span>" +
-      '<span class="chip ' + cls + '">' + res + "</span></div>";
-  }).join("") || '<div class="empty">NOTHING LOGGED YET — TAP RUN MODEL.</div>';
+
+      '<span class="h-prob">' +
+        pct1(parseFloat(p.probability)) +
+      "</span>" +
+
+      '<span class="chip ' + cls + '">' + res + "</span>" +
+    "</div>";
+  }).join("") ||
+    '<div class="empty">NOTHING LOGGED YET — TAP RUN MODEL.</div>';
 }
 
-/* SLIP / ANALYSIS PAGE */
-function openSlip() {
-  const logged = snap ? snap.fixtures.filter(f => f.decision === "logged") : [];
-  if (!logged.length) { setRunNote("No qualified picks to show yet — run the model first.", "warn"); return; }
-  $("slipCards").innerHTML = fixtureCards(logged);
-  $("slipFoot").innerHTML = "OVER " + MARKET + " GOALS ONLY FOR NOW · MORE BET ANGLES COMING SOON<br>" +
-    "ENTRY BAR: " + Math.round(THRESHOLD * 100) + "% CORE CONFIDENCE · THE MODEL MAKES THE CALL. TIME WILL JUDGE THE RESULTS.";
-  $("slip").classList.add("on");
-}
-function closeSlip() { $("slip").classList.remove("on"); }
-$("btnSlip").onclick = openSlip;
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeSlip(); });
+/* =====================================================
+   SLIP GENERATOR
+   EXACTLY THREE MATCHES PER SLIP
+   ===================================================== */
 
-/* RUN */
-async function pollStatus() {
-  const st = await Barbadox.getStatus();
-  if (st.running) return;
-  clearInterval(pollTimer); pollTimer = null;
-  const ok = st.ok;
-  hideLoading(ok);
-  $("btnRun").disabled = false; $("btnRun").textContent = "▶ RUN MODEL";
-  if (ok) {
-    setRunNote("ANALYSIS COMPLETE — results updated below.", "ok");
-    await refreshData(false);
-    const fresh = freshnessNote() === "fresh";
-    if (fresh) setTimeout(() => setRunNote("Core scan complete (factors 1–2). Wait ~5 minutes while match context is refined, then tap RUN again for the full analysis.", "warn"), 3500);
-  } else {
-    setRunNote("RUN FAILED — the last successful analysis is preserved below.", "err");
-  }
-}
-$("btnRun").onclick = async () => {
-  $("btnRun").disabled = true; $("btnRun").textContent = "RUNNING…";
-  setRunNote("Starting the model on this service...", "ok");
-  showLoading();
-  const r = await Barbadox.startRun();
-  if (!r.ok) {
-    hideLoading(false);
-    setRunNote(r.message || "RUN FAILED — try again shortly.", "err");
-    $("btnRun").disabled = false; $("btnRun").textContent = "▶ RUN MODEL";
+function generateSlips() {
+  /*
+   * Only use qualified matches from the current snapshot.
+   * This does not manufacture new model selections.
+   */
+  const logged = snap
+    ? snap.fixtures.filter(f => f.decision === "logged")
+    : [];
+
+  /* Validate the requested number of slips. */
+  const count = Math.max(
+    1,
+    Math.min(
+      50,
+      Number.parseInt($("slipCount").value, 10) || 1
+    )
+  );
+
+  $("slipCount").value = count;
+
+  /*
+   * Each slip needs exactly three matches.
+   * In this version, a match is used at most once
+   * across the generated slips.
+   */
+  const available = Math.floor(logged.length / 3);
+
+  if (available === 0) {
+    $("slipCards").innerHTML =
+      '<div class="empty">' +
+        'AT LEAST 3 QUALIFIED MATCHES ARE REQUIRED TO MAKE A SLIP.' +
+        '<br>RUN THE MODEL FIRST OR WAIT FOR MORE QUALIFIED MATCHES.' +
+      '</div>';
+
+    $("slipStatus").textContent =
+      "0 slips available · " +
+      logged.length +
+      " qualified match(es) found.";
+
+    $("slipFoot").textContent = "";
     return;
   }
+
+  /*
+   * Never generate more slips than the number
+   * of complete groups of three permits.
+   */
+  const made = Math.min(count, available);
+
+  /*
+   * Select the required number of matches.
+   * Three consecutive matches form each slip.
+   */
+  const chosen = logged.slice(0, made * 3);
+
+  let markup = "";
+
+  for (let i = 0; i < made; i++) {
+    const bets = chosen.slice(i * 3, i * 3 + 3);
+
+    markup +=
+      '<section class="slip-group">' +
+
+        '<div class="slip-group-head">' +
+          "SLIP " + (i + 1) +
+          '<span>3 MATCHES · ' + bets.length + "/3</span>" +
+        "</div>" +
+
+        '<div class="slip-group-bets">' +
+          fixtureCards(bets) +
+        "</div>" +
+
+      "</section>";
+  }
+
+  $("slipCards").innerHTML = markup;
+
+  $("slipStatus").textContent =
+    "Generated " + made +
+    " slip(s), with exactly 3 matches in each. " +
+
+    (
+      made < count
+        ? "Only " + available +
+          " complete slip(s) possible from " +
+          logged.length + " qualified matches."
+        : (logged.length - made * 3) +
+          " qualified match(es) left unused."
+    );
+
+  $("slipFoot").innerHTML =
+    "OVER " + MARKET +
+    " GOALS ONLY FOR NOW · MORE BET ANGLES COMING SOON<br>" +
+
+    "ENTRY BAR: " + Math.round(THRESHOLD * 100) +
+    "% CORE CONFIDENCE · THE MODEL MAKES THE CALL. " +
+    "TIME WILL JUDGE THE RESULTS.";
+}
+
+/* SLIP PAGE CONTROLS */
+function openSlip() {
+  $("slip").classList.add("on");
+  generateSlips();
+}
+
+function closeSlip() {
+  $("slip").classList.remove("on");
+}
+
+$("btnSlip").onclick = openSlip;
+$("generateSlips").onclick = generateSlips;
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeSlip();
+});
+
+/* =====================================================
+   RUN MODEL
+   ===================================================== */
+
+async function pollStatus() {
+  const st = await Barbadox.getStatus();
+
+  if (st.running) return;
+
+  clearInterval(pollTimer);
+  pollTimer = null;
+
+  const ok = st.ok;
+
+  hideLoading(ok);
+
+  $("btnRun").disabled = false;
+  $("btnRun").textContent = "▶ RUN MODEL";
+
+  if (ok) {
+    setRunNote(
+      "ANALYSIS COMPLETE — results updated below.",
+      "ok"
+    );
+
+    await refreshData(false);
+
+    const fresh = freshnessNote() === "fresh";
+
+    if (fresh) {
+      setTimeout(() => {
+        setRunNote(
+          "Core scan complete (factors 1–2). Wait ~5 minutes while match context is refined, then tap RUN again for the full analysis.",
+          "warn"
+        );
+      }, 3500);
+    }
+  } else {
+    setRunNote(
+      "RUN FAILED — the last successful analysis is preserved below.",
+      "err"
+    );
+  }
+}
+
+$("btnRun").onclick = async () => {
+  $("btnRun").disabled = true;
+  $("btnRun").textContent = "RUNNING…";
+
+  setRunNote(
+    "Starting the model on this service...",
+    "ok"
+  );
+
+  showLoading();
+
+  const r = await Barbadox.startRun();
+
+  if (!r.ok) {
+    hideLoading(false);
+
+    setRunNote(
+      r.message || "RUN FAILED — try again shortly.",
+      "err"
+    );
+
+    $("btnRun").disabled = false;
+    $("btnRun").textContent = "▶ RUN MODEL";
+
+    return;
+  }
+
   pollTimer = setInterval(pollStatus, 1500);
 };
 
-/* LOAD */
+/* =====================================================
+   LOAD DATA
+   ===================================================== */
+
 async function refreshData(first) {
   snap = await Barbadox.getData();
+
   if (snap) {
     const age = snapAgeMs();
+
     if (age != null && age < FIVE_MIN) {
       $("sysStatus").textContent = "ALL SYSTEMS NOMINAL";
       $("sysDot").className = "dot";
@@ -481,26 +861,50 @@ async function refreshData(first) {
       $("sysStatus").textContent = "READY — ANALYSIS MAY BE STALE";
       $("sysDot").className = "dot warn";
     }
-    $("snapTime").textContent = snap.generated_at.slice(0, 16).replace("T", " ") + "Z";
-    $("footData").textContent = "BARBADOX · MATCH INTELLIGENCE SYSTEM";
+
+    $("snapTime").textContent =
+      snap.generated_at.slice(0, 16).replace("T", " ") + "Z";
+
+    $("footData").textContent =
+      "BARBADOX · MATCH INTELLIGENCE SYSTEM";
+
   } else {
     $("sysStatus").textContent = "NO ANALYSIS — TAP RUN";
     $("sysDot").className = "dot err";
     $("snapTime").textContent = "—";
-    $("footData").textContent = "NO ANALYSIS YET — TAP RUN MODEL";
+
+    $("footData").textContent =
+      "NO ANALYSIS YET — TAP RUN MODEL";
   }
-  renderResults(); renderPerformance(); renderHistory();
+
+  renderResults();
+  renderPerformance();
+  renderHistory();
 }
+
+/* INITIALISE APP */
 (async function load() {
-  try { await refreshData(true); }
-  catch (e) {
-    $("sysStatus").textContent = "SERVICE ERROR"; $("sysDot").className = "dot err";
-    setRunNote("SERVICE ERROR: " + e.message, "err");
+  try {
+    await refreshData(true);
+
+  } catch (e) {
+    $("sysStatus").textContent = "SERVICE ERROR";
+    $("sysDot").className = "dot err";
+
+    setRunNote(
+      "SERVICE ERROR: " + e.message,
+      "err"
+    );
   }
+
   const st = await Barbadox.getStatus().catch(() => null);
+
   if (st && st.running) {
-    $("btnRun").disabled = true; $("btnRun").textContent = "RUNNING…";
+    $("btnRun").disabled = true;
+    $("btnRun").textContent = "RUNNING…";
+
     showLoading();
+
     pollTimer = setInterval(pollStatus, 1500);
   }
 })();
