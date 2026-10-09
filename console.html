@@ -372,8 +372,8 @@ function fixtureCards(fxs) {
     '<div class="mcard" style="animation-delay:' + (i * 0.08) + 's">' +
       '<div class="mc-ring"></div>' +
       '<div class="lg"><span>' + esc(Barbadox.LG_NAMES[f.league] || f.league) + "</span>" +
-        '<span class="mc-state ' + (f.decision === "logged" ? "st-in" : f.decision === "near-line" ? "st-near" : "st-skip") + '">' +
-        (f.decision === "logged" ? "✓ QUALIFIED" : f.decision === "near-line" ? "▲ NEAR" : "○ BELOW LINE") + "</span></div>" +
+        '<span class="mc-state ' + (f.decision === "logged" ? "st-in" : (f.decision === "near-line" || f.decision === "pending-owner") ? "st-near" : "st-skip") + '">' +
+        (f.decision === "logged" ? "✓ QUALIFIED" : f.decision === "pending-owner" ? "⏳ WAITING FOR OWNER — DO NOT USE" : f.decision === "near-line" ? "▲ NEAR" : "○ BELOW LINE") + "</span></div>" +
       '<div class="mc-teams">' + esc(f.home) + ' <span>vs</span> ' + esc(f.away) + "</div>" +
       '<div class="mc-meta">' + esc(f.date) + (f.time ? " · " + esc(f.time) : "") + "</div>" +
       '<div class="mc-market"><span class="mc-call">OVER ' + MARKET + ' GOALS</span>' +
@@ -386,9 +386,10 @@ function renderResults() {
   if (snap) { THRESHOLD = snap.threshold; MARKET = snap.market; }
   $("thTag").textContent = Math.round(THRESHOLD * 100) + "% ENTRY BAR";
   const logged = fxs.filter(f => f.decision === "logged");
-  $("resTag").textContent = logged.length + " QUALIFIED · " + fxs.length + " SCANNED";
-  if (logged.length) {
-    $("resCards").innerHTML = fixtureCards(logged);
+  const waitingFx = fxs.filter(f => f.decision === "pending-owner");
+  $("resTag").textContent = logged.length + " QUALIFIED · " + waitingFx.length + " WAITING · " + fxs.length + " SCANNED";
+  if (logged.length || waitingFx.length) {
+    $("resCards").innerHTML = fixtureCards(logged.concat(waitingFx));
   } else {
     $("resCards").innerHTML = '<div class="empty">' +
       (fxs.length ? "NO FIXTURE CLEARED THE MODEL'S ENTRY BAR TODAY.<br>NO SELECTIONS WERE MANUFACTURED TO FILL THE PAGE." :
@@ -497,10 +498,13 @@ $("btnSlip").onclick = openSlip;
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSlip(); });
 
 /* RUN */
+let waitLoaded = false;
 async function pollStatus() {
   const st = await Barbadox.getStatus();
   const secs = st.wait_seconds || 0;
   $("waitBox").classList.toggle("on", !!st.waiting);
+  if (st.waiting && !waitLoaded) { waitLoaded = true; await refreshData(false); }
+  if (!st.waiting) waitLoaded = false;
   if (st.waiting) {
     $("waitCount").textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
   }
