@@ -461,6 +461,8 @@ def analyze(fix, row, env, market):
 
     R = row or {}
     ready = str(R.get("checked", "")).strip() == "1"
+    if not ready:
+        R = {}  # context the owner has not confirmed (checked=1) is IGNORED: core-only
 
     def side(prefix):
         ab = parse_absences(R.get(f"{prefix}_absences"))
@@ -573,6 +575,68 @@ def read_context():
 
 def write_context(ctx):
     write_csv_rows(CONTEXT_FILE, CTX_FIELDS, list(ctx.values()))
+
+
+def append_context_rows(rows):
+    """APPEND-ONLY. Never rewrites or drops anything the owner has already entered."""
+    if not rows:
+        return
+    exists = CONTEXT_FILE.exists() and CONTEXT_FILE.stat().st_size > 0
+    fields = CTX_FIELDS
+    needs_newline = False
+    if exists:
+        with open(CONTEXT_FILE, newline="", encoding="utf-8-sig") as f:
+            header = next(csv.reader(f), [])
+        if all(c in header for c in CTX_FIELDS):
+            fields = header  # honour the owner's own column order / extra columns
+        else:
+            # Header is missing columns: the only safe move is one full rewrite that keeps every row.
+            merged = list(read_context().values()) + list(rows)
+            write_csv_rows(CONTEXT_FILE, CTX_FIELDS, merged)
+            return
+        with open(CONTEXT_FILE, "rb") as f:
+            f.seek(-1, os.SEEK_END)
+            needs_newline = f.read(1) not in (b"\n", b"\r")
+    with open(CONTEXT_FILE, "a", newline="", encoding="utf-8") as f:
+        if needs_newline:
+            f.write("\r\n")
+        w = csv.DictWriter(f, fieldnames=fields)
+        if not exists:
+            w.writeheader()
+        for r in rows:
+            w.writerow({k: r.get(k, "") for k in fields})
+
+
+def sync_context(fixtures, env, market, threshold):
+    """context.csv is created on the first run and is NEVER overwritten afterwards.
+    Only fixtures that are not in it yet, and whose best case can reach the threshold,
+    are appended (checked=0). Returns (ctx, number_added)."""
+    ctx = read_context()
+    new_rows = []
+    for fx in fixtures:
+        key = (fx["ldate"], fx["hk"], fx["ak"])
+        if key in ctx:
+            continue
+        probe = analyze(fx, None, env, market)
+        if probe.get("p") is None or probe["upper"] < threshold:
+            continue
+        row = {k: "" for k in CTX_FIELDS}
+        row.update({"date": fx["ldate"], "league": fx["league"], "home": fx["home"],
+                    "away": fx["away"], "checked": "0"})
+        ctx[key] = row
+        new_rows.append(row)
+    append_context_rows(new_rows)
+    return ctx, len(new_rows)
+
+
+def make_pick(fx, res, row, market):
+    return {
+        "date": fx["ldate"], "league": fx["league"], "home": fx["home"], "away": fx["away"],
+        "market": market, "probability": f"{res['p']:.4f}", "core_probability": f"{res['core']:.4f}",
+        "low": f"{res['low']:.4f}", "high": f"{res['high']:.4f}",
+        "field_temp_c": (row or {}).get("field_temp_c", ""), "factors": res["factors"],
+        "logged_at": NOW.isoformat(), "hg": "", "ag": "", "result": "", "note": "",
+    }
 
 
 def read_picks():
@@ -704,67 +768,17 @@ def cmd_run(args):
         print("No playable fixtures found in that window.")
         return
 
-    # context.csv is fully rebuilt at most once per calendar day (kickoff TZ).
-    # Only fixtures whose core probability already clears the threshold get a row.
-    # User-filled rows (checked=1) for fixtures still in the window are preserved.
-    # Same-day re-runs only append newly qualified fixtures; past dates are dropped
-    # on the daily rebuild so the file stays small and GitHub-friendly to edit.
-    # The file is ALWAYS written so it never goes missing after a run.
-    _tz = timedelta(hours=CFG["kickoff_tz_hours"])
-    today_str = (NOW + _tz).date().isoformat()
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    stamp_path = DATA_DIR / "context_stamp.txt"
-    last_stamp = stamp_path.read_text().strip() if stamp_path.exists() else ""
-
-    old_ctx = read_context()
-    fixture_by_key = {(fx["ldate"], fx["hk"], fx["ak"]): fx for fx in fixtures}
-
-    if last_stamp != today_str:
-        ctx = {}
-        added = 0
-        kept_filled = 0
-        for key, fx in fixture_by_key.items():
-            _probe = analyze(fx, None, env, args.market)
-            if _probe["p"] is None or _probe["p"] < args.threshold:
-                continue
-            if key in old_ctx and str(old_ctx[key].get("checked", "")).strip() == "1":
-                ctx[key] = old_ctx[key]
-                kept_filled += 1
-            else:
-                row = {k: "" for k in CTX_FIELDS}
-                row.update({"date": fx["ldate"], "league": fx["league"], "home": fx["home"],
-                            "away": fx["away"], "checked": "0"})
-                ctx[key] = row
-                added += 1
-        write_context(ctx)
-        stamp_path.write_text(today_str + "\n")
-        print(f"\ncontext.csv refreshed for {today_str}: {len(ctx)} threshold fixture(s) "
-              f"({added} blank, {kept_filled} already filled). "
-              f"Only picks at/above {pct(args.threshold)} are listed — edit on GitHub, set checked=1.")
+    # CONTEXT IS PERSISTENT: created once, then append-only. Owner rows are never touched.
+    ctx, added = sync_context(fixtures, env, args.market, args.threshold)
+    if added:
+        print("\n" + "!" * 70)
+        print(f"!!! OWNER ACTION REQUIRED !!! {added} new match(es) appended to context.csv.")
+        print("!!! WAIT 5 MINUTES for the owner to fill in context.csv and set checked=1.")
+        print("!!! If it is still not updated after 5 minutes, KEEP WAITING FOR THE OWNER.")
+        print("!!! Unconfirmed matches are NOT eligible for picks.")
+        print("!" * 70)
     else:
-        ctx = dict(old_ctx)
-        # Drop rows for fixtures no longer in the window / past dates
-        live_keys = set(fixture_by_key.keys())
-        ctx = {k: v for k, v in ctx.items() if k in live_keys}
-        added = 0
-        for key, fx in fixture_by_key.items():
-            if key in ctx:
-                continue
-            _probe = analyze(fx, None, env, args.market)
-            if _probe["p"] is None or _probe["p"] < args.threshold:
-                continue
-            row = {k: "" for k in CTX_FIELDS}
-            row.update({"date": fx["ldate"], "league": fx["league"], "home": fx["home"],
-                        "away": fx["away"], "checked": "0"})
-            ctx[key] = row
-            added += 1
-        # Always write so context.csv never disappears after a run
-        write_context(ctx)
-        if added:
-            print(f"\n{added} new threshold fixture(s) added to context.csv "
-                  f"(daily refresh already done for {today_str}).")
-        else:
-            print(f"\ncontext.csv kept ({len(ctx)} threshold fixture(s) for {today_str}).")
+        print(f"\ncontext.csv preserved unchanged ({len(ctx)} existing row(s)).")
 
     picks = read_picks()
     logged_keys = {(p["date"], norm(p["home"]), norm(p["away"])) for p in picks}
@@ -796,14 +810,8 @@ def cmd_run(args):
         print(f"  => {pct(res['p'])} (core {pct(res['core'])}, range {pct(res['low'])}-{pct(res['high'])})")
 
         key = (fx["ldate"], norm(fx["home"]), norm(fx["away"]))
-        if res["p"] >= args.threshold and key not in logged_keys:
-            picks.append({
-                "date": fx["ldate"], "league": fx["league"], "home": fx["home"], "away": fx["away"],
-                "market": args.market, "probability": f"{res['p']:.4f}", "core_probability": f"{res['core']:.4f}",
-                "low": f"{res['low']:.4f}", "high": f"{res['high']:.4f}",
-                "field_temp_c": (row or {}).get("field_temp_c", ""), "factors": res["factors"],
-                "logged_at": NOW.isoformat(), "hg": "", "ag": "", "result": "", "note": "",
-            })
+        if ready and res["p"] >= args.threshold and key not in logged_keys:
+            picks.append(make_pick(fx, res, row, args.market))
             logged_keys.add(key)
             kept += 1
             print(f"  LOGGED (>= {pct(args.threshold)})")
@@ -812,7 +820,14 @@ def cmd_run(args):
     if kept:
         write_picks(picks)
     write_html_report(picks)
-    print(f"Logged {kept} new pick(s) to picks.csv.")
+    print(f"Logged {kept} new owner-confirmed pick(s) to picks.csv.")
+    pending_owner = sum(
+        1 for fx in fixtures
+        if (fx["ldate"], fx["hk"], fx["ak"]) in ctx
+        and str(ctx[(fx["ldate"], fx["hk"], fx["ak"])].get("checked", "")).strip() != "1")
+    if pending_owner:
+        print(f"OWNER WAIT: {pending_owner} fixture(s) still unconfirmed in context.csv. "
+              "Do NOT use them as picks; keep waiting for the owner.")
 
     tz = timedelta(hours=CFG["kickoff_tz_hours"])
     today = (NOW + tz).date()
