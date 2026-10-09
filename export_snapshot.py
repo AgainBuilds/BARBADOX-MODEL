@@ -55,11 +55,21 @@ def export(args):
             item["ltime"] = loc.strftime("%H:%M")
             fixtures.append(item)
 
-    ctx = bc.read_context()
-    picks = bc.read_picks()
-    logged_keys = {(p["date"], bc.norm(p["home"]), bc.norm(p["away"])) for p in picks}
     threshold = args.threshold
     market = args.market
+
+    # context.csv: created on first run, then APPEND-ONLY (owner rows are never rewritten).
+    ctx, added_context = bc.sync_context(fixtures, env, market, threshold)
+    if added_context:
+        print("!" * 70)
+        print(f"!!! OWNER WARNING: {added_context} new match(es) appended to context.csv.")
+        print("!!! WAIT 5 MINUTES for the owner to review it and set checked=1.")
+        print("!!! Unconfirmed matches cannot become picks.")
+        print("!" * 70)
+
+    picks = bc.read_picks()
+    logged_keys = {(p["date"], bc.norm(p["home"]), bc.norm(p["away"])) for p in picks}
+    new_picks = 0
 
     out_fixtures = []
     for fx in sorted(fixtures, key=lambda x: (x["ldate"], x["ltime"])):
@@ -77,10 +87,15 @@ def export(args):
 
         key = (fx["ldate"], fx["hk"], fx["ak"])
         ready = bool(row) and str(row.get("checked", "")).strip() == "1"
-        if key in logged_keys or res["p"] >= threshold:
+        if key in logged_keys:
             decision = "logged"
-        elif res["upper"] >= threshold:
-            decision = "near-line" if not ready else "below-line"
+        elif ready and res["p"] >= threshold:
+            picks.append(bc.make_pick(fx, res, row, market))
+            logged_keys.add(key)
+            new_picks += 1
+            decision = "logged"
+        elif not ready and res["upper"] >= threshold:
+            decision = "pending-owner"
         else:
             decision = "below-line"
 
@@ -108,6 +123,10 @@ def export(args):
         })
         out_fixtures.append(entry)
 
+    if new_picks:
+        bc.write_picks(picks)
+        bc.write_html_report(picks)
+    owner_pending = sum(1 for f in out_fixtures if f.get("decision") == "pending-owner")
     snapshot = {
         "generated_at": bc.NOW.isoformat(),
         "window": {"from": str(d0), "to": str(d1 - timedelta(days=1))},
@@ -116,6 +135,9 @@ def export(args):
         "leagues": bc.LEAGUES,
         "fixtures": out_fixtures,
         "picks": picks,
+        "context_added": added_context,
+        "owner_pending": owner_pending,
+        "context_ready": owner_pending == 0,
     }
     SNAPSHOT_FILE.parent.mkdir(exist_ok=True)
     SNAPSHOT_FILE.write_text(json.dumps(snapshot, indent=1), encoding="utf-8")
