@@ -1,5 +1,5 @@
 date,league,home,away,market,probability,core_probability,low,high,field_temp_c,factors,logged_at,hg,ag,result,note
-2026-10-09,BL1,Borussia Dortmund,SV Werder Bremen,1.5,0.8097,0.8097,0.7716,0.8421,,core 81.0 | form 84 | base 80,2026-10-07T13:02:57.686581+00:00,,,,
+2026-10-09,BL1,Borussia Dortmund,SV Werder Bremen,1.5,0.8097,0.8097,0.7716,0.8421,,core 81.0 | form 84 | base 80,2026-10-07T13:02:57.686581+00:00,2,2,HIT,
 2026-10-10,BL1,1. FSV Mainz 05,Bayer 04 Leverkusen,1.5,0.8156,0.8156,0.7779,0.8474,,core 81.6 | form 87 | base 79,2026-10-08T06:42:01.597877+00:00,,,,
 2026-10-10,BL1,SC Paderborn 07,VfB Stuttgart,1.5,0.8491,0.8491,0.8147,0.8776,,core 84.9 | form 81 | base 91,2026-10-08T06:42:01.597877+00:00,,,,
 2026-10-10,BL1,1. FC Union Berlin,SV 07 Elversberg,1.5,0.8575,0.8575,0.8240,0.8850,,core 85.7 | form 91 | base 81,2026-10-08T06:42:01.597877+00:00,,,,
