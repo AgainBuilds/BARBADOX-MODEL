@@ -1,0 +1,44 @@
+name: Barbadox - Core 2 (Under 3.5)
+
+on:
+  workflow_dispatch:
+    inputs:
+      leagues:
+        description: "Competition codes, comma separated (PL, PD, FL1, BL1, SA)"
+        default: "PL"
+      threshold:
+        description: "Final-probability cutoff"
+        default: "0.60"
+      test_seasons:
+        description: "Start years of seasons to test"
+        default: "2024,2025,2026"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install requests
+
+      - name: Run barbadox_core2.py
+        run: python barbadox_core2.py
+        env:
+          # change the secret name if your Core Check workflow uses a different one
+          FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+          LEAGUES: ${{ github.event.inputs.leagues || 'PL' }}
+          THRESHOLD: ${{ github.event.inputs.threshold || '0.60' }}
+          TEST_SEASONS: ${{ github.event.inputs.test_seasons || '2024,2025,2026' }}
+          WARMUP_SEASONS: "2023"
+          UPCOMING_DAYS: "7"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: core2-results
+          path: reports/
