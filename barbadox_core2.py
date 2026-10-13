@@ -26,10 +26,10 @@ What it does
 
 Environment variables (all optional except the API key)
   FOOTBALL_DATA_API_KEY   football-data.org token (also reads FOOTBALL_DATA_TOKEN, FOOTBALL_API_KEY, API_KEY)
-  LEAGUES                 comma list of competition codes, default "PL"  (PD, FL1, BL1, SA also work)
-  TEST_SEASONS            start years of seasons to test, default "2024,2025,2026"
+  LEAGUES                 comma list of competition codes, default "PL,PD,FL1,BL1,SA"
+  TEST_SEASONS            start years of seasons to test, default "2024,2025,2026" (3 seasons)
   WARMUP_SEASONS          extra earlier seasons used only for tuning/calibration, default "2023"
-  THRESHOLD               final-probability cutoff, default 0.60
+  THRESHOLD               final-probability cutoff, default 0.75
   SAFETY_Z                haircut strength, default 1.0 (0 = off)
   UPCOMING_DAYS           list upcoming fixtures this many days ahead, default 7 (0 = off)
   REPORT_DIR              where the CSV is written, default "reports"
@@ -44,10 +44,10 @@ from datetime import datetime, timedelta, timezone
 
 API = "https://api.football-data.org/v4"
 
-LEAGUES = [x.strip() for x in os.getenv("LEAGUES", "PL").split(",") if x.strip()]
+LEAGUES = [x.strip() for x in os.getenv("LEAGUES", "PL,PD,FL1,BL1,SA").split(",") if x.strip()]
 TEST_SEASONS = [int(x) for x in os.getenv("TEST_SEASONS", "2024,2025,2026").split(",") if x.strip()]
 WARMUP_SEASONS = [int(x) for x in os.getenv("WARMUP_SEASONS", "2023").split(",") if x.strip()]
-THRESHOLD = float(os.getenv("THRESHOLD", "0.60"))
+THRESHOLD = float(os.getenv("THRESHOLD", "0.75"))
 SAFETY_Z = float(os.getenv("SAFETY_Z", "1.0"))
 UPCOMING_DAYS = int(os.getenv("UPCOMING_DAYS", "7"))
 REPORT_DIR = os.getenv("REPORT_DIR", "reports")
