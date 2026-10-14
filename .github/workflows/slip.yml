@@ -44,7 +44,8 @@ jobs:
         run: |
           git config user.name "barbadox-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add slip.md slip_history.csv odds_snapshot.csv
+          git add slip.md slip_history.csv
+          [ -f odds_snapshot.csv ] && git add odds_snapshot.csv
           if git diff --cached --quiet; then
             echo "No slip report or history changes."
           else
