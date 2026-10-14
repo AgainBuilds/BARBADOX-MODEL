@@ -43,16 +43,16 @@ date,league,home,away,checked,derby,field_temp_c,home_absences,home_rotation,hom
 2026-10-11,SA,SS Lazio,AC Monza,1,0,17,1,0,0,0,0,0,0,2,0,0,0,0,0,0
 2026-10-11,SA,US Sassuolo Calcio,AC Milan,1,0,16,1,0,0,0,0,0,0,1,0,0,0,0,0,0
 2026-10-11,SA,Cagliari Calcio,Juventus FC,1,0,19,2,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-12,PL,Coventry City FC,Newcastle United FC,0,,,,,,,,,,,,,,,,
-2026-10-12,PD,Levante UD,Sevilla FC,0,,,,,,,,,,,,,,,,
-2026-10-12,SA,Atalanta BC,Venezia FC,0,,,,,,,,,,,,,,,,
-2026-10-12,SA,Torino FC,Udinese Calcio,0,,,,,,,,,,,,,,,,
-2026-10-13,CL,Club Atlético de Madrid,Manchester United FC,0,,,,,,,,,,,,,,,,
-2026-10-13,CL,Arsenal FC,Lille OSC,0,,,,,,,,,,,,,,,,
-2026-10-13,CL,Villarreal CF,SSC Napoli,0,,,,,,,,,,,,,,,,
-2026-10-14,CL,AS Roma,Real Madrid CF,0,,,,,,,,,,,,,,,,
-2026-10-14,CL,Manchester City FC,Paris Saint-Germain FC,0,,,,,,,,,,,,,,,,
-2026-10-16,PD,RC Deportivo La Coruña,Levante UD,0,,,,,,,,,,,,,,,,
-2026-10-16,FL1,Le Mans FC,Toulouse FC,0,,,,,,,,,,,,,,,,
-2026-10-16,BL1,Eintracht Frankfurt,1. FC Köln,0,,,,,,,,,,,,,,,,
-2026-10-16,SA,Frosinone Calcio,US Sassuolo Calcio,0,,,,,,,,,,,,,,,,
+2026-10-12,PL,Coventry City FC,Newcastle United FC,1,0,12,2,0,0,1,1,0,0,3,0,0,0,0,1,1
+2026-10-12,PD,Levante UD,Sevilla FC,1,0,18,2,0,0,0,0,1,1,2,0,0,1,1,0,1
+2026-10-12,SA,Atalanta BC,Venezia FC,1,0,15,1,0,0,1,1,0,0,2,0,0,0,0,1,0
+2026-10-12,SA,Torino FC,Udinese Calcio,1,0,14,1,0,0,1,0,0,1,2,0,0,0,0,1,1
+2026-10-13,CL,Club Atlético de Madrid,Manchester United FC,1,0,16,1,0,0,1,1,0,0,3,0,0,0,0,1,0
+2026-10-13,CL,Arsenal FC,Lille OSC,1,0,13,3,0,0,1,1,0,0,2,0,0,0,0,1,0
+2026-10-13,CL,Villarreal CF,SSC Napoli,1,0,18,1,0,0,0,1,1,1,2,0,0,1,0,0,0
+2026-10-14,CL,AS Roma,Real Madrid CF,0,0,16,1,0,0,0,0,0,0,3,0,0,0,0,0,0
+2026-10-14,CL,Manchester City FC,Paris Saint-Germain FC,0,0,12,0,0,0,0,0,0,0,1,0,0,0,0,0,0
+2026-10-16,PD,RC Deportivo La Coruña,Levante UD,0,0,15,1,0,0,0,0,0,0,2,0,0,0,0,0,0
+2026-10-16,FL1,Le Mans FC,Toulouse FC,0,0,14,2,0,0,0,0,0,0,1,0,0,0,0,0,0
+2026-10-16,BL1,Eintracht Frankfurt,1. FC Köln,0,0,12,1,0,0,0,0,0,0,1,0,0,0,0,0,0
+2026-10-16,SA,Frosinone Calcio,US Sassuolo Calcio,0,0,17,2,0,0,0,0,0,0,1,0,0,0,0,0,0
