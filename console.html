@@ -194,9 +194,9 @@ footer{margin-top:30px;text-align:center}
     </div>
     <div class="run-status" id="runStatus">Tap RUN to analyse today's fixtures. The model only runs when you tap — no schedules, no noise.</div>
     <div class="wait-box" id="waitBox" role="alert">
-      <div class="wait-big" id="waitText"><b>⚠ WAIT 5 MINUTES.</b> New matches were added to context.csv. The owner must review it and set checked=1. Do NOT use any pick until then.</div>
+      <div class="wait-big" id="waitText"><b>⚠ FIVE-MINUTE REVIEW WINDOW.</b> New fixtures were added to context.csv. Review any available context now. Blank fields are neutral; checked=1 is for finished matches, not upcoming-pick approval. The model will re-export after the timer.</div>
       <div class="wait-count" id="waitCount">5:00</div>
-      <div class="wait-rope" aria-label="Waiting for owner review"><i></i></div>
+      <div class="wait-rope" aria-label="Five-minute context review window"><i></i></div>
     </div>
     <div class="loadwrap" id="loadWrap">
       <div id="loadSteps"></div>
@@ -208,7 +208,7 @@ footer{margin-top:30px;text-align:center}
     <div class="phead"><h2>CORE 1 · OVER 1.5 GOALS</h2><span class="tag t-acid" id="resTag">—</span></div>
     <div class="cards" id="resCards"></div>
     <div id="fiveMin"></div>
-    <div class="notice" id="contextReady" role="status">CONTEXT STATUS: NOT CONFIRMED — pending owner review.</div>
+    <div class="notice" id="contextReady" role="status">Run the model to analyse upcoming fixtures.</div>
   </section>
 
   <!-- CORE 2: INDEPENDENT UNDER 3.5 DISPLAY -->
@@ -398,11 +398,11 @@ function fixtureCards(fxs) {
         esc(Barbadox.LG_NAMES[f.league]||f.league)+'</span>'+
         '<span class="mc-state '+
         (f.decision==="logged"?"st-in":
-        (f.decision==="near-line"||f.decision==="pending-owner")?
+        (f.decision==="near-line"||f.decision==="review-window")?
         "st-near":"st-skip")+'">'+
         (f.decision==="logged"?"✓ QUALIFIED":
-        f.decision==="pending-owner"?
-        "⏳ WAITING FOR OWNER — DO NOT USE":
+        f.decision==="review-window"?
+        "⏳ REVIEW WINDOW":
         f.decision==="near-line"?"▲ NEAR":"○ BELOW LINE")+
         "</span></div>"+
       '<div class="mc-teams">'+esc(f.home)+
@@ -428,11 +428,11 @@ function renderResults() {
   $("thTag").textContent = Math.round(THRESHOLD*100)+"% ENTRY BAR";
 
   const logged = fxs.filter(f => f.decision==="logged");
-  const waitingFx = fxs.filter(f => f.decision==="pending-owner");
+  const waitingFx = fxs.filter(f => f.decision==="review-window");
 
   $("resTag").textContent =
     logged.length+" QUALIFIED · "+waitingFx.length+
-    " WAITING · "+fxs.length+" SCANNED";
+    " IN REVIEW WINDOW · "+fxs.length+" SCANNED";
 
   if (logged.length || waitingFx.length) {
     $("resCards").innerHTML = fixtureCards(logged.concat(waitingFx));
@@ -447,26 +447,27 @@ function renderResults() {
   const pend0 = snap ? (snap.owner_pending||0) : 0;
   const ghOff = !!snap && snap.github==="off";
   const ghNote = ghOff
-    ? '<div class="notice"><b>⚠ GITHUB SYNC IS OFF.</b> Add GITHUB_TOKEN in Render, otherwise the owner cannot edit context.csv and nothing can be confirmed.</div>'
+    ? '<div class="notice"><b>⚠ GITHUB SYNC IS OFF.</b> Context edits made in GitHub will not sync to this service until GitHub sync is configured.</div>'
     :"";
 
   $("fiveMin").innerHTML = ghNote+(!snap
     ? '<div class="notice">Tap RUN MODEL to generate the first analysis of the day.</div>'
     : pend0>0
-      ? '<div class="notice"><b>⚠ WAIT FOR THE OWNER.</b> '+pend0+
-        ' match(es) in context.csv are not confirmed yet. They are NOT being used as picks.</div>'
+      ? '<div class="notice"><b>FIVE-MINUTE REVIEW WINDOW.</b> '+pend0+
+        ' fixture(s) are temporarily held while the context file can be reviewed. checked=1 is not required for upcoming fixtures.</div>'
       :"");
 
-  const pending = snap ? (snap.owner_pending||0) : 0;
-  const ready = !!snap && pending===0 && fxs.length>0;
+  const review = fxs.some(f => f.decision==="review-window");
   const noScan = !!snap && fxs.length===0;
+  const ready = !!snap && !review && !noScan;
 
   $("contextReady").innerHTML = noScan
-    ? "<b>NO MATCHES SCANNED.</b> The last run found nothing to analyse, so nothing is confirmed or ready."
-    : ready
-      ? "<b>✔ READY:</b> every eligible match is confirmed in context.csv. Predictions below use the owner-checked factors."
-      : "<b>OWNER CONFIRMATION REQUIRED:</b> "+pending+
-        " fixture(s) remain unchecked. Do not use these picks; keep waiting for the owner.";
+    ? "<b>NO MATCHES SCANNED.</b> The last run found nothing to analyse."
+    : review
+      ? "<b>FIVE-MINUTE REVIEW WINDOW:</b> new fixture rows were added. Review any available context before the final export. Blank fields are neutral; checked=1 is reserved for finished matches."
+      : ready
+        ? "<b>✔ ANALYSIS COMPLETE:</b> context values are applied when present. Blank fields are neutral. Only picks meeting the entry threshold are logged."
+        : "<b>READY WHEN YOU ARE:</b> run the model to analyse upcoming fixtures. checked=1 is not required for upcoming picks.";
 
   $("contextReady").style.borderColor =
     ready?"rgba(61,255,158,.6)":"rgba(255,177,61,.6)";
@@ -807,7 +808,10 @@ async function pollStatus() {
 
   if (st.running) {
     if (st.waiting)
-      setRunNote("IMPORTANT: WAIT FOR OWNER REVIEW. Do not use unconfirmed picks.","warn");
+      setRunNote(
+        "FIVE-MINUTE REVIEW WINDOW: the model will re-export after the timer. checked=1 is not required for upcoming fixtures.",
+        "warn"
+      );
     return;
   }
 
@@ -832,12 +836,14 @@ async function pollStatus() {
       );
     } else if (st.ready===false) {
       setRunNote(
-        "STILL WAITING FOR THE OWNER: "+(st.owner_pending||0)+
-        " match(es) in context.csv are unconfirmed. Pending picks are blocked. Tap RUN again after the owner sets checked=1.",
+        "FINAL EXPORT NOT CONFIRMED — check the run status and logs. Upcoming fixtures do not require checked=1.",
         "warn"
       );
     } else {
-      setRunNote("✔ READY — all context confirmed and applied to the predictions.","ok");
+      setRunNote(
+        "✔ READY — available context applied; blank fields are neutral. Only picks at or above the entry threshold are logged.",
+        "ok"
+      );
     }
   } else {
     setRunNote("RUN FAILED — the last successful analysis is preserved below.","err");
