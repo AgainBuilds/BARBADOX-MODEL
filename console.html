@@ -6,178 +6,159 @@
 <title>BARBADOX - Match Intelligence System</title>
 <style>
 :root {
-  --bg: #0B1020; --panel: #131A2E; --panel2: #1A2340; --line: #2A3558;
-  --ink: #F2F5FF; --dim: #8B96B8; --acid: #B8FF3C; --cyan: #37E0FF;
-  --magenta: #FF3D71; --amber: #FFB13D; --green: #3DFF9E;
+  --bg:#0B1020;--panel:#131A2E;--panel2:#1A2340;--line:#2A3558;
+  --ink:#F2F5FF;--dim:#8B96B8;--acid:#B8FF3C;--cyan:#37E0FF;
+  --magenta:#FF3D71;--amber:#FFB13D;--green:#3DFF9E;
 }
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; min-height: 100vh; overflow-x: hidden; }
-.mono { font-family: ui-monospace, "Cascadia Code", Menlo, monospace; }
-button { font-family: inherit; }
-
-/* ===== BOOT ===== */
-#boot { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; position: relative; overflow: hidden; }
-#boot .glow { position: absolute; inset: 0; opacity: .08; background: radial-gradient(circle at 50% 0%, var(--cyan), transparent 60%); }
-.wordmark { font-size: clamp(34px, 7vw, 68px); font-weight: 800; letter-spacing: .18em; animation: wordIn 1.1s ease-out both; }
-@keyframes wordIn { from { letter-spacing: .9em; opacity: 0; } }
-.subtitle { color: var(--dim); letter-spacing: .45em; font-size: 12px; margin: 6px 0 56px; animation: fadeIn .8s .5s both; }
-.ring { width: 54px; height: 54px; border-radius: 50%; border: 2px solid var(--line); border-top-color: var(--acid); animation: spin 1.1s linear infinite; margin-bottom: 32px; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.scanning { font-size: 13px; color: var(--cyan); letter-spacing: .25em; animation: fadeIn .6s .3s both; }
-#bar { font-size: clamp(14px, 3vw, 22px); letter-spacing: 4px; color: var(--acid); margin: 18px 0 10px; white-space: pre; }
-#bar .off { color: var(--line); }
-.fadeout { animation: bootOut .5s ease both; }
-@keyframes bootOut { to { opacity: 0; transform: scale(1.04); } }
-@keyframes fadeIn { from { opacity: 0; } }
-
-/* ===== DASHBOARD ===== */
-#dash { display: none; max-width: 1080px; margin: 0 auto; padding: 26px 20px 60px; animation: fadeIn .5s both; }
-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 24px; }
-.brand { font-size: 26px; font-weight: 800; letter-spacing: .12em; }
-.brand i { color: var(--acid); font-style: normal; }
-.brand-sub { font-size: 10px; color: var(--dim); letter-spacing: .35em; margin-top: 2px; }
-.hstats { display: flex; gap: 18px; align-items: center; }
-.hstat { text-align: right; }
-.hstat .k { font-size: 10px; color: var(--dim); letter-spacing: .2em; }
-.hstat .v { font-size: 12px; color: var(--green); letter-spacing: .1em; display: flex; align-items: center; gap: 7px; justify-content: flex-end; }
-.hstat .big { font-size: 15px; font-weight: 700; color: var(--cyan); }
-.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); animation: pulse 1.6s infinite; }
-.dot.err { background: var(--magenta); box-shadow: 0 0 10px var(--magenta); }
-.dot.warn { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
-@keyframes pulse { 50% { opacity: .3; } }
-.vdiv { border-left: 1px solid var(--line); padding-left: 18px; }
-
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 24px; padding: 22px; position: relative; overflow: hidden; margin-bottom: 16px; animation: rise .5s ease-out both; }
-@keyframes rise { from { opacity: 0; transform: translateY(18px); } }
-.panel::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; opacity: .5; }
-.p-acid::before { background: linear-gradient(90deg, var(--acid), transparent 70%); }
-.p-cyan::before { background: linear-gradient(90deg, var(--cyan), transparent 70%); }
-.p-green::before { background: linear-gradient(90deg, var(--green), transparent 70%); }
-.p-magenta::before { background: linear-gradient(90deg, var(--magenta), transparent 70%); }
-.phead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
-.phead h2 { font-size: 13px; letter-spacing: .2em; font-weight: 700; }
-.tag { font-size: 10px; letter-spacing: .15em; padding: 3px 10px; border-radius: 99px; background: rgba(255,255,255,.04); }
-.t-acid { color: var(--acid); border: 1px solid rgba(184,255,60,.35); }
-.t-cyan { color: var(--cyan); border: 1px solid rgba(55,224,255,.35); }
-.t-green { color: var(--green); border: 1px solid rgba(61,255,158,.35); }
-.t-magenta { color: var(--magenta); border: 1px solid rgba(255,61,113,.35); }
-.t-amber { color: var(--amber); border: 1px solid rgba(255,177,61,.35); }
-
-/* run control */
-.run-row { display: flex; gap: 10px; }
-.runbtn { flex: 1; background: var(--cyan); border: none; color: var(--bg); font-weight: 800; letter-spacing: .12em; font-size: 13px; padding: 15px; border-radius: 14px; cursor: pointer; transition: transform .15s, box-shadow .2s; }
-.runbtn:hover { transform: translateY(-2px); box-shadow: 0 0 18px rgba(55,224,255,.35); }
-.runbtn:disabled { background: var(--panel2); color: var(--dim); cursor: wait; transform: none; box-shadow: none; }
-.runbtn.ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
-.runbtn.ghost:hover { border-color: var(--acid); box-shadow: 0 0 14px rgba(184,255,60,.2); }
-.run-status { font-size: 12px; color: var(--dim); line-height: 1.7; margin-top: 12px; }
-.run-status.ok { color: var(--green); } .run-status.err { color: var(--magenta); } .run-status.warn { color: var(--amber); }
-
-/* loading steps */
-.loadwrap { display: none; margin-top: 16px; }
-.loadwrap.on { display: block; }
-.loadstep { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--dim); letter-spacing: .08em; padding: 6px 0; animation: fadeIn .3s both; }
-.loadstep.done { color: var(--green); } .loadstep.live { color: var(--cyan); }
-.loadstep .ic { width: 16px; text-align: center; }
-.loadbar { height: 6px; background: var(--bg); border-radius: 99px; overflow: hidden; margin-top: 12px; }
-.loadbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--cyan), var(--acid)); border-radius: 99px; transition: width .5s ease; }
-
-/* match cards */
-.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
-.mcard { background: var(--panel2); border: 1px solid rgba(255,255,255,.08); border-radius: 18px; padding: 18px; position: relative; overflow: hidden; transition: transform .2s, border-color .2s; animation: cardIn .5s ease-out both; }
-.mcard:hover { transform: translateY(-3px); border-color: rgba(184,255,60,.4); }
-@keyframes cardIn { from { opacity: 0; transform: translateY(16px) scale(.98); } }
-.mcard .lg { font-size: 9px; letter-spacing: .2em; color: var(--dim); margin-bottom: 10px; display: flex; justify-content: space-between; }
-.mc-teams { font-size: 15px; font-weight: 800; line-height: 1.4; margin-bottom: 4px; }
-.mc-teams span { color: var(--dim); font-weight: 400; font-size: 12px; }
-.mc-meta { font-size: 10px; color: var(--dim); letter-spacing: .1em; margin-bottom: 14px; }
-.mc-market { display: flex; justify-content: space-between; align-items: flex-end; }
-.mc-call { font-size: 12px; font-weight: 800; letter-spacing: .1em; color: var(--acid); }
-.mc-pct { font-size: 30px; font-weight: 800; color: var(--cyan); line-height: 1; }
-.mc-pct small { font-size: 9px; display: block; color: var(--dim); letter-spacing: .18em; font-weight: 700; margin-top: 4px; }
-.mc-ring { position: absolute; top: -30px; right: -30px; width: 90px; height: 90px; border-radius: 50%; border: 1px solid rgba(55,224,255,.25); }
-.mc-soon { margin-top: 12px; font-size: 9px; letter-spacing: .18em; color: var(--dim); border-top: 1px solid var(--line); padding-top: 10px; }
-.mc-state { font-size: 9px; font-weight: 800; letter-spacing: .15em; }
-.st-in { color: var(--acid); } .st-near { color: var(--amber); } .st-skip { color: var(--dim); }
-.empty { color: var(--dim); font-size: 12px; text-align: center; padding: 34px 10px; letter-spacing: .08em; line-height: 2; }
-
-/* 5-minute owner-review rope: one long rope travelling back and forth along the track */
-.wait-box { display:none; margin-top:16px; border:2px solid var(--amber); border-radius:14px; padding:14px 16px; background:rgba(255,177,61,.08); }
-.wait-box.on { display:block; }
-.wait-big { font-size:13px; font-weight:800; letter-spacing:.08em; line-height:1.7; color:var(--amber); }
-.wait-big b { color:var(--ink); }
-.wait-count { font-size:26px; font-weight:800; color:var(--ink); margin:6px 0 2px; letter-spacing:.05em; }
-.wait-rope { height:22px; margin:10px 0 2px; position:relative; overflow:hidden; }
-.wait-rope:before { content:""; position:absolute; left:0; right:0; top:10px; height:2px; background:var(--line); }
-.wait-rope i { position:absolute; top:6px; left:0; width:55%; height:10px; border-radius:10px;
-  background:repeating-linear-gradient(90deg,var(--cyan) 0 8px,rgba(55,224,255,.35) 8px 14px);
-  box-shadow:0 0 12px rgba(55,224,255,.45); animation:ropeSwing 1.6s ease-in-out infinite alternate; }
-@keyframes ropeSwing { from { transform:translateX(0); } to { transform:translateX(82%); } }
-/* 5-min notice */
-.notice { margin-top: 16px; font-size: 11px; letter-spacing: .1em; line-height: 1.8; color: var(--amber); background: rgba(255,177,61,.06); border: 1px solid rgba(255,177,61,.25); border-radius: 14px; padding: 12px 16px; }
-.notice b { color: var(--ink); }
-
-/* performance */
-.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 16px; }
-.kpi { background: var(--panel2); border-radius: 12px; padding: 14px; text-align: center; }
-.kpi .v { font-size: 22px; font-weight: 800; }
-.kpi .k { font-size: 9px; color: var(--dim); letter-spacing: .15em; margin-top: 4px; }
-.perf-bars { display: flex; align-items: flex-end; gap: 5px; height: 90px; }
-.perf-bars i { flex: 1; border-radius: 4px 4px 0 0; animation: grow .6s ease-out both; }
-@keyframes grow { from { height: 0; } }
-.perf-sub { font-size: 9px; color: var(--dim); letter-spacing: .15em; margin-top: 8px; }
-
-/* history */
-.hist { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
-.h-row { display: grid; grid-template-columns: 52px 1fr auto auto auto; gap: 10px; align-items: center; font-size: 12px; padding: 8px 12px; border-radius: 10px; }
-.h-row:nth-child(odd) { background: var(--panel2); }
-.h-date { color: var(--dim); font-size: 10px; }
-.h-call { color: var(--cyan); font-size: 11px; letter-spacing: .08em; }
-.h-prob { color: var(--dim); font-family: ui-monospace, monospace; font-size: 11px; }
-.chip { font-size: 10px; font-weight: 800; letter-spacing: .15em; padding: 2px 10px; border-radius: 99px; }
-.chip.hit { background: rgba(61,255,158,.1); color: var(--green); }
-.chip.miss { background: rgba(255,61,113,.1); color: var(--magenta); }
-.chip.pending { background: rgba(255,177,61,.1); color: var(--amber); }
-
-/* ===== SLIP PAGE (overlay) ===== */
-#slip { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 50; overflow-y: auto; animation: fadeIn .4s both; }
-#slip.on { display: block; }
-.slip-wrap { max-width: 860px; margin: 0 auto; padding: 30px 20px 60px; }
-.slip-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.slip-back { background: transparent; border: 1px solid var(--line); color: var(--dim); border-radius: 99px; padding: 7px 16px; font-size: 10px; letter-spacing: .15em; cursor: pointer; }
-.slip-back:hover { border-color: var(--magenta); color: var(--magenta); }
-.slip-sub { color: var(--dim); letter-spacing: .35em; font-size: 11px; margin-bottom: 26px; }
-.slip-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px; }
-.slip-group { grid-column: 1 / -1; background:var(--panel); border:1px solid var(--line); border-radius:18px; padding:16px; }
-.slip-group-head { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:14px; color:var(--acid); font-size:12px; letter-spacing:.15em; font-weight:800; }
-.slip-group-head span { color:var(--dim); font-size:10px; font-weight:500; }
-.slip-group-bets { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
-@media (max-width:700px) { .slip-group-bets { grid-template-columns:1fr; } }
-.slip-foot { margin-top: 26px; text-align: center; font-size: 11px; color: var(--dim); letter-spacing: .1em; line-height: 2; }
-
-/* ===== FOOTER / ABOUT ===== */
-footer { margin-top: 30px; text-align: center; }
-.about { background: var(--panel); border: 1px solid var(--line); border-radius: 24px; padding: 26px; max-width: 760px; margin: 0 auto 22px; }
-.about h3 { font-size: 12px; letter-spacing: .25em; margin-bottom: 12px; color: var(--acid); }
-.about p { font-size: 12px; color: var(--dim); line-height: 2; letter-spacing: .04em; }
-.about b { color: var(--ink); } .about em { color: var(--cyan); font-style: normal; }
-.foot-line { font-size: 10px; color: var(--dim); letter-spacing: .2em; line-height: 2.2; }
-.foot-credit { font-size: 10px; color: var(--dim); letter-spacing: .12em; font-family: ui-monospace, monospace; padding: 14px 0 30px; }
-.foot-credit b { color: var(--acid); }
-
-@media (max-width: 640px) {
-  header { flex-direction: column; align-items: flex-start; }
-  .hstats { width: 100%; justify-content: space-between; }
-  .hstat { text-align: left; } .vdiv { border-left: none; padding-left: 0; }
-  .cards { grid-template-columns: 1fr; }
-  .h-row { grid-template-columns: 44px 1fr auto; }
-  .h-prob, .h-call { display: none; }
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;overflow-x:hidden}
+.mono{font-family:ui-monospace,"Cascadia Code",Menlo,monospace}
+button{font-family:inherit}
+#boot{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
+#boot .glow{position:absolute;inset:0;opacity:.08;background:radial-gradient(circle at 50% 0%,var(--cyan),transparent 60%)}
+.wordmark{font-size:clamp(34px,7vw,68px);font-weight:800;letter-spacing:.18em;animation:wordIn 1.1s ease-out both}
+@keyframes wordIn{from{letter-spacing:.9em;opacity:0}}
+.subtitle{color:var(--dim);letter-spacing:.45em;font-size:12px;margin:6px 0 56px;animation:fadeIn .8s .5s both}
+.ring{width:54px;height:54px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--acid);animation:spin 1.1s linear infinite;margin-bottom:32px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scanning{font-size:13px;color:var(--cyan);letter-spacing:.25em;animation:fadeIn .6s .3s both}
+#bar{font-size:clamp(14px,3vw,22px);letter-spacing:4px;color:var(--acid);margin:18px 0 10px;white-space:pre}
+#bar .off{color:var(--line)}
+.fadeout{animation:bootOut .5s ease both}
+@keyframes bootOut{to{opacity:0;transform:scale(1.04)}}
+@keyframes fadeIn{from{opacity:0}}
+#dash{display:none;max-width:1080px;margin:0 auto;padding:26px 20px 60px;animation:fadeIn .5s both}
+header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:24px}
+.brand{font-size:26px;font-weight:800;letter-spacing:.12em}
+.brand i{color:var(--acid);font-style:normal}
+.brand-sub{font-size:10px;color:var(--dim);letter-spacing:.35em;margin-top:2px}
+.hstats{display:flex;gap:18px;align-items:center}
+.hstat{text-align:right}
+.hstat .k{font-size:10px;color:var(--dim);letter-spacing:.2em}
+.hstat .v{font-size:12px;color:var(--green);letter-spacing:.1em;display:flex;align-items:center;gap:7px;justify-content:flex-end}
+.hstat .big{font-size:15px;font-weight:700;color:var(--cyan)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 1.6s infinite}
+.dot.err{background:var(--magenta);box-shadow:0 0 10px var(--magenta)}
+.dot.warn{background:var(--amber);box-shadow:0 0 10px var(--amber)}
+@keyframes pulse{50%{opacity:.3}}
+.vdiv{border-left:1px solid var(--line);padding-left:18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:22px;position:relative;overflow:hidden;margin-bottom:16px;animation:rise .5s ease-out both}
+@keyframes rise{from{opacity:0;transform:translateY(18px)}}
+.panel::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;opacity:.5}
+.p-acid::before{background:linear-gradient(90deg,var(--acid),transparent 70%)}
+.p-cyan::before{background:linear-gradient(90deg,var(--cyan),transparent 70%)}
+.p-green::before{background:linear-gradient(90deg,var(--green),transparent 70%)}
+.p-magenta::before{background:linear-gradient(90deg,var(--magenta),transparent 70%)}
+.phead{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.phead h2{font-size:13px;letter-spacing:.2em;font-weight:700}
+.tag{font-size:10px;letter-spacing:.15em;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.04)}
+.t-acid{color:var(--acid);border:1px solid rgba(184,255,60,.35)}
+.t-cyan{color:var(--cyan);border:1px solid rgba(55,224,255,.35)}
+.t-green{color:var(--green);border:1px solid rgba(61,255,158,.35)}
+.t-magenta{color:var(--magenta);border:1px solid rgba(255,61,113,.35)}
+.t-amber{color:var(--amber);border:1px solid rgba(255,177,61,.35)}
+.run-row{display:flex;gap:10px}
+.runbtn{flex:1;background:var(--cyan);border:none;color:var(--bg);font-weight:800;letter-spacing:.12em;font-size:13px;padding:15px;border-radius:14px;cursor:pointer;transition:transform .15s,box-shadow .2s}
+.runbtn:hover{transform:translateY(-2px);box-shadow:0 0 18px rgba(55,224,255,.35)}
+.runbtn:disabled{background:var(--panel2);color:var(--dim);cursor:wait;transform:none;box-shadow:none}
+.runbtn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.runbtn.ghost:hover{border-color:var(--acid);box-shadow:0 0 14px rgba(184,255,60,.2)}
+.run-status{font-size:12px;color:var(--dim);line-height:1.7;margin-top:12px}
+.run-status.ok{color:var(--green)}
+.run-status.err{color:var(--magenta)}
+.run-status.warn{color:var(--amber)}
+.loadwrap{display:none;margin-top:16px}
+.loadwrap.on{display:block}
+.loadstep{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dim);letter-spacing:.08em;padding:6px 0;animation:fadeIn .3s both}
+.loadstep.done{color:var(--green)}
+.loadstep.live{color:var(--cyan)}
+.loadstep .ic{width:16px;text-align:center}
+.loadbar{height:6px;background:var(--bg);border-radius:99px;overflow:hidden;margin-top:12px}
+.loadbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--acid));border-radius:99px;transition:width .5s ease}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.mcard{background:var(--panel2);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s;animation:cardIn .5s ease-out both}
+.mcard:hover{transform:translateY(-3px);border-color:rgba(184,255,60,.4)}
+@keyframes cardIn{from{opacity:0;transform:translateY(16px) scale(.98)}}
+.mcard .lg{font-size:9px;letter-spacing:.2em;color:var(--dim);margin-bottom:10px;display:flex;justify-content:space-between;gap:8px}
+.mc-teams{font-size:15px;font-weight:800;line-height:1.4;margin-bottom:4px}
+.mc-teams span{color:var(--dim);font-weight:400;font-size:12px}
+.mc-meta{font-size:10px;color:var(--dim);letter-spacing:.1em;margin-bottom:14px}
+.mc-market{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
+.mc-call{font-size:12px;font-weight:800;letter-spacing:.1em;color:var(--acid)}
+.mc-pct{font-size:30px;font-weight:800;color:var(--cyan);line-height:1;white-space:nowrap}
+.mc-pct small{font-size:9px;display:block;color:var(--dim);letter-spacing:.18em;font-weight:700;margin-top:4px}
+.mc-ring{position:absolute;top:-30px;right:-30px;width:90px;height:90px;border-radius:50%;border:1px solid rgba(55,224,255,.25)}
+.mc-soon{margin-top:12px;font-size:9px;letter-spacing:.18em;color:var(--dim);border-top:1px solid var(--line);padding-top:10px}
+.mc-state{font-size:9px;font-weight:800;letter-spacing:.12em}
+.st-in{color:var(--acid)}
+.st-near{color:var(--amber)}
+.st-skip{color:var(--dim)}
+.empty{color:var(--dim);font-size:12px;text-align:center;padding:34px 10px;letter-spacing:.08em;line-height:2}
+.wait-box{display:none;margin-top:16px;border:2px solid var(--amber);border-radius:14px;padding:14px 16px;background:rgba(255,177,61,.08)}
+.wait-box.on{display:block}
+.wait-big{font-size:13px;font-weight:800;letter-spacing:.08em;line-height:1.7;color:var(--amber)}
+.wait-big b{color:var(--ink)}
+.wait-count{font-size:26px;font-weight:800;color:var(--ink);margin:6px 0 2px;letter-spacing:.05em}
+.wait-rope{height:22px;margin:10px 0 2px;position:relative;overflow:hidden}
+.wait-rope:before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:var(--line)}
+.wait-rope i{position:absolute;top:6px;left:0;width:55%;height:10px;border-radius:10px;background:repeating-linear-gradient(90deg,var(--cyan) 0 8px,rgba(55,224,255,.35) 8px 14px);box-shadow:0 0 12px rgba(55,224,255,.45);animation:ropeSwing 1.6s ease-in-out infinite alternate}
+@keyframes ropeSwing{from{transform:translateX(0)}to{transform:translateX(82%)}}
+.notice{margin-top:16px;font-size:11px;letter-spacing:.1em;line-height:1.8;color:var(--amber);background:rgba(255,177,61,.06);border:1px solid rgba(255,177,61,.25);border-radius:14px;padding:12px 16px}
+.notice b{color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--panel2);border-radius:12px;padding:14px;text-align:center}
+.kpi .v{font-size:22px;font-weight:800}
+.kpi .k{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-top:4px}
+.perf-bars{display:flex;align-items:flex-end;gap:5px;height:90px}
+.perf-bars i{flex:1;border-radius:4px 4px 0 0;animation:grow .6s ease-out both}
+@keyframes grow{from{height:0}}
+.perf-sub{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-top:8px}
+.hist{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto}
+.h-row{display:grid;grid-template-columns:52px 1fr auto auto auto;gap:10px;align-items:center;font-size:12px;padding:8px 12px;border-radius:10px}
+.h-row:nth-child(odd){background:var(--panel2)}
+.h-date{color:var(--dim);font-size:10px}
+.h-call{color:var(--cyan);font-size:11px;letter-spacing:.08em}
+.h-prob{color:var(--dim);font-family:ui-monospace,monospace;font-size:11px}
+.chip{font-size:10px;font-weight:800;letter-spacing:.15em;padding:2px 10px;border-radius:99px}
+.chip.hit{background:rgba(61,255,158,.1);color:var(--green)}
+.chip.miss{background:rgba(255,61,113,.1);color:var(--magenta)}
+.chip.pending{background:rgba(255,177,61,.1);color:var(--amber)}
+#slip{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;overflow-y:auto;animation:fadeIn .4s both}
+#slip.on{display:block}
+.slip-wrap{max-width:860px;margin:0 auto;padding:30px 20px 60px}
+.slip-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.slip-back{background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:99px;padding:7px 16px;font-size:10px;letter-spacing:.15em;cursor:pointer}
+.slip-back:hover{border-color:var(--magenta);color:var(--magenta)}
+.slip-sub{color:var(--dim);letter-spacing:.35em;font-size:11px;margin-bottom:26px}
+.slip-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.slip-group{grid-column:1/-1;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}
+.slip-group-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;color:var(--acid);font-size:12px;letter-spacing:.15em;font-weight:800}
+.slip-group-head span{color:var(--dim);font-size:10px;font-weight:500}
+.slip-group-bets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media(max-width:700px){.slip-group-bets{grid-template-columns:1fr}}
+.slip-foot{margin-top:26px;text-align:center;font-size:11px;color:var(--dim);letter-spacing:.1em;line-height:2}
+footer{margin-top:30px;text-align:center}
+.about{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:26px;max-width:760px;margin:0 auto 22px}
+.about h3{font-size:12px;letter-spacing:.25em;margin-bottom:12px;color:var(--acid)}
+.about p{font-size:12px;color:var(--dim);line-height:2;letter-spacing:.04em}
+.about b{color:var(--ink)}
+.about em{color:var(--cyan);font-style:normal}
+.foot-line{font-size:10px;color:var(--dim);letter-spacing:.2em;line-height:2.2}
+.foot-credit{font-size:10px;color:var(--dim);letter-spacing:.12em;font-family:ui-monospace,monospace;padding:14px 0 30px}
+.foot-credit b{color:var(--acid)}
+@media(max-width:640px){
+  header{flex-direction:column;align-items:flex-start}
+  .hstats{width:100%;justify-content:space-between}
+  .hstat{text-align:left}
+  .vdiv{border-left:none;padding-left:0}
+  .cards{grid-template-columns:1fr}
+  .h-row{grid-template-columns:44px 1fr auto}
+  .h-prob,.h-call{display:none}
 }
 </style>
 </head>
 <body>
 
-<!-- ============ BOOT ============ -->
 <div id="boot">
   <div class="glow"></div>
   <div class="wordmark">BARBADOX</div>
@@ -187,7 +168,6 @@ footer { margin-top: 30px; text-align: center; }
   <div id="bar" class="mono"><span class="off">██████████████████</span></div>
 </div>
 
-<!-- ============ DASHBOARD ============ -->
 <div id="dash">
   <header>
     <div>
@@ -206,7 +186,6 @@ footer { margin-top: 30px; text-align: center; }
     </div>
   </header>
 
-  <!-- RUN -->
   <section class="panel p-cyan" id="runPanel">
     <div class="phead"><h2>MODEL CONTROL</h2><span class="tag t-cyan" id="thTag">—</span></div>
     <div class="run-row">
@@ -225,15 +204,25 @@ footer { margin-top: 30px; text-align: center; }
     </div>
   </section>
 
-  <!-- RESULTS -->
   <section class="panel p-acid" id="resultsPanel">
-    <div class="phead"><h2>TODAY'S ANALYSIS</h2><span class="tag t-acid" id="resTag">—</span></div>
+    <div class="phead"><h2>CORE 1 · OVER 1.5 GOALS</h2><span class="tag t-acid" id="resTag">—</span></div>
     <div class="cards" id="resCards"></div>
     <div id="fiveMin"></div>
     <div class="notice" id="contextReady" role="status">CONTEXT STATUS: NOT CONFIRMED — pending owner review.</div>
   </section>
 
-  <!-- PERFORMANCE -->
+  <!-- CORE 2: INDEPENDENT UNDER 3.5 DISPLAY -->
+  <section class="panel p-magenta" id="under35Panel">
+    <div class="phead">
+      <h2>CORE 2 · UNDER 3.5 GOALS</h2>
+      <span class="tag t-magenta" id="under35Tag">LOADING…</span>
+    </div>
+    <div class="kpis" id="under35Kpis"></div>
+    <div class="run-status" id="under35Status">Loading Core 2 data…</div>
+    <div class="cards" id="under35Cards"></div>
+    <div class="perf-sub" id="under35Foot"></div>
+  </section>
+
   <section class="panel p-green">
     <div class="phead"><h2>MODEL PERFORMANCE</h2><span class="tag t-green" id="perfTag">—</span></div>
     <div class="kpis" id="perfKpis"></div>
@@ -241,7 +230,6 @@ footer { margin-top: 30px; text-align: center; }
     <div class="perf-sub" id="perfSub"></div>
   </section>
 
-  <!-- HISTORY -->
   <section class="panel p-cyan">
     <div class="phead"><h2>ANALYSIS HISTORY</h2><span class="tag t-cyan" id="histTag">—</span></div>
     <div class="hist" id="histList"></div>
@@ -264,7 +252,6 @@ footer { margin-top: 30px; text-align: center; }
   </footer>
 </div>
 
-<!-- ============ SLIP PAGE ============ -->
 <div id="slip">
   <div class="slip-wrap">
     <div class="slip-head">
@@ -279,350 +266,677 @@ footer { margin-top: 30px; text-align: center; }
 </div>
 
 <script>
-/* ============ ADAPTER — same service endpoints ============ */
 const Barbadox = (() => {
-  const LG_NAMES = { PL: "PREMIER LEAGUE", PD: "LA LIGA", FL1: "LIGUE 1", BL1: "BUNDESLIGA",
-                     SA: "SERIE A", CL: "CHAMPIONS LEAGUE", SAUDI: "SAUDI LEAGUE" };
+  const LG_NAMES = {
+    PL:"PREMIER LEAGUE",PD:"LA LIGA",FL1:"LIGUE 1",BL1:"BUNDESLIGA",
+    SA:"SERIE A",CL:"CHAMPIONS LEAGUE",SAUDI:"SAUDI LEAGUE"
+  };
   async function getData() {
-    const r = await fetch("/api/data", { cache: "no-store" });
+    const r = await fetch("/api/data",{cache:"no-store"});
     if (!r.ok) return null;
     return await r.json();
   }
   async function startRun() {
-    const r = await fetch("/api/run", { method: "POST" });
+    const r = await fetch("/api/run",{method:"POST"});
     return await r.json();
   }
   async function getStatus() {
-    const r = await fetch("/api/status", { cache: "no-store" });
+    const r = await fetch("/api/status",{cache:"no-store"});
     return await r.json();
   }
   async function getUnder35() {
-    const r = await fetch("/api/under35", { cache: "no-store" });
+    const r = await fetch("/api/under35",{cache:"no-store"});
     if (!r.ok) return null;
     return await r.json();
   }
-  return { LG_NAMES, getData, startRun, getStatus, getUnder35 };
+  return {LG_NAMES,getData,startRun,getStatus,getUnder35};
 })();
 
-/* ============ APP ============ */
 const $ = id => document.getElementById(id);
-const pct1 = x => (x * 100).toFixed(1) + "%";
-const esc = s => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const pct1 = x => {
+  const n = Number(x);
+  return Number.isFinite(n) ? (n*100).toFixed(1)+"%" : "—";
+};
+const esc = s => String(s == null ? "" : s)
+  .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+  .replace(/>/g,"&gt;").replace(/"/g,"&quot;")
+  .replace(/'/g,"&#39;");
 
-let snap = null, pollTimer = null;
-let THRESHOLD = 0.79, MARKET = 1.5;
-const FIVE_MIN = 5 * 60 * 1000;
+let snap = null;
+let underSnap = null;
+let pollTimer = null;
+let THRESHOLD = 0.79;
+let MARKET = 1.5;
+const FIVE_MIN = 5*60*1000;
 
 /* BOOT */
 let bootProg = 0;
 const bootTimer = setInterval(() => {
-  bootProg = Math.min(100, bootProg + 2);
-  const filled = Math.round(bootProg / 100 * 18);
-  $("bar").innerHTML = "█".repeat(filled) + '<span class="off">' + "░".repeat(18 - filled) + "</span>";
-  if (bootProg >= 100) { clearInterval(bootTimer); setTimeout(enterDash, 400); }
-}, 40);
+  bootProg = Math.min(100,bootProg+2);
+  const filled = Math.round(bootProg/100*18);
+  $("bar").innerHTML = "█".repeat(filled) +
+    '<span class="off">'+"░".repeat(18-filled)+"</span>";
+  if (bootProg >= 100) {
+    clearInterval(bootTimer);
+    setTimeout(enterDash,400);
+  }
+},40);
+
 function enterDash() {
   $("boot").classList.add("fadeout");
-  setTimeout(() => { $("boot").style.display = "none"; $("dash").style.display = "block"; }, 500);
+  setTimeout(() => {
+    $("boot").style.display = "none";
+    $("dash").style.display = "block";
+  },500);
 }
 
-/* status helpers */
-function setRunNote(msg, cls) { const el = $("runStatus"); el.textContent = msg; el.className = "run-status " + (cls || ""); }
+function setRunNote(msg,cls) {
+  const el = $("runStatus");
+  el.textContent = msg;
+  el.className = "run-status "+(cls||"");
+}
 
-/* loading panel */
-const STEPS = ["CONNECTING TO THE FIXTURE FEED", "PREPARING TODAY'S MATCHES", "ANALYSING FIXTURES", "FINALISING THE RESULTS"];
-let liveStep = 0, stepTimer = null;
+/* LOADING */
+const STEPS = [
+  "CONNECTING TO THE FIXTURE FEED",
+  "PREPARING TODAY'S MATCHES",
+  "ANALYSING FIXTURES",
+  "FINALISING THE RESULTS"
+];
+let liveStep = 0;
+let stepTimer = null;
+
 function showLoading() {
   $("loadWrap").classList.add("on");
-  liveStep = 0; renderSteps();
+  liveStep = 0;
+  renderSteps();
   stepTimer = setInterval(() => {
-    liveStep = Math.min(STEPS.length - 1, liveStep + 1);
+    liveStep = Math.min(STEPS.length-1,liveStep+1);
     renderSteps();
-    if (liveStep === STEPS.length - 1) { clearInterval(stepTimer); stepTimer = null; }
-  }, 3500);
-}
-function renderSteps(doneUpto) {
-  const upto = doneUpto != null ? doneUpto : liveStep;
-  $("loadSteps").innerHTML = STEPS.map((s, i) => {
-    const cls = i < upto ? "done" : i === upto ? "live" : "";
-    const ic = i < upto ? "✓" : i === upto ? "▸" : "·";
-    return '<div class="loadstep ' + cls + '"><span class="ic">' + ic + "</span>" + s + "</div>";
-  }).join("");
-  $("loadFill").style.width = (Math.round((upto + 1) / STEPS.length * 90)) + "%";
-}
-function hideLoading(ok) {
-  if (stepTimer) { clearInterval(stepTimer); stepTimer = null; }
-  renderSteps(ok ? STEPS.length : liveStep);
-  $("loadFill").style.width = ok ? "100%" : $("loadFill").style.width;
-  setTimeout(() => $("loadWrap").classList.remove("on"), ok ? 1400 : 2500);
+    if (liveStep === STEPS.length-1) {
+      clearInterval(stepTimer);
+      stepTimer = null;
+    }
+  },3500);
 }
 
-/* snapshot freshness */
+function renderSteps(doneUpto) {
+  const upto = doneUpto != null ? doneUpto : liveStep;
+  $("loadSteps").innerHTML = STEPS.map((s,i) => {
+    const cls = i<upto ? "done" : i===upto ? "live" : "";
+    const ic = i<upto ? "✓" : i===upto ? "▸" : "·";
+    return '<div class="loadstep '+cls+'"><span class="ic">'+ic+
+      "</span>"+s+"</div>";
+  }).join("");
+  $("loadFill").style.width =
+    Math.round((upto+1)/STEPS.length*90)+"%";
+}
+
+function hideLoading(ok) {
+  if (stepTimer) {
+    clearInterval(stepTimer);
+    stepTimer = null;
+  }
+  renderSteps(ok ? STEPS.length : liveStep);
+  $("loadFill").style.width = ok ? "100%" : $("loadFill").style.width;
+  setTimeout(() => $("loadWrap").classList.remove("on"),ok ? 1400 : 2500);
+}
+
+/* SNAPSHOT AGE */
 function snapAgeMs() {
   if (!snap || !snap.generated_at) return null;
   const t = Date.parse(snap.generated_at);
-  return isNaN(t) ? null : Date.now() - t;
-}
-function freshnessNote() {
-  const age = snapAgeMs();
-  if (age == null) return null;
-  if (age < FIVE_MIN) return "fresh";
-  const mins = Math.floor(age / 60000);
-  return "stale:" + mins;
+  return isNaN(t) ? null : Date.now()-t;
 }
 
-/* RESULTS */
+/* CORE 1 RESULT CARDS */
 function fixtureCards(fxs) {
-  return fxs.map((f, i) =>
-    '<div class="mcard" style="animation-delay:' + (i * 0.08) + 's">' +
-      '<div class="mc-ring"></div>' +
-      '<div class="lg"><span>' + esc(Barbadox.LG_NAMES[f.league] || f.league) + "</span>" +
-        '<span class="mc-state ' + (f.decision === "logged" ? "st-in" : (f.decision === "near-line" || f.decision === "pending-owner") ? "st-near" : "st-skip") + '">' +
-        (f.decision === "logged" ? "✓ QUALIFIED" : f.decision === "pending-owner" ? "⏳ WAITING FOR OWNER — DO NOT USE" : f.decision === "near-line" ? "▲ NEAR" : "○ BELOW LINE") + "</span></div>" +
-      '<div class="mc-teams">' + esc(f.home) + ' <span>vs</span> ' + esc(f.away) + "</div>" +
-      '<div class="mc-meta">' + esc(f.date) + (f.time ? " · " + esc(f.time) : "") + "</div>" +
-      '<div class="mc-market"><span class="mc-call">OVER ' + MARKET + ' GOALS</span>' +
-        '<span class="mc-pct">' + (f.core != null ? pct1(f.core) : "—") + "<small>CORE CONFIDENCE</small></span></div>" +
-      '<div class="mc-soon">MORE BET ANGLES COMING SOON</div>' +
-    "</div>").join("");
+  return fxs.map((f,i) =>
+    '<div class="mcard" style="animation-delay:'+(i*.08)+'s">'+
+      '<div class="mc-ring"></div>'+
+      '<div class="lg"><span>'+
+        esc(Barbadox.LG_NAMES[f.league]||f.league)+'</span>'+
+        '<span class="mc-state '+
+        (f.decision==="logged"?"st-in":
+        (f.decision==="near-line"||f.decision==="pending-owner")?
+        "st-near":"st-skip")+'">'+
+        (f.decision==="logged"?"✓ QUALIFIED":
+        f.decision==="pending-owner"?
+        "⏳ WAITING FOR OWNER — DO NOT USE":
+        f.decision==="near-line"?"▲ NEAR":"○ BELOW LINE")+
+        "</span></div>"+
+      '<div class="mc-teams">'+esc(f.home)+
+        ' <span>vs</span> '+esc(f.away)+"</div>"+
+      '<div class="mc-meta">'+esc(f.date)+
+        (f.time?" · "+esc(f.time):"")+"</div>"+
+      '<div class="mc-market"><span class="mc-call">OVER '+
+        esc(MARKET)+' GOALS</span>'+
+        '<span class="mc-pct">'+pct1(f.core)+
+        "<small>CORE 1 CONFIDENCE</small></span></div>"+
+      '<div class="mc-soon">CORE 1 · OVER 1.5 GOALS</div>'+
+    "</div>"
+  ).join("");
 }
+
 function renderResults() {
-  const fxs = snap ? snap.fixtures : [];
-  if (snap) { THRESHOLD = snap.threshold; MARKET = snap.market; }
-  $("thTag").textContent = Math.round(THRESHOLD * 100) + "% ENTRY BAR";
-  const logged = fxs.filter(f => f.decision === "logged");
-  const waitingFx = fxs.filter(f => f.decision === "pending-owner");
-  $("resTag").textContent = logged.length + " QUALIFIED · " + waitingFx.length + " WAITING · " + fxs.length + " SCANNED";
+  const fxs = snap ? snap.fixtures||[] : [];
+  if (snap) {
+    if (Number.isFinite(Number(snap.threshold))) THRESHOLD = Number(snap.threshold);
+    if (Number.isFinite(Number(snap.market))) MARKET = Number(snap.market);
+  }
+
+  $("thTag").textContent = Math.round(THRESHOLD*100)+"% ENTRY BAR";
+
+  const logged = fxs.filter(f => f.decision==="logged");
+  const waitingFx = fxs.filter(f => f.decision==="pending-owner");
+
+  $("resTag").textContent =
+    logged.length+" QUALIFIED · "+waitingFx.length+
+    " WAITING · "+fxs.length+" SCANNED";
+
   if (logged.length || waitingFx.length) {
     $("resCards").innerHTML = fixtureCards(logged.concat(waitingFx));
   } else {
-    $("resCards").innerHTML = '<div class="empty">' +
-      (fxs.length ? "NO FIXTURE CLEARED THE MODEL'S ENTRY BAR TODAY.<br>NO SELECTIONS WERE MANUFACTURED TO FILL THE PAGE." :
-      "NO ANALYSIS YET.<br>TAP RUN MODEL TO SCAN TODAY'S FIXTURES.") + "</div>";
+    $("resCards").innerHTML = '<div class="empty">'+
+      (fxs.length
+        ?"NO FIXTURE CLEARED THE MODEL'S ENTRY BAR TODAY.<br>NO SELECTIONS WERE MANUFACTURED TO FILL THE PAGE."
+        :"NO ANALYSIS YET.<br>TAP RUN MODEL TO SCAN TODAY'S FIXTURES.")+
+      "</div>";
   }
-  const pend0 = snap ? (snap.owner_pending || 0) : 0;
-  const ghOff = !!snap && snap.github === "off";
-  const ghNote = ghOff ? '<div class="notice"><b>⚠ GITHUB SYNC IS OFF.</b> Add GITHUB_TOKEN in Render, otherwise the owner cannot edit context.csv and nothing can be confirmed.</div>' : "";
-  $("fiveMin").innerHTML = ghNote + (!snap ? '<div class="notice">Tap RUN MODEL to generate the first analysis of the day.</div>'
-    : (pend0 > 0 ? '<div class="notice"><b>⚠ WAIT FOR THE OWNER.</b> ' + pend0 + ' match(es) in context.csv are not confirmed yet. They are NOT being used as picks.</div>' : ""));
-  const pending = snap ? (snap.owner_pending || 0) : 0;
-  const ready = !!snap && pending === 0 && (snap.fixtures || []).length > 0;
-  const noScan = !!snap && fxs.length === 0;
+
+  const pend0 = snap ? (snap.owner_pending||0) : 0;
+  const ghOff = !!snap && snap.github==="off";
+  const ghNote = ghOff
+    ? '<div class="notice"><b>⚠ GITHUB SYNC IS OFF.</b> Add GITHUB_TOKEN in Render, otherwise the owner cannot edit context.csv and nothing can be confirmed.</div>'
+    :"";
+
+  $("fiveMin").innerHTML = ghNote+(!snap
+    ? '<div class="notice">Tap RUN MODEL to generate the first analysis of the day.</div>'
+    : pend0>0
+      ? '<div class="notice"><b>⚠ WAIT FOR THE OWNER.</b> '+pend0+
+        ' match(es) in context.csv are not confirmed yet. They are NOT being used as picks.</div>'
+      :"");
+
+  const pending = snap ? (snap.owner_pending||0) : 0;
+  const ready = !!snap && pending===0 && fxs.length>0;
+  const noScan = !!snap && fxs.length===0;
+
   $("contextReady").innerHTML = noScan
     ? "<b>NO MATCHES SCANNED.</b> The last run found nothing to analyse, so nothing is confirmed or ready."
     : ready
-    ? "<b>✔ READY:</b> every eligible match is confirmed in context.csv. Predictions below use the owner-checked factors."
-    : "<b>OWNER CONFIRMATION REQUIRED:</b> " + pending + " fixture(s) remain unchecked. Do not use these picks; keep waiting for the owner.";
-  $("contextReady").style.borderColor = ready ? "rgba(61,255,158,.6)" : "rgba(255,177,61,.6)";
-  $("contextReady").style.color = ready ? "var(--green)" : "var(--amber)";
+      ? "<b>✔ READY:</b> every eligible match is confirmed in context.csv. Predictions below use the owner-checked factors."
+      : "<b>OWNER CONFIRMATION REQUIRED:</b> "+pending+
+        " fixture(s) remain unchecked. Do not use these picks; keep waiting for the owner.";
+
+  $("contextReady").style.borderColor =
+    ready?"rgba(61,255,158,.6)":"rgba(255,177,61,.6)";
+  $("contextReady").style.color = ready?"var(--green)":"var(--amber)";
 }
 
-/* PERFORMANCE */
+/* CORE 2: UNDER 3.5
+   This panel reads the separate /api/under35 endpoint.
+   It does not use Core 1 picks or context.csv to decide qualification. */
+function renderUnder35() {
+  const data = underSnap;
+  const fixtures = data && Array.isArray(data.fixtures) ? data.fixtures : [];
+  const qualified = fixtures.filter(f => f.decision==="qualified");
+  const threshold = data && Number.isFinite(Number(data.threshold))
+    ? Number(data.threshold) : 0.75;
+  const scanned = data && Number.isFinite(Number(data.scanned))
+    ? Number(data.scanned) : fixtures.length;
+
+  $("under35Tag").textContent = data
+    ? (data.status==="ok" ? "CORE 2 · "+Math.round(threshold*100)+"% BAR"
+      : "CORE 2 · "+String(data.status||"STATUS UNKNOWN").toUpperCase())
+    : "CORE 2 · UNAVAILABLE";
+
+  $("under35Kpis").innerHTML =
+    '<div class="kpi"><div class="v" style="color:var(--cyan)">'+
+      scanned+'</div><div class="k">SCANNED</div></div>'+
+    '<div class="kpi"><div class="v" style="color:var(--green)">'+
+      qualified.length+'</div><div class="k">QUALIFIED ≥ '+Math.round(threshold*100)+'%</div></div>'+
+    '<div class="kpi"><div class="v" style="color:var(--amber)">'+
+      Math.max(0,fixtures.length-qualified.length)+
+      '</div><div class="k">NOT QUALIFIED / SKIPPED</div></div>';
+
+  if (!data) {
+    $("under35Status").textContent =
+      "Core 2 data could not be retrieved from /api/under35. This does not establish whether the model ran successfully.";
+    $("under35Status").className = "run-status warn";
+    $("under35Cards").innerHTML =
+      '<div class="empty">CORE 2 DATA IS CURRENTLY UNAVAILABLE.<br>CHECK THE SERVICE ENDPOINT AND CORE 2 RUN STATUS.</div>';
+    $("under35Foot").textContent = "No Core 2 timestamp available.";
+    return;
+  }
+
+  const status = String(data.status||"unknown").toLowerCase();
+  const reason = data.reason ? String(data.reason) : "";
+
+  if (status==="ok") {
+    $("under35Status").textContent =
+      "Core 2 data loaded. Under 3.5 qualification is evaluated independently at the "+Math.round(threshold*100)+"% threshold."+
+      (reason?" "+reason:"");
+    $("under35Status").className = "run-status ok";
+  } else {
+    $("under35Status").textContent =
+      "Core 2 reports status: "+status.toUpperCase()+
+      (reason?" — "+reason:"")+
+      ". Do not treat this status as a successful model run.";
+    $("under35Status").className = "run-status warn";
+  }
+
+  if (qualified.length) {
+    const sorted = [...qualified].sort(
+      (a,b)=>(Number(b.p_final)||0)-(Number(a.p_final)||0)
+    );
+
+    $("under35Cards").innerHTML = sorted.map((f,i) =>
+      '<div class="mcard" style="animation-delay:'+(i*.06)+'s">'+
+        '<div class="mc-ring"></div>'+
+        '<div class="lg"><span>'+
+          esc(Barbadox.LG_NAMES[f.league]||f.league)+'</span>'+
+          '<span class="mc-state st-in">✓ QUALIFIED · CORE 2</span></div>'+
+        '<div class="mc-teams">'+esc(f.home)+
+          ' <span>vs</span> '+esc(f.away)+'</div>'+
+        '<div class="mc-meta">'+esc(f.date)+
+          (f.time?" · "+esc(f.time):"")+'</div>'+
+        '<div class="mc-market"><span class="mc-call">UNDER 3.5 GOALS</span>'+
+          '<span class="mc-pct">'+pct1(f.p_final)+
+          '<small>CORE 2 CONFIDENCE</small></span></div>'+
+        '<div class="mc-soon">ENTRY BAR: '+Math.round(threshold*100)+
+          '% · '+esc(f.reason||"Qualified by Core 2")+'</div>'+
+      '</div>'
+    ).join("");
+  } else {
+    $("under35Cards").innerHTML =
+      '<div class="empty">'+
+      (status!=="ok"
+        ?"CORE 2 HAS NOT REPORTED A SUCCESSFUL RESULT.<br>CHECK ITS STATUS BEFORE DRAWING CONCLUSIONS."
+        :"NO FIXTURE CLEARED CORE 2'S UNDER 3.5 ENTRY BAR.<br>NO SELECTIONS WERE MANUFACTURED TO FILL THE PAGE.")+
+      "</div>";
+  }
+
+  const generated = data.generated_at
+    ? String(data.generated_at).replace("T"," ").replace("Z"," UTC")
+    : "timestamp not supplied";
+
+  $("under35Foot").textContent =
+    "CORE 2 DATA GENERATED: "+generated+
+    " · THRESHOLD: "+Math.round(threshold*100)+"%"+
+    " · QUALIFIED: "+qualified.length;
+}
+
+/* PERFORMANCE: CORE 1 */
 function renderPerformance() {
-  const all = snap ? snap.picks : [];
-  const graded = all.filter(p => p.result === "HIT" || p.result === "MISS");
-  const hits = graded.filter(p => p.result === "HIT").length;
-  const pending = all.filter(p => !p.result).length;
-  const hitRate = graded.length ? hits / graded.length : null;
-  $("perfTag").textContent = graded.length ? graded.length + " GRADED" : "AWAITING RESULTS";
+  const all = snap ? snap.picks||[] : [];
+  const graded = all.filter(p=>p.result==="HIT"||p.result==="MISS");
+  const hits = graded.filter(p=>p.result==="HIT").length;
+  const pending = all.filter(p=>!p.result).length;
+  const hitRate = graded.length ? hits/graded.length : null;
+
+  $("perfTag").textContent = graded.length
+    ? graded.length+" GRADED" : "AWAITING RESULTS";
+
   $("perfKpis").innerHTML =
-    '<div class="kpi"><div class="v" style="color:var(--green)">' + hits + "/" + graded.length + '</div><div class="k">HITS / GRADED</div></div>' +
-    '<div class="kpi"><div class="v" style="color:' + (hitRate === null ? "var(--dim)" : hitRate >= THRESHOLD ? "var(--acid)" : "var(--magenta)") + '">' +
-    (hitRate === null ? "—" : pct1(hitRate)) + '</div><div class="k">HIT RATE</div></div>' +
-    '<div class="kpi"><div class="v" style="color:var(--amber)">' + pending + '</div><div class="k">PENDING</div></div>';
-  if (!graded.length) { $("perfBars").innerHTML = ""; $("perfSub").textContent = "NO GRADED PICKS YET — RESULTS ARE GRADED AFTER KICKOFF"; return; }
-  const sorted = [...graded].sort((a, b) => (a.logged_at || "").localeCompare(b.logged_at || ""));
-  const recent = sorted.slice(-Math.min(14, sorted.length));
-  $("perfBars").innerHTML = recent.map((p, i) => {
-    const h = Math.round(parseFloat(p.probability) * 100);
-    const col = p.result === "HIT" ? "var(--green)" : "var(--magenta)";
-    return '<i style="height:' + h + "%;background:linear-gradient(180deg," + col + "," + col + "22);animation-delay:" + (0.2 + i * 0.05) + 's"></i>';
+    '<div class="kpi"><div class="v" style="color:var(--green)">'+
+      hits+"/"+graded.length+'</div><div class="k">HITS / GRADED</div></div>'+
+    '<div class="kpi"><div class="v" style="color:'+
+      (hitRate===null?"var(--dim)":hitRate>=THRESHOLD?"var(--acid)":"var(--magenta)")+'">'+
+      (hitRate===null?"—":pct1(hitRate))+
+      '</div><div class="k">HIT RATE</div></div>'+
+    '<div class="kpi"><div class="v" style="color:var(--amber)">'+
+      pending+'</div><div class="k">PENDING</div></div>';
+
+  if (!graded.length) {
+    $("perfBars").innerHTML = "";
+    $("perfSub").textContent =
+      "NO GRADED PICKS YET — RESULTS ARE GRADED AFTER KICKOFF";
+    return;
+  }
+
+  const sorted = [...graded].sort(
+    (a,b)=>(a.logged_at||"").localeCompare(b.logged_at||"")
+  );
+  const recent = sorted.slice(-Math.min(14,sorted.length));
+
+  $("perfBars").innerHTML = recent.map((p,i) => {
+    const h = Math.max(0,Math.min(100,
+      Math.round((parseFloat(p.probability)||0)*100)));
+    const col = p.result==="HIT"?"var(--green)":"var(--magenta)";
+    return '<i style="height:'+h+"%;background:linear-gradient(180deg,"+
+      col+","+col+"22);animation-delay:"+(0.2+i*.05)+'s"></i>';
   }).join("");
-  $("perfSub").textContent = "LAST " + recent.length + " GRADED PICKS · BAR HEIGHT = CORE CONFIDENCE";
+
+  $("perfSub").textContent =
+    "LAST "+recent.length+" GRADED PICKS · BAR HEIGHT = CORE 1 CONFIDENCE";
 }
 
-/* HISTORY */
+/* HISTORY: CORE 1 */
 function renderHistory() {
-  const rows = [...(snap ? snap.picks : [])].sort((a, b) =>
-    (b.date + "|" + (b.logged_at || "")).localeCompare(a.date + "|" + (a.logged_at || "")));
-  $("histTag").textContent = rows.length + " LOGGED CALLS";
-  $("histList").innerHTML = rows.slice(0, 30).map((p, i) => {
-    const res = p.result || "PENDING";
-    const cls = res === "HIT" ? "hit" : res === "MISS" ? "miss" : "pending";
-    const score = p.hg !== "" && p.hg != null ? esc(p.hg) + "–" + esc(p.ag) : "—";
-    return '<div class="h-row" style="animation:fadeIn .35s ' + (i * 0.04) + 's both">' +
-      '<span class="h-date">' + esc(p.date) + "</span>" +
-      "<span>" + esc(p.home) + ' <span style="color:var(--dim)">vs</span> ' + esc(p.away) + " · " + score + "</span>" +
-      '<span class="h-call">O' + esc(p.market) + "</span>" +
-      '<span class="h-prob">' + pct1(parseFloat(p.probability)) + "</span>" +
-      '<span class="chip ' + cls + '">' + res + "</span></div>";
-  }).join("") || '<div class="empty">NOTHING LOGGED YET — TAP RUN MODEL.</div>';
+  const rows = [...(snap?snap.picks||[]:[])].sort((a,b)=>
+    (b.date+"|"+(b.logged_at||"")).localeCompare(
+      a.date+"|"+(a.logged_at||"")
+    )
+  );
+
+  $("histTag").textContent = rows.length+" LOGGED CALLS";
+  $("histList").innerHTML = rows.slice(0,30).map((p,i) => {
+    const res = p.result||"PENDING";
+    const cls = res==="HIT"?"hit":res==="MISS"?"miss":"pending";
+    const score = p.hg!==""&&p.hg!=null
+      ? esc(p.hg)+"–"+esc(p.ag) : "—";
+
+    return '<div class="h-row" style="animation:fadeIn .35s '+
+      (i*.04)+'s both">'+
+      '<span class="h-date">'+esc(p.date)+'</span>'+
+      '<span>'+esc(p.home)+' <span style="color:var(--dim)">vs</span> '+
+      esc(p.away)+' · '+score+'</span>'+
+      '<span class="h-call">O'+esc(p.market)+'</span>'+
+      '<span class="h-prob">'+pct1(parseFloat(p.probability))+'</span>'+
+      '<span class="chip '+cls+'">'+esc(res)+'</span></div>';
+  }).join("")||'<div class="empty">NOTHING LOGGED YET — TAP RUN MODEL.</div>';
 }
 
-/* SLIP / ANALYSIS PAGE */
-let slipList = [], slipIdx = 0;
+/* SLIP GENERATOR */
+let slipList = [];
+let slipIdx = 0;
+
 function underCard(f) {
-  return '<div class="mcard" style="grid-column:1 / -1">' +
-      '<div class="mc-ring"></div>' +
-      '<div class="lg"><span>' + esc(Barbadox.LG_NAMES[f.league] || f.league) + "</span>" +
-        '<span class="mc-state st-in">✓ QUALIFIED · CORE 2</span></div>' +
-      '<div class="mc-teams">' + esc(f.home) + ' <span>vs</span> ' + esc(f.away) + "</div>" +
-      '<div class="mc-meta">' + esc(f.date) + (f.time ? " · " + esc(f.time) : "") + "</div>" +
-      '<div class="mc-market"><span class="mc-call">UNDER 3.5 GOALS</span>' +
-        '<span class="mc-pct">' + pct1(f.p_final) + "<small>CORE 2 CONFIDENCE</small></span></div>" +
-    "</div>";
+  return '<div class="mcard" style="grid-column:1/-1">'+
+    '<div class="mc-ring"></div>'+
+    '<div class="lg"><span>'+
+      esc(Barbadox.LG_NAMES[f.league]||f.league)+'</span>'+
+      '<span class="mc-state st-in">✓ QUALIFIED · CORE 2</span></div>'+
+    '<div class="mc-teams">'+esc(f.home)+
+      ' <span>vs</span> '+esc(f.away)+'</div>'+
+    '<div class="mc-meta">'+esc(f.date)+
+      (f.time?" · "+esc(f.time):"")+'</div>'+
+    '<div class="mc-market"><span class="mc-call">UNDER 3.5 GOALS</span>'+
+      '<span class="mc-pct">'+pct1(f.p_final)+
+      '<small>CORE 2 CONFIDENCE</small></span></div>'+
+  '</div>';
 }
+
 function renderSlip() {
   const total = slipList.length;
   const bets = slipList[slipIdx];
-  const arrow = 'background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:99px;width:34px;height:34px;font-size:14px;cursor:pointer';
+  const arrow =
+    'background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:99px;width:34px;height:34px;font-size:14px;cursor:pointer';
+
   $("slipCards").innerHTML =
-    '<section class="slip-group"><div class="slip-group-head" style="font-size:26px;letter-spacing:.2em;margin-bottom:6px">' +
-    'SLIP ' + (slipIdx + 1) + '<span style="display:flex;gap:8px;align-items:center">' +
-    '<button type="button" style="' + arrow + '" onclick="slipStep(-1)"' + (slipIdx === 0 ? ' disabled' : '') + '>←</button>' +
-    '<button type="button" style="' + arrow + '" onclick="slipStep(1)"' + (slipIdx === total - 1 ? ' disabled' : '') + '>→</button>' +
-    '</span></div>' +
-    '<div style="color:var(--dim);font-size:10px;letter-spacing:.15em;margin-bottom:14px">' +
-    (slipIdx + 1) + ' OF ' + total + ' · 4 MATCHES · 3 OVER ' + MARKET + ' + 1 UNDER 3.5</div>' +
-    '<div class="slip-group-bets">' + fixtureCards(bets.over) + underCard(bets.under) + '</div></section>';
+    '<section class="slip-group">'+
+      '<div class="slip-group-head" style="font-size:26px;letter-spacing:.2em;margin-bottom:6px">'+
+        'SLIP '+(slipIdx+1)+
+        '<span style="display:flex;gap:8px;align-items:center">'+
+          '<button type="button" style="'+arrow+'" onclick="slipStep(-1)"'+
+            (slipIdx===0?" disabled":"")+'>←</button>'+
+          '<button type="button" style="'+arrow+'" onclick="slipStep(1)"'+
+            (slipIdx===total-1?" disabled":"")+'>→</button>'+
+        '</span></div>'+
+      '<div style="color:var(--dim);font-size:10px;letter-spacing:.15em;margin-bottom:14px">'+
+        (slipIdx+1)+' OF '+total+' · 4 MATCHES · 3 OVER '+MARKET+' + 1 UNDER 3.5</div>'+
+      '<div class="slip-group-bets">'+
+        fixtureCards(bets.over)+underCard(bets.under)+
+      '</div></section>';
 }
+
 function slipStep(d) {
-  const n = slipIdx + d;
-  if (n < 0 || n >= slipList.length) return;
+  const n = slipIdx+d;
+  if (n<0||n>=slipList.length) return;
   slipIdx = n;
   renderSlip();
 }
+
 async function generateSlips() {
-  const logged = snap ? snap.fixtures.filter(f => f.decision === "logged") : [];
-  slipList = []; slipIdx = 0;
+  const logged = snap ? (snap.fixtures||[]).filter(
+    f=>f.decision==="logged"
+  ) : [];
+
+  slipList = [];
+  slipIdx = 0;
   $("slipCards").innerHTML = "";
   $("slipFoot").textContent = "";
   $("slipStatus").textContent = "Building slips…";
-  let u = null;
-  try { u = await Barbadox.getUnder35(); } catch (e) { u = null; }
-  const unders = (u && u.fixtures ? u.fixtures : [])
-    .filter(f => f.decision === "qualified")
-    .sort((a, b) => b.p_final - a.p_final);   // strongest Under 3.5 goes on the first slip
-  const key = f => f.date + "|" + f.home + "|" + f.away;
+
+  let u = underSnap;
+  if (!u) {
+    try { u = await Barbadox.getUnder35(); }
+    catch(e) { u = null; }
+  }
+
+  const unders = (u&&Array.isArray(u.fixtures)?u.fixtures:[])
+    .filter(f=>f.decision==="qualified")
+    .sort((a,b)=>(Number(b.p_final)||0)-(Number(a.p_final)||0));
+
+  const key = f=>f.date+"|"+f.home+"|"+f.away;
   const used = new Set();
   let leftOver = 0;
-  for (let i = 0; i + 3 <= logged.length; i += 3) {
-    const trio = logged.slice(i, i + 3);
+
+  for (let i=0;i+3<=logged.length;i+=3) {
+    const trio = logged.slice(i,i+3);
     const trioKeys = new Set(trio.map(key));
-    // one Under 3.5 per slip, never used twice, never the same match as one of that slip's Over 1.5 legs
-    const pick = unders.find(f => !used.has(key(f)) && !trioKeys.has(key(f)));
-    if (!pick) { leftOver += 3; continue; }
+    const pick = unders.find(f=>
+      !used.has(key(f))&&!trioKeys.has(key(f))
+    );
+
+    if (!pick) {
+      leftOver += 3;
+      continue;
+    }
+
     used.add(key(pick));
-    slipList.push({ over: trio, under: pick });
+    slipList.push({over:trio,under:pick});
   }
-  leftOver += logged.length % 3;
+
+  leftOver += logged.length%3;
+
   if (!slipList.length) {
     const why = [];
-    if (logged.length < 3) why.push("AT LEAST 3 QUALIFIED OVER " + MARKET + " MATCHES ARE REQUIRED (" + logged.length + " FOUND).");
-    if (!u) why.push("UNDER 3.5 DATA IS NOT AVAILABLE. TAP RUN MODEL AGAIN.");
-    else if (u.status && u.status !== "ok") why.push("UNDER 3.5 MODEL SAYS: " + esc(u.reason || u.status).toUpperCase() + ".");
-    else if (!unders.length) why.push("NO UNDER 3.5 MATCH CLEARED THE CORE 2 ENTRY BAR.");
-    else if (logged.length >= 3) why.push("NO FREE UNDER 3.5 MATCH FOR THESE OVER " + MARKET + " MATCHES.");
-    $("slipCards").innerHTML = '<div class="empty">NO SLIP CAN BE MADE YET.<br>' + why.join("<br>") + '</div>';
-    $("slipStatus").textContent = "0 slips available · " + logged.length + " over " + MARKET + " and " + unders.length + " under 3.5 qualified.";
+
+    if (logged.length<3)
+      why.push("AT LEAST 3 QUALIFIED OVER "+MARKET+
+        " MATCHES ARE REQUIRED ("+logged.length+" FOUND).");
+
+    if (!u)
+      why.push("UNDER 3.5 DATA IS NOT AVAILABLE. CHECK CORE 2.");
+    else if (u.status&&u.status!=="ok")
+      why.push("UNDER 3.5 MODEL SAYS: "+
+        esc(u.reason||u.status).toUpperCase()+".");
+    else if (!unders.length)
+      why.push("NO UNDER 3.5 MATCH CLEARED THE CORE 2 ENTRY BAR.");
+    else if (logged.length>=3)
+      why.push("NO FREE UNDER 3.5 MATCH FOR THESE OVER "+MARKET+" MATCHES.");
+
+    $("slipCards").innerHTML =
+      '<div class="empty">NO SLIP CAN BE MADE YET.<br>'+
+      why.join("<br>")+'</div>';
+
+    $("slipStatus").textContent =
+      "0 slips available · "+logged.length+" over "+MARKET+
+      " and "+unders.length+" under 3.5 qualified.";
     return;
   }
+
   renderSlip();
-  $("slipStatus").textContent = slipList.length + " slip(s): 3 over " + MARKET + " + 1 under 3.5 each · " +
-    logged.length + " over " + MARKET + " and " + unders.length + " under 3.5 qualified." +
-    (leftOver ? " " + leftOver + " over " + MARKET + " match(es) left over, not enough for a full slip." : "");
-  $("slipFoot").innerHTML = "OVER " + MARKET + " ENTRY BAR: " + Math.round(THRESHOLD * 100) + "% CORE CONFIDENCE · UNDER 3.5 FROM CORE 2<br>" +
+  $("slipStatus").textContent =
+    slipList.length+" slip(s): 3 over "+MARKET+
+    " + 1 under 3.5 each · "+logged.length+
+    " over "+MARKET+" and "+unders.length+
+    " under 3.5 qualified."+
+    (leftOver?" "+leftOver+
+      " over "+MARKET+" match(es) left over, not enough for a full slip.":"");
+
+  $("slipFoot").innerHTML =
+    "OVER "+MARKET+" ENTRY BAR: "+Math.round(THRESHOLD*100)+
+    "% CORE 1 CONFIDENCE · UNDER 3.5 FROM CORE 2<br>"+
     "THE MODEL MAKES THE CALL. TIME WILL JUDGE THE RESULTS.";
 }
+
 function openSlip() {
   $("slip").classList.add("on");
   generateSlips();
 }
-function closeSlip() { $("slip").classList.remove("on"); }
+function closeSlip() {
+  $("slip").classList.remove("on");
+}
 $("btnSlip").onclick = openSlip;
-document.addEventListener("keydown", e => { if (e.key === "Escape") closeSlip(); });
+document.addEventListener("keydown",e=>{
+  if (e.key==="Escape") closeSlip();
+});
 
-/* RUN */
+/* CORE 1 RUN STATUS */
 let waitLoaded = false;
+
 async function pollStatus() {
   const st = await Barbadox.getStatus();
-  const secs = st.wait_seconds || 0;
-  $("waitBox").classList.toggle("on", !!st.waiting);
-  if (st.waiting && !waitLoaded) { waitLoaded = true; await refreshData(false); }
-  if (!st.waiting) waitLoaded = false;
-  if (st.waiting) {
-    $("waitCount").textContent = Math.floor(secs / 60) + ":" + String(secs % 60).padStart(2, "0");
+  const secs = st.wait_seconds||0;
+
+  $("waitBox").classList.toggle("on",!!st.waiting);
+
+  if (st.waiting&&!waitLoaded) {
+    waitLoaded = true;
+    await refreshData(false);
   }
+  if (!st.waiting) waitLoaded = false;
+
+  if (st.waiting) {
+    $("waitCount").textContent =
+      Math.floor(secs/60)+":"+
+      String(secs%60).padStart(2,"0");
+  }
+
   if (st.running) {
-    if (st.waiting) {
-      setRunNote("IMPORTANT: WAIT FOR OWNER REVIEW. Do not use unconfirmed picks.", "warn");
-    }
+    if (st.waiting)
+      setRunNote("IMPORTANT: WAIT FOR OWNER REVIEW. Do not use unconfirmed picks.","warn");
     return;
   }
-  clearInterval(pollTimer); pollTimer = null;
+
+  clearInterval(pollTimer);
+  pollTimer = null;
+
   const ok = st.ok;
   hideLoading(ok);
-  $("btnRun").disabled = false; $("btnRun").textContent = "▶ RUN MODEL";
+  $("btnRun").disabled = false;
+  $("btnRun").textContent = "▶ RUN MODEL";
+
   if (ok) {
     await refreshData(false);
-    if (st.ready === false && (st.scanned || 0) === 0) {
-      setRunNote("NOT READY — the run finished but scanned 0 matches" + ((st.leagues_empty || []).length ? " (no data from: " + st.leagues_empty.join(", ") + ")" : "") + ". Nothing has been analysed. Check the API key / rate limit, then run again.", "err");
-    } else if (st.ready === false) {
-      setRunNote("STILL WAITING FOR THE OWNER: " + (st.owner_pending || 0) + " match(es) in context.csv are unconfirmed. Pending picks are blocked. Tap RUN again after the owner sets checked=1.", "warn");
+
+    if (st.ready===false&&(st.scanned||0)===0) {
+      setRunNote(
+        "NOT READY — the run finished but scanned 0 matches"+
+        ((st.leagues_empty||[]).length
+          ?" (no data from: "+st.leagues_empty.join(", ")+")":"")+
+        ". Nothing has been analysed. Check the API key / rate limit, then run again.",
+        "err"
+      );
+    } else if (st.ready===false) {
+      setRunNote(
+        "STILL WAITING FOR THE OWNER: "+(st.owner_pending||0)+
+        " match(es) in context.csv are unconfirmed. Pending picks are blocked. Tap RUN again after the owner sets checked=1.",
+        "warn"
+      );
     } else {
-      setRunNote("✔ READY — all context confirmed and applied to the predictions.", "ok");
+      setRunNote("✔ READY — all context confirmed and applied to the predictions.","ok");
     }
   } else {
-    setRunNote("RUN FAILED — the last successful analysis is preserved below.", "err");
+    setRunNote("RUN FAILED — the last successful analysis is preserved below.","err");
   }
 }
+
 $("btnRun").onclick = async () => {
-  $("btnRun").disabled = true; $("btnRun").textContent = "RUNNING…";
-  setRunNote("Starting the model on this service...", "ok");
+  $("btnRun").disabled = true;
+  $("btnRun").textContent = "RUNNING…";
+  setRunNote("Starting the model on this service...","ok");
   showLoading();
-  const r = await Barbadox.startRun();
-  if (!r.ok) {
+
+  let r;
+  try {
+    r = await Barbadox.startRun();
+  } catch(e) {
     hideLoading(false);
-    setRunNote(r.message || "RUN FAILED — try again shortly.", "err");
-    $("btnRun").disabled = false; $("btnRun").textContent = "▶ RUN MODEL";
+    setRunNote("RUN REQUEST FAILED: "+e.message,"err");
+    $("btnRun").disabled = false;
+    $("btnRun").textContent = "▶ RUN MODEL";
     return;
   }
-  pollTimer = setInterval(pollStatus, 1500);
+
+  if (!r.ok) {
+    hideLoading(false);
+    setRunNote(r.message||"RUN FAILED — try again shortly.","err");
+    $("btnRun").disabled = false;
+    $("btnRun").textContent = "▶ RUN MODEL";
+    return;
+  }
+
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(()=>{
+    pollStatus().catch(e=>{
+      setRunNote("STATUS CHECK ERROR: "+e.message,"warn");
+    });
+  },1500);
 };
 
-/* LOAD */
+/* DATA REFRESH
+   Core 1 and Core 2 are fetched separately. */
 async function refreshData(first) {
-  snap = await Barbadox.getData();
+  const results = await Promise.allSettled([
+    Barbadox.getData(),
+    Barbadox.getUnder35()
+  ]);
+
+  snap = results[0].status==="fulfilled" ? results[0].value : null;
+  underSnap = results[1].status==="fulfilled" ? results[1].value : null;
+
   if (snap) {
     const age = snapAgeMs();
-    if (age != null && age < FIVE_MIN) {
-      $("sysStatus").textContent = "ALL SYSTEMS NOMINAL";
+
+    if (age!=null&&age<FIVE_MIN) {
+      $("sysStatus").textContent = "CORE 1 DATA LOADED";
       $("sysDot").className = "dot";
     } else {
-      $("sysStatus").textContent = "READY — ANALYSIS MAY BE STALE";
+      $("sysStatus").textContent = "CORE 1 DATA MAY BE STALE";
       $("sysDot").className = "dot warn";
     }
-    $("snapTime").textContent = snap.generated_at.slice(0, 16).replace("T", " ") + "Z";
+
+    $("snapTime").textContent = snap.generated_at
+      ? String(snap.generated_at).slice(0,16).replace("T"," ")+"Z"
+      : "—";
     $("footData").textContent = "BARBADOX · MATCH INTELLIGENCE SYSTEM";
   } else {
-    $("sysStatus").textContent = "NO ANALYSIS — TAP RUN";
+    $("sysStatus").textContent = "CORE 1 DATA UNAVAILABLE";
     $("sysDot").className = "dot err";
     $("snapTime").textContent = "—";
-    $("footData").textContent = "NO ANALYSIS YET — TAP RUN MODEL";
+    $("footData").textContent = "CORE 1 DATA UNAVAILABLE";
   }
-  renderResults(); renderPerformance(); renderHistory();
+
+  renderResults();
+  renderUnder35();
+  renderPerformance();
+  renderHistory();
 }
+
+/* INITIAL LOAD */
 (async function load() {
-  try { await refreshData(true); }
-  catch (e) {
-    $("sysStatus").textContent = "SERVICE ERROR"; $("sysDot").className = "dot err";
-    setRunNote("SERVICE ERROR: " + e.message, "err");
+  try {
+    await refreshData(true);
+  } catch(e) {
+    $("sysStatus").textContent = "SERVICE ERROR";
+    $("sysDot").className = "dot err";
+    setRunNote("SERVICE ERROR: "+e.message,"err");
   }
-  const st = await Barbadox.getStatus().catch(() => null);
-  if (st && st.running) {
-    $("btnRun").disabled = true; $("btnRun").textContent = "RUNNING…";
+
+  const st = await Barbadox.getStatus().catch(()=>null);
+  if (st&&st.running) {
+    $("btnRun").disabled = true;
+    $("btnRun").textContent = "RUNNING…";
     showLoading();
-    pollTimer = setInterval(pollStatus, 1500);
+
+    pollTimer = setInterval(()=>{
+      pollStatus().catch(e=>{
+        setRunNote("STATUS CHECK ERROR: "+e.message,"warn");
+      });
+    },1500);
   }
 })();
 </script>
