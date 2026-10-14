@@ -20,6 +20,7 @@ import gh_sync
 BASE = Path(__file__).resolve().parent
 SNAPSHOT = BASE / "docs" / "data.json"
 SLIP = BASE / "slip.md"
+UNDER35 = BASE / "docs" / "under35.json"
 
 app = Flask(__name__)
 
@@ -42,6 +43,19 @@ def _read_snapshot():
         return json.loads(SNAPSHOT.read_text(encoding="utf-8"))
     except Exception:
         return None
+
+
+def _run_under35():
+    """Core 2 (Under 3.5). Own process and own output file, so if it fails the Over 1.5 run is untouched."""
+    try:
+        UNDER35.unlink(missing_ok=True)  # never leave an old file around that could be mistaken for fresh data
+        proc = subprocess.run(
+            ["python", "barbadox_under35.py", "--days", "3"],
+            capture_output=True, text=True, cwd=str(BASE), timeout=900,
+        )
+        return "\n--- CORE 2 (UNDER 3.5) ---\n" + proc.stdout[-1500:] + "\n" + proc.stderr[-1500:]
+    except Exception as e:
+        return "\n--- CORE 2 (UNDER 3.5) FAILED ---\n" + str(e)
 
 
 def _do_run():
@@ -71,6 +85,8 @@ def _do_run():
                 _state["ok"] = proc2.returncode == 0
                 snap = _read_snapshot() or {}
                 _state["owner_pending"] = snap.get("owner_pending", 0)
+
+            log += _run_under35()
 
             _state["scanned"] = snap.get("scanned", len(snap.get("fixtures", [])))
             _state["leagues_empty"] = snap.get("leagues_empty", [])
@@ -110,6 +126,13 @@ def data():
     if not SNAPSHOT.exists():
         return jsonify({"error": "no snapshot yet — tap RUN"}), 404
     return jsonify(json.loads(SNAPSHOT.read_text(encoding="utf-8")))
+
+
+@app.get("/api/under35")
+def under35():
+    if not UNDER35.exists():
+        return jsonify({"error": "no under 3.5 data yet, tap RUN"}), 404
+    return jsonify(json.loads(UNDER35.read_text(encoding="utf-8")))
 
 
 @app.post("/api/run")
