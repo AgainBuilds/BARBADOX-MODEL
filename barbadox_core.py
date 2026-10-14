@@ -1077,7 +1077,7 @@ def cmd_run(args):
 
     picks = read_picks()
     logged_keys = {
-        (p["date"], norm(p["home"]), norm(p["away"]))
+        (p["date"], norm(p["home"]), norm(p["away"]), str(p.get("market", "")).strip())
         for p in picks
     }
 
@@ -1118,7 +1118,7 @@ def cmd_run(args):
             f"range {pct(res['low'])}-{pct(res['high'])})"
         )
 
-        key = (fx["ldate"], norm(fx["home"]), norm(fx["away"]))
+        key = (fx["ldate"], norm(fx["home"]), norm(fx["away"]), str(args.market))
 
         # IMPORTANT: checked=1 is not required for upcoming fixtures.
         if res["p"] >= args.threshold and key not in logged_keys:
@@ -1176,6 +1176,14 @@ def grade_rows(rows, index):
 
     for p in rows:
         if p.get("result"):
+            continue
+
+        # Core 2 Under 3.5 rows are settled by core2_tracking.py.
+        # Grading them here would apply Over-market rules and invert the result.
+        if (
+            str(p.get("note", "")).strip().upper().startswith("CORE2_UNDER35")
+            or str(p.get("market", "")).strip() == "3.5"
+        ):
             continue
 
         try:
@@ -1349,3 +1357,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
