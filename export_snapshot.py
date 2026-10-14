@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 """
-BARBADOX model snapshot exporter — the bridge between backend and console.
-Runs the SAME pipeline as barbadox_core.py run (imports it, no duplicated
-math) and writes docs/data.json: every fixture with its actual internals —
-lambdas, core/form/base probabilities, upper-bound ceiling, threshold
-decision, factor sheet, notes — plus all logged picks.
+BARBADOX model snapshot exporter.
+
+Uses the same prediction pipeline as barbadox_core.py.
+The five-minute review window is separate from checked=1.
+
+IMPORTANT:
+- checked=1 means a match is finished/confirmed.
+- Upcoming fixtures do not need checked=1 to be analysed.
+- New fixtures trigger a review window.
+- Pick logging can be deferred during that window.
+- context.csv remains append-only.
 """
+
 import argparse
 import json
 import sys
@@ -15,175 +22,437 @@ from pathlib import Path
 import barbadox_core as bc
 import gh_sync as gh
 
+
 BASE_DIR = Path(__file__).resolve().parent
 SNAPSHOT_FILE = BASE_DIR / "docs" / "data.json"
 
 
 def _pct_from(sheet_line):
-    """'1 form since season start: 84.0% | games 5/6' -> 0.84"""
+    """Convert a percentage in a model sheet line to a probability."""
     try:
-        s = sheet_line.split(":")[1].strip().split("%")[0]
-        return round(float(s) / 100, 4)
+        value = sheet_line.split(":")[1].strip().split("%")[0]
+        return round(float(value) / 100, 4)
     except (IndexError, ValueError):
         return None
 
 
+def _match_key(fixture):
+    """Stable key used to identify a fixture."""
+    return (
+        fixture["ldate"],
+        bc.norm(fixture["home"]),
+        bc.norm(fixture["away"]),
+    )
+
+
+def _context_key(fixture):
+    """Key used by barbadox_core's context lookup."""
+    return (
+        fixture["ldate"],
+        fixture["hk"],
+        fixture["ak"],
+    )
+
+
 def export(args):
-    leagues = [x.strip().upper() for x in args.leagues.split(",") if x.strip()]
-    bad = [x for x in leagues if x not in bc.LEAGUES]
+    leagues = [
+        value.strip().upper()
+        for value in args.leagues.split(",")
+        if value.strip()
+    ]
+
+    bad = [league for league in leagues if league not in bc.LEAGUES]
+
     if bad:
         sys.exit(f"Unknown league key(s): {', '.join(bad)}")
 
     print("Loading data...")
+
     pools = bc.load_for_leagues(leagues, args.refresh)
     env = bc.Env(pools)
 
     tz = timedelta(hours=bc.CFG["kickoff_tz_hours"])
-    d0 = (datetime.strptime(args.date, "%Y-%m-%d").date() if args.date else (bc.NOW + tz).date())
+
+    if args.date:
+        d0 = datetime.strptime(args.date, "%Y-%m-%d").date()
+    else:
+        d0 = (bc.NOW + tz).date()
+
     d1 = d0 + timedelta(days=args.days)
 
     fixtures = []
-    for lg in leagues:
-        for m in pools.get(lg, []):
-            loc = m["dt"] + tz
-            if not (d0 <= loc.date() < d1):
+
+    for league in leagues:
+        for match in pools.get(league, []):
+            local_time = match["dt"] + tz
+
+            if not (d0 <= local_time.date() < d1):
                 continue
-            if m["status"] not in ("SCHEDULED", "TIMED"):
+
+            if match["status"] not in ("SCHEDULED", "TIMED"):
                 continue
-            item = dict(m)
-            item["league"] = lg
-            item["ldate"] = loc.strftime("%Y-%m-%d")
-            item["ltime"] = loc.strftime("%H:%M")
+
+            item = dict(match)
+            item["league"] = league
+            item["ldate"] = local_time.strftime("%Y-%m-%d")
+            item["ltime"] = local_time.strftime("%H:%M")
+
             fixtures.append(item)
 
     threshold = args.threshold
     market = args.market
-    use_gh = gh.enabled()
-    if use_gh:
-        print("GitHub sync ON: context.csv and picks.csv are read from / saved to the repo.")
+    use_github = gh.enabled()
+
+    if use_github:
+        print(
+            "GitHub sync ON: context.csv and picks.csv "
+            "are read from and saved to the repository."
+        )
     else:
-        print("!!! GITHUB SYNC OFF (no GITHUB_TOKEN): the owner CANNOT edit context.csv from here.")
+        print(
+            "WARNING: GITHUB SYNC OFF. "
+            "Changes will remain in the local environment."
+        )
+
+    if args.defer_picks:
+        print(
+            "PICK LOGGING DEFERRED: this is the initial review pass. "
+            "No new picks will be logged during this pass."
+        )
 
     def build():
-        # context.csv: created on first run, then APPEND-ONLY (owner rows are never rewritten).
-        ctx, added_context = bc.sync_context(fixtures, env, market, threshold)
+        """
+        Build one snapshot.
+
+        Existing context rows are preserved by sync_context().
+        The checked field is displayed as completion status only.
+        """
+
+        context, added_context = bc.sync_context(
+            fixtures,
+            env,
+            market,
+            threshold,
+        )
+
         if added_context:
-            print("!" * 70)
-            print(f"!!! OWNER WARNING: {added_context} new match(es) appended to context.csv.")
-            print("!!! WAIT 5 MINUTES for the owner to review it and set checked=1.")
-            print("!!! Unconfirmed matches cannot become picks.")
-            print("!" * 70)
+            print("=" * 70)
+            print(
+                f"REVIEW WINDOW: {added_context} new fixture(s) "
+                "were appended to context.csv."
+            )
+            print(
+                "WAIT 5 MINUTES before final pick logging."
+            )
+            print(
+                "Do not change checked=1 on upcoming fixtures "
+                "to approve them."
+            )
+            print("=" * 70)
 
         picks = bc.read_picks()
-        logged_keys = {(p["date"], bc.norm(p["home"]), bc.norm(p["away"])) for p in picks}
-        new_picks = 0
 
-        out_fixtures = []
-        for fx in sorted(fixtures, key=lambda x: (x["ldate"], x["ltime"])):
-            row = ctx.get((fx["ldate"], fx["hk"], fx["ak"]))
-            res = bc.analyze(fx, row, env, market)
+        logged_keys = {
+            (
+                pick["date"],
+                bc.norm(pick["home"]),
+                bc.norm(pick["away"]),
+            )
+            for pick in picks
+        }
+
+        new_picks = 0
+        output_fixtures = []
+
+        ordered_fixtures = sorted(
+            fixtures,
+            key=lambda fixture: (
+                fixture["ldate"],
+                fixture["ltime"],
+            ),
+        )
+
+        for fixture in ordered_fixtures:
+            row = context.get(_context_key(fixture))
+
+            result = bc.analyze(
+                fixture,
+                row,
+                env,
+                market,
+            )
+
+            # checked=1 describes completion/confirmation.
+            # It must not be used as an approval flag for an upcoming fixture.
+            checked = (
+                bool(row)
+                and str(row.get("checked", "")).strip() == "1"
+            )
+
             entry = {
-                "date": fx["ldate"], "time": fx["ltime"], "league": fx["league"],
-                "home": fx["home"], "away": fx["away"],
-                "checked": bool(row) and str(row.get("checked", "")).strip() == "1",
+                "date": fixture["ldate"],
+                "time": fixture["ltime"],
+                "league": fixture["league"],
+                "home": fixture["home"],
+                "away": fixture["away"],
+                "checked": checked,
             }
-            if res["p"] is None:
-                entry.update({"decision": "skipped", "reason": res.get("reason", "")})
-                out_fixtures.append(entry)
+
+            if result.get("p") is None:
+                entry.update({
+                    "decision": "skipped",
+                    "reason": result.get(
+                        "reason",
+                        "The model could not analyse this fixture.",
+                    ),
+                })
+
+                output_fixtures.append(entry)
                 continue
 
-            key = (fx["ldate"], fx["hk"], fx["ak"])
-            ready = bool(row) and str(row.get("checked", "")).strip() == "1"
+            key = _match_key(fixture)
+
+            probability = result["p"]
+            upper_bound = result.get("upper", probability)
+
             if key in logged_keys:
                 decision = "logged"
-            elif ready and res["p"] >= threshold:
-                picks.append(bc.make_pick(fx, res, row, market))
+
+            elif args.defer_picks:
+                # Do not log picks during the initial pass.
+                # The server will wait five minutes if new context rows
+                # were added, then run the normal export again.
+                decision = "review-window"
+
+            elif probability >= threshold:
+                # Upcoming fixtures can qualify without checked=1.
+                # Blank contextual fields remain neutral in the model.
+                picks.append(
+                    bc.make_pick(
+                        fixture,
+                        result,
+                        row,
+                        market,
+                    )
+                )
+
                 logged_keys.add(key)
                 new_picks += 1
                 decision = "logged"
-            elif not ready and res["upper"] >= threshold:
-                decision = "pending-owner"
+
             else:
                 decision = "below-line"
 
-            p_form = p_base = None
-            for line in res["sheet"]:
+            p_form = None
+            p_base = None
+
+            for line in result.get("sheet", []):
                 if line.startswith("1 form"):
                     p_form = _pct_from(line)
+
                 elif line.startswith("2 historical"):
                     p_base = _pct_from(line)
 
             entry.update({
                 "decision": decision,
-                "lam_h": round(res["lam_h"], 4),
-                "lam_a": round(res["lam_a"], 4),
-                "core": round(res["core"], 4),
+                "lam_h": round(result["lam_h"], 4),
+                "lam_a": round(result["lam_a"], 4),
+                "core": round(result["core"], 4),
                 "p_form": p_form,
                 "p_base": p_base,
-                "point": round(res["p"], 4),
-                "low": round(res["low"], 4),
-                "high": round(res["high"], 4),
-                "upper": round(res["upper"], 4),
-                "factors": res["factors"],
-                "notes": res["notes"],
-                "sheet": res["sheet"],
+                "point": round(probability, 4),
+                "low": round(result["low"], 4),
+                "high": round(result["high"], 4),
+                "upper": round(upper_bound, 4),
+                "factors": result.get("factors", {}),
+                "notes": result.get("notes", []),
+                "sheet": result.get("sheet", []),
             })
-            out_fixtures.append(entry)
 
-        if new_picks:
+            output_fixtures.append(entry)
+
+        # Do not write picks.csv during a deferred review pass.
+        if new_picks and not args.defer_picks:
             bc.write_picks(picks)
             bc.write_html_report(picks)
-        owner_pending = sum(1 for f in out_fixtures if f.get("decision") == "pending-owner")
+
+        review_pending = sum(
+            1
+            for fixture in output_fixtures
+            if fixture.get("decision") == "review-window"
+        )
+
         snapshot = {
             "generated_at": bc.NOW.isoformat(),
-            "window": {"from": str(d0), "to": str(d1 - timedelta(days=1))},
+            "window": {
+                "from": str(d0),
+                "to": str(d1 - timedelta(days=1)),
+            },
             "threshold": threshold,
             "market": market,
             "leagues": bc.LEAGUES,
-            "fixtures": out_fixtures,
+            "fixtures": output_fixtures,
             "picks": picks,
             "context_added": added_context,
-            "scanned": len(out_fixtures),
-            "leagues_empty": [lg for lg in leagues if not pools.get(lg)],
-            "owner_pending": owner_pending,
-            "context_ready": owner_pending == 0,
+            "scanned": len(output_fixtures),
+            "leagues_empty": [
+                league
+                for league in leagues
+                if not pools.get(league)
+            ],
+            "owner_pending": 0,
+            "context_ready": True,
+            "pick_logging_deferred": bool(args.defer_picks),
+            "review_pending": review_pending,
         }
-        return snapshot, out_fixtures, added_context, new_picks
+
+        return (
+            snapshot,
+            output_fixtures,
+            added_context,
+            new_picks,
+        )
 
     added_total = 0
+
     for attempt in range(4):
-        if use_gh:
+        if use_github:
+            # Always pull the latest owner-maintained files first.
             gh.pull("context.csv")
             gh.pull("picks.csv")
-        snapshot, out_fixtures, added_context, new_picks = build()
+
+        (
+            snapshot,
+            output_fixtures,
+            added_context,
+            new_picks,
+        ) = build()
+
         try:
-            if use_gh:
+            if use_github:
                 if added_context:
-                    gh.push("context.csv", f"Barbadox: {added_context} new match(es) need owner review")
-                    added_total += added_context  # counted only once it is really saved
+                    gh.push(
+                        "context.csv",
+                        (
+                            "Barbadox: append new fixtures "
+                            "for the five-minute review window"
+                        ),
+                    )
+
+                    added_total += added_context
                     added_context = 0
-                if new_picks:
-                    gh.push("picks.csv", f"Barbadox: {new_picks} owner-confirmed pick(s)")
-            added_total += added_context  # (sync off: local file only)
+
+                if new_picks and not args.defer_picks:
+                    gh.push(
+                        "picks.csv",
+                        f"Barbadox: log {new_picks} qualifying pick(s)",
+                    )
+
+            # When GitHub sync is off, context additions are local.
+            added_total += added_context
+
             break
-        except gh.Conflict as e:
-            print(f"GitHub file {e} changed while we were working; re-reading it and retrying ({attempt + 1}/4)")
+
+        except gh.Conflict as error:
+            print(
+                f"GitHub file {error} changed while processing. "
+                f"Re-reading and retrying ({attempt + 1}/4)."
+            )
+
     else:
-        raise SystemExit("Could not save to GitHub after 4 tries (file keeps changing). Run again.")
+        raise SystemExit(
+            "Could not save to GitHub after four attempts. "
+            "The file kept changing. Run again."
+        )
+
     snapshot["context_added"] = added_total
-    snapshot["github"] = "synced" if use_gh else "off"
-    SNAPSHOT_FILE.parent.mkdir(exist_ok=True)
-    SNAPSHOT_FILE.write_text(json.dumps(snapshot, indent=1), encoding="utf-8")
-    n_logged = sum(1 for f in out_fixtures if f.get("decision") == "logged")
-    print(f"Snapshot written: {SNAPSHOT_FILE} ({len(out_fixtures)} fixtures, {n_logged} logged).")
+    snapshot["github"] = "synced" if use_github else "off"
+
+    SNAPSHOT_FILE.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    SNAPSHOT_FILE.write_text(
+        json.dumps(snapshot, indent=1),
+        encoding="utf-8",
+    )
+
+    logged_count = sum(
+        1
+        for fixture in output_fixtures
+        if fixture.get("decision") == "logged"
+    )
+
+    print(
+        f"Snapshot written: {SNAPSHOT_FILE} "
+        f"({len(output_fixtures)} fixtures, "
+        f"{logged_count} logged or previously logged)."
+    )
+
+    print(
+        f"New picks written this pass: {new_picks}."
+    )
+
+    if args.defer_picks:
+        print(
+            "Deferred pass complete. "
+            "The server must decide whether to wait and rerun."
+        )
 
 
 if __name__ == "__main__":
-    ap = argparse.ArgumentParser(description="Export the BARBADOX model snapshot for the console UI")
-    ap.add_argument("--date", default=None, help="start date YYYY-MM-DD (default: today)")
-    ap.add_argument("--days", type=int, default=3, help="scan window (default 3, same as run)")
-    ap.add_argument("--leagues", default=",".join(bc.LEAGUES), help="league keys (default all)")
-    ap.add_argument("--market", type=float, default=bc.CFG["market"], help="goals line (default from CFG)")
-    ap.add_argument("--threshold", type=float, default=bc.CFG["threshold"], help="default from CFG (0.79)")
-    ap.add_argument("--refresh", action="store_true", help="ignore the cache")
-    export(ap.parse_args())
+    parser = argparse.ArgumentParser(
+        description=(
+            "Export the BARBADOX model snapshot for the console UI"
+        )
+    )
+
+    parser.add_argument(
+        "--date",
+        default=None,
+        help="Start date YYYY-MM-DD; defaults to today.",
+    )
+
+    parser.add_argument(
+        "--days",
+        type=int,
+        default=3,
+        help="Number of days to scan; default is 3.",
+    )
+
+    parser.add_argument(
+        "--leagues",
+        default=",".join(bc.LEAGUES),
+        help="Comma-separated league keys; defaults to all.",
+    )
+
+    parser.add_argument(
+        "--market",
+        type=float,
+        default=bc.CFG["market"],
+        help="Goals line; defaults to CFG.",
+    )
+
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=bc.CFG["threshold"],
+        help="Pick threshold; defaults to CFG.",
+    )
+
+    parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="Ignore cached data.",
+    )
+
+    parser.add_argument(
+        "--defer-picks",
+        action="store_true",
+        help=(
+            "Do not log new picks during the initial review pass."
+        ),
+    )
+
+    export(parser.parse_args())
