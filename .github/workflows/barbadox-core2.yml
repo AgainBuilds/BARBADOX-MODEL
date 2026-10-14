@@ -9,7 +9,7 @@ on:
         default: "PL,PD,FL1,BL1,SA"
 
       threshold:
-        description: "Final-probability cutoff"
+        description: "Minimum final probability for logging"
         required: false
         default: "0.75"
 
@@ -17,6 +17,9 @@ on:
         description: "Start years of seasons to test"
         required: false
         default: "2024,2025,2026"
+
+permissions:
+  contents: write
 
 jobs:
   check:
@@ -39,18 +42,32 @@ jobs:
         run: python barbadox_core2.py
         env:
           FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
-
           LEAGUES: ${{ github.event.inputs.leagues || 'PL,PD,FL1,BL1,SA' }}
-
           THRESHOLD: ${{ github.event.inputs.threshold || '0.75' }}
-
           TEST_SEASONS: ${{ github.event.inputs.test_seasons || '2024,2025,2026' }}
-
           WARMUP_SEASONS: "2023"
-
           UPCOMING_DAYS: "7"
 
-      - name: Upload Core 2 results
+      - name: Merge Core 2 selections into picks.csv
+        run: python core2_tracking.py
+        env:
+          THRESHOLD: ${{ github.event.inputs.threshold || '0.75' }}
+
+      - name: Commit persistent Core 2 track record
+        run: |
+          git config user.name "barbadox-bot"
+          git config user.email "actions@users.noreply.github.com"
+
+          git add picks.csv
+
+          if git diff --cached --quiet; then
+            echo "No track-record changes to commit."
+          else
+            git commit -m "Update Core 2 Under 3.5 track record"
+            git push
+          fi
+
+      - name: Upload Core 2 reports
         uses: actions/upload-artifact@v4
         if: always()
         with:
