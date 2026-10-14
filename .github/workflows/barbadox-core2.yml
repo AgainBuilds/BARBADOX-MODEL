@@ -1,5 +1,4 @@
 name: Barbadox - Core 2 (Under 3.5)
-
 on:
   workflow_dispatch:
     inputs:
@@ -7,39 +6,39 @@ on:
         description: "Competition codes, comma separated (PL, PD, FL1, BL1, SA)"
         required: false
         default: "PL,PD,FL1,BL1,SA"
-
       threshold:
         description: "Minimum final probability for logging"
         required: false
         default: "0.75"
-
       test_seasons:
         description: "Start years of seasons to test"
         required: false
         default: "2024,2025,2026"
-
 permissions:
   contents: write
-
+concurrency:
+  group: barbadox-core2-tracking
+  cancel-in-progress: false
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
+    timeout-minutes: 35
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+        with:
+          fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
       - name: Install dependencies
         run: pip install requests
-
-      - name: Run Barbadox Core 2
-        run: python barbadox_core2.py
+      - name: Run Core 2 and save console output for upcoming-pick export
+        shell: bash
+        run: |
+          set -o pipefail
+          python barbadox_core2.py 2>&1 | tee core2_run.log
         env:
           FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
           LEAGUES: ${{ github.event.inputs.leagues || 'PL,PD,FL1,BL1,SA' }}
@@ -47,30 +46,27 @@ jobs:
           TEST_SEASONS: ${{ github.event.inputs.test_seasons || '2024,2025,2026' }}
           WARMUP_SEASONS: "2023"
           UPCOMING_DAYS: "7"
-
       - name: Merge Core 2 selections into picks.csv
         run: python core2_tracking.py
         env:
           THRESHOLD: ${{ github.event.inputs.threshold || '0.75' }}
-
-      - name: Commit persistent Core 2 track record
+      - name: Commit Core 2 record
         run: |
           git config user.name "barbadox-bot"
           git config user.email "actions@users.noreply.github.com"
-
-          git add picks.csv
-
+          git add picks.csv reports/
           if git diff --cached --quiet; then
-            echo "No track-record changes to commit."
+            echo "No Core 2 tracking changes to commit."
           else
-            git commit -m "Update Core 2 Under 3.5 track record"
+            git commit -m "Update Core 2 Under 3.5 tracking"
             git push
           fi
-
-      - name: Upload Core 2 reports
+      - name: Upload Core 2 reports and log
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: core2-results
-          path: reports/
+          path: |
+            reports/
+            core2_run.log
           if-no-files-found: warn
