@@ -271,7 +271,7 @@ footer { margin-top: 30px; text-align: center; }
       <div class="brand" style="font-size:22px">BARBADOX<i>·</i></div>
       <button class="slip-back" onclick="closeSlip()">← BACK TO CONSOLE</button>
     </div>
-    <div class="slip-sub">EXACTLY 3 MATCHES PER SLIP · ONE SLIP AT A TIME</div>
+    <div class="slip-sub">3 OVER 1.5 + 1 UNDER 3.5 PER SLIP · ONE SLIP AT A TIME</div>
     <div class="run-status" id="slipStatus" style="margin:0 0 16px"></div>
     <div class="slip-cards" id="slipCards"></div>
     <div class="slip-foot" id="slipFoot"></div>
@@ -296,7 +296,12 @@ const Barbadox = (() => {
     const r = await fetch("/api/status", { cache: "no-store" });
     return await r.json();
   }
-  return { LG_NAMES, getData, startRun, getStatus };
+  async function getUnder35() {
+    const r = await fetch("/api/under35", { cache: "no-store" });
+    if (!r.ok) return null;
+    return await r.json();
+  }
+  return { LG_NAMES, getData, startRun, getStatus, getUnder35 };
 })();
 
 /* ============ APP ============ */
@@ -456,6 +461,17 @@ function renderHistory() {
 
 /* SLIP / ANALYSIS PAGE */
 let slipList = [], slipIdx = 0;
+function underCard(f) {
+  return '<div class="mcard" style="grid-column:1 / -1">' +
+      '<div class="mc-ring"></div>' +
+      '<div class="lg"><span>' + esc(Barbadox.LG_NAMES[f.league] || f.league) + "</span>" +
+        '<span class="mc-state st-in">✓ QUALIFIED · CORE 2</span></div>' +
+      '<div class="mc-teams">' + esc(f.home) + ' <span>vs</span> ' + esc(f.away) + "</div>" +
+      '<div class="mc-meta">' + esc(f.date) + (f.time ? " · " + esc(f.time) : "") + "</div>" +
+      '<div class="mc-market"><span class="mc-call">UNDER 3.5 GOALS</span>' +
+        '<span class="mc-pct">' + pct1(f.p_final) + "<small>CORE 2 CONFIDENCE</small></span></div>" +
+    "</div>";
+}
 function renderSlip() {
   const total = slipList.length;
   const bets = slipList[slipIdx];
@@ -467,8 +483,8 @@ function renderSlip() {
     '<button type="button" style="' + arrow + '" onclick="slipStep(1)"' + (slipIdx === total - 1 ? ' disabled' : '') + '>→</button>' +
     '</span></div>' +
     '<div style="color:var(--dim);font-size:10px;letter-spacing:.15em;margin-bottom:14px">' +
-    (slipIdx + 1) + ' OF ' + total + ' · 3 MATCHES</div>' +
-    '<div class="slip-group-bets">' + fixtureCards(bets) + '</div></section>';
+    (slipIdx + 1) + ' OF ' + total + ' · 4 MATCHES · 3 OVER ' + MARKET + ' + 1 UNDER 3.5</div>' +
+    '<div class="slip-group-bets">' + fixtureCards(bets.over) + underCard(bets.under) + '</div></section>';
 }
 function slipStep(d) {
   const n = slipIdx + d;
@@ -476,23 +492,47 @@ function slipStep(d) {
   slipIdx = n;
   renderSlip();
 }
-function generateSlips() {
+async function generateSlips() {
   const logged = snap ? snap.fixtures.filter(f => f.decision === "logged") : [];
-  const available = Math.floor(logged.length / 3);
   slipList = []; slipIdx = 0;
-  if (!available) {
-    $("slipCards").innerHTML = '<div class="empty">AT LEAST 3 QUALIFIED MATCHES ARE REQUIRED TO MAKE A SLIP.<br>RUN THE MODEL FIRST OR WAIT FOR MORE QUALIFIED MATCHES.</div>';
-    $("slipStatus").textContent = "0 slips available · " + logged.length + " qualified match(es) found.";
-    $("slipFoot").textContent = "";
+  $("slipCards").innerHTML = "";
+  $("slipFoot").textContent = "";
+  $("slipStatus").textContent = "Building slips…";
+  let u = null;
+  try { u = await Barbadox.getUnder35(); } catch (e) { u = null; }
+  const unders = (u && u.fixtures ? u.fixtures : [])
+    .filter(f => f.decision === "qualified")
+    .sort((a, b) => b.p_final - a.p_final);   // strongest Under 3.5 goes on the first slip
+  const key = f => f.date + "|" + f.home + "|" + f.away;
+  const used = new Set();
+  let leftOver = 0;
+  for (let i = 0; i + 3 <= logged.length; i += 3) {
+    const trio = logged.slice(i, i + 3);
+    const trioKeys = new Set(trio.map(key));
+    // one Under 3.5 per slip, never used twice, never the same match as one of that slip's Over 1.5 legs
+    const pick = unders.find(f => !used.has(key(f)) && !trioKeys.has(key(f)));
+    if (!pick) { leftOver += 3; continue; }
+    used.add(key(pick));
+    slipList.push({ over: trio, under: pick });
+  }
+  leftOver += logged.length % 3;
+  if (!slipList.length) {
+    const why = [];
+    if (logged.length < 3) why.push("AT LEAST 3 QUALIFIED OVER " + MARKET + " MATCHES ARE REQUIRED (" + logged.length + " FOUND).");
+    if (!u) why.push("UNDER 3.5 DATA IS NOT AVAILABLE. TAP RUN MODEL AGAIN.");
+    else if (u.status && u.status !== "ok") why.push("UNDER 3.5 MODEL SAYS: " + esc(u.reason || u.status).toUpperCase() + ".");
+    else if (!unders.length) why.push("NO UNDER 3.5 MATCH CLEARED THE CORE 2 ENTRY BAR.");
+    else if (logged.length >= 3) why.push("NO FREE UNDER 3.5 MATCH FOR THESE OVER " + MARKET + " MATCHES.");
+    $("slipCards").innerHTML = '<div class="empty">NO SLIP CAN BE MADE YET.<br>' + why.join("<br>") + '</div>';
+    $("slipStatus").textContent = "0 slips available · " + logged.length + " over " + MARKET + " and " + unders.length + " under 3.5 qualified.";
     return;
   }
-  for (let i = 0; i < available; i++) slipList.push(logged.slice(i * 3, i * 3 + 3));
   renderSlip();
-  const left = logged.length - available * 3;
-  $("slipStatus").textContent = available + " slip(s) from " + logged.length + " qualified matches, 3 per slip." +
-    (left ? " " + left + " match(es) left over, not enough for a full slip." : "");
-  $("slipFoot").innerHTML = "OVER " + MARKET + " GOALS ONLY FOR NOW · MORE BET ANGLES COMING SOON<br>" +
-    "ENTRY BAR: " + Math.round(THRESHOLD * 100) + "% CORE CONFIDENCE · THE MODEL MAKES THE CALL. TIME WILL JUDGE THE RESULTS.";
+  $("slipStatus").textContent = slipList.length + " slip(s): 3 over " + MARKET + " + 1 under 3.5 each · " +
+    logged.length + " over " + MARKET + " and " + unders.length + " under 3.5 qualified." +
+    (leftOver ? " " + leftOver + " over " + MARKET + " match(es) left over, not enough for a full slip." : "");
+  $("slipFoot").innerHTML = "OVER " + MARKET + " ENTRY BAR: " + Math.round(THRESHOLD * 100) + "% CORE CONFIDENCE · UNDER 3.5 FROM CORE 2<br>" +
+    "THE MODEL MAKES THE CALL. TIME WILL JUDGE THE RESULTS.";
 }
 function openSlip() {
   $("slip").classList.add("on");
