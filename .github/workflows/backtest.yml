@@ -1,0 +1,51 @@
+name: Barbadox - Historical Backtest
+on:
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency:
+  group: barbadox-backtest
+  cancel-in-progress: false
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run leakage-aware Core 1 walk-forward replay and export report
+        run: python core_calibration_check.py --seasons-back 3
+        env:
+          FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
+      - name: Merge qualifying historical Core 1 picks into picks.csv
+        run: python core1_tracking.py
+        env:
+          CORE1_THRESHOLD: "0.79"
+      - name: Reconstruct and evaluate historical 3+1 slips
+        run: python slip_backtest.py
+      - name: Commit backtest outputs
+        run: |
+          git config user.name "barbadox-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add picks.csv reports/
+          if git diff --cached --quiet; then
+            echo "No backtest changes to commit."
+          else
+            git commit -m "Historical backtest: Core 1 replay merged, 3+1 slips reconstructed"
+            git push
+          fi
+      - name: Upload backtest reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backtest-reports
+          path: reports/
+          if-no-files-found: warn
