@@ -19,20 +19,29 @@ baseline alone. This file fixes that without changing barbadox_core.py at all.
 This is NOT the old backtest. It doesn't touch factors 3-5, doesn't call an LLM, and
 doesn't go anywhere near the hindsight-leakage problem that one had.
 
-It does not change picks.csv, context.csv, or anything barbadox_core.py writes. It only
-reads data and prints a report.
+CHANGE (2026-10-15): besides printing, it now writes every scored match to
+reports/core1_results.csv (date, league, season, teams, probability, score, hit flag,
+cleared flag) so core1_tracking.py can merge qualifying historical Over 1.5 picks into
+picks.csv the same way core2_tracking.py does for Core 2. It still never modifies
+picks.csv, context.csv, or anything barbadox_core.py writes directly.
 
 Run:
-    python core_calibration_check.py                    # this season + 1 full prior season
+    python core_calibration_check.py                    # this season + up to 3 prior
     python core_calibration_check.py --seasons-back 1    # just this season, old behaviour
     python core_calibration_check.py --leagues PL,PD
 
 Needs FOOTBALL_DATA_KEY set, same as everything else.
 """
 import argparse
+import csv
 import sys
+from pathlib import Path
 
 import barbadox_core as bc
+
+REPORT_DIR = Path(__file__).resolve().parent / "reports"
+REPORT_FIELDS = ["date", "league", "season", "home", "away",
+                 "p_final", "p_cal", "p_raw", "hg", "ag", "hit", "cleared"]
 
 
 def team_strength_asof(team, league, pools, cutoff_dt, season, mu_h, mu_a):
@@ -77,10 +86,31 @@ def walk_forward(pools, leagues, test_seasons, market, threshold):
                     skipped += 1
                     continue
                 rows.append({"date": m["dt"].date().isoformat(), "league": lg, "season": season,
-                            "home": m["home"], "away": m["away"], "hk": m["hk"], "ak": m["ak"],
-                            "dt": m["dt"], "total_goals": m["hg"] + m["ag"],
-                            "core": p, "actual_over": (m["hg"] + m["ag"]) > market})
+                             "home": m["home"], "away": m["away"], "hk": m["hk"], "ak": m["ak"],
+                             "dt": m["dt"], "total_goals": m["hg"] + m["ag"], "hg": m["hg"], "ag": m["ag"],
+                             "core": p, "cleared": p >= threshold,
+                             "actual_over": (m["hg"] + m["ag"]) > market})
     return rows, skipped
+
+
+def write_report(rows):
+    """Write every scored match to reports/core1_results.csv (schema mirrors Core 2)."""
+    REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    path = REPORT_DIR / "core1_results.csv"
+    with path.open("w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=REPORT_FIELDS, extrasaction="ignore")
+        w.writeheader()
+        for r in rows:
+            w.writerow({
+                "date": r["date"], "league": r["league"], "season": r["season"],
+                "home": r["home"], "away": r["away"],
+                "p_final": f"{r['core']:.4f}", "p_cal": f"{r['core']:.4f}",
+                "p_raw": f"{r['core']:.4f}",
+                "hg": r["hg"], "ag": r["ag"],
+                "hit": "1" if r["actual_over"] else "0",
+                "cleared": "1" if r["cleared"] else "0",
+            })
+    print(f"Wrote {path} ({len(rows)} scored matches)")
 
 
 def main():
@@ -115,6 +145,8 @@ def main():
     if not rows:
         print("No finished matches to check yet. Nothing to report.")
         sys.exit(0)
+
+    write_report(rows)
 
     cleared = [r for r in rows if r["core"] >= args.threshold]
     hits = [r for r in cleared if r["actual_over"]]
