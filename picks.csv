@@ -1814,3 +1814,9 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2025-05-18,SA,AS Roma,AC Milan,1.5,0.7916,0.7916,,,,Core 1 Over 1.5 walk-forward (factors 1-2 only),2026-10-15T15:09:39.591184+00:00,3,1,HIT,CORE1_OVER15|HISTORICAL
 2025-05-23,SA,Como 1907,FC Internazionale Milano,1.5,0.8148,0.8148,,,,Core 1 Over 1.5 walk-forward (factors 1-2 only),2026-10-15T15:09:39.591190+00:00,0,2,HIT,CORE1_OVER15|HISTORICAL
 2025-05-25,SA,Atalanta BC,Parma Calcio 1913,1.5,0.8105,0.8105,,,,Core 1 Over 1.5 walk-forward (factors 1-2 only),2026-10-15T15:09:39.591195+00:00,2,3,HIT,CORE1_OVER15|HISTORICAL
+2026-10-18,PD,CA Osasuna,Real Racing Club de Santander,1.5,0.8709,0.8709,0.8390,0.8969,,core 87.1 | form 84 | base 76,2026-10-16T11:06:49.119810+00:00,,,,
+2026-10-18,BL1,Bayer 04 Leverkusen,SC Freiburg,1.5,0.8412,0.8412,0.8059,0.8705,,core 84.1 | form 84 | base 84,2026-10-16T11:06:49.119810+00:00,,,,
+2026-10-18,FL1,FC Lorient,AS Monaco FC,1.5,0.8195,0.8195,0.7822,0.8510,,core 82.0 | form 68 | base 88,2026-10-16T11:06:49.119810+00:00,,,,
+2026-10-18,FL1,Paris FC,Stade Rennais FC 1901,1.5,0.8427,0.8427,0.8076,0.8719,,core 84.3 | form 76 | base 89,2026-10-16T11:06:49.119810+00:00,,,,
+2026-10-18,BL1,Borussia Mönchengladbach,TSG 1899 Hoffenheim,1.5,0.8734,0.8734,0.8418,0.8990,,core 87.3 | form 95 | base 81,2026-10-16T11:06:49.119810+00:00,,,,
+2026-10-18,PD,Real Madrid CF,Sevilla FC,1.5,0.8555,0.8555,0.8218,0.8833,,core 85.5 | form 86 | base 86,2026-10-16T11:06:49.119810+00:00,,,,
