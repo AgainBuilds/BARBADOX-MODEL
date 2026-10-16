@@ -887,6 +887,7 @@ date,league,season,home,away,p_final,p_cal,p_raw,hg,ag,hit,cleared
 2026-10-11,PD,2026,Real Betis Balompié,CA Osasuna,0.7198,0.7198,0.7198,5,2,1,0
 2026-10-11,PD,2026,Real Racing Club de Santander,Valencia CF,0.8403,0.8403,0.8403,2,2,1,1
 2026-10-12,PD,2026,Levante UD,Sevilla FC,0.8247,0.8247,0.8247,3,3,1,1
+2026-10-16,PD,2026,RC Deportivo La Coruña,Levante UD,0.7658,0.7658,0.7658,1,1,1,0
 2025-08-15,PD,2025,Girona FC,Rayo Vallecano de Madrid,0.6652,0.6652,0.6652,1,3,1,0
 2025-08-16,PD,2025,RCD Mallorca,FC Barcelona,0.8120,0.8120,0.8120,0,3,1,1
 2025-08-16,PD,2025,Valencia CF,Real Sociedad de Fútbol,0.6100,0.6100,0.6100,1,1,1,0
@@ -1694,6 +1695,7 @@ date,league,season,home,away,p_final,p_cal,p_raw,hg,ag,hit,cleared
 2026-10-11,FL1,2026,OGC Nice,RC Strasbourg Alsace,0.8155,0.8155,0.8155,2,1,1,1
 2026-10-11,FL1,2026,Stade Rennais FC 1901,AJ Auxerre,0.8076,0.8076,0.8076,4,1,1,1
 2026-10-11,FL1,2026,ES Troyes AC,Olympique de Marseille,0.8076,0.8076,0.8076,0,2,1,1
+2026-10-16,FL1,2026,Le Mans FC,Toulouse FC,0.8375,0.8375,0.8375,0,3,1,1
 2025-08-15,FL1,2025,Stade Rennais FC 1901,Olympique de Marseille,0.8389,0.8389,0.8389,1,0,0,1
 2025-08-16,FL1,2025,Racing Club de Lens,Olympique Lyonnais,0.7761,0.7761,0.7761,0,1,0,0
 2025-08-16,FL1,2025,AS Monaco FC,Le Havre AC,0.8947,0.8947,0.8947,3,1,1,1
@@ -2342,6 +2344,7 @@ date,league,season,home,away,p_final,p_cal,p_raw,hg,ag,hit,cleared
 2026-10-10,BL1,2026,RB Leipzig,Eintracht Frankfurt,0.9197,0.9197,0.9197,6,0,1,1
 2026-10-11,BL1,2026,1. FC Köln,Borussia Mönchengladbach,0.8422,0.8422,0.8422,2,1,1,1
 2026-10-11,BL1,2026,SC Freiburg,FC Schalke 04,0.8105,0.8105,0.8105,2,1,1,1
+2026-10-16,BL1,2026,Eintracht Frankfurt,1. FC Köln,0.8728,0.8728,0.8728,1,0,0,1
 2025-08-22,BL1,2025,FC Bayern München,RB Leipzig,0.8527,0.8527,0.8527,6,0,1,1
 2025-08-23,BL1,2025,Eintracht Frankfurt,SV Werder Bremen,0.9064,0.9064,0.9064,4,1,1,1
 2025-08-23,BL1,2025,Bayer 04 Leverkusen,TSG 1899 Hoffenheim,0.8870,0.8870,0.8870,1,2,1,1
@@ -3010,6 +3013,7 @@ date,league,season,home,away,p_final,p_cal,p_raw,hg,ag,hit,cleared
 2026-10-11,SA,2026,Cagliari Calcio,Juventus FC,0.6458,0.6458,0.6458,1,1,1,0
 2026-10-12,SA,2026,Atalanta BC,Venezia FC,0.7005,0.7005,0.7005,3,1,1,0
 2026-10-12,SA,2026,Torino FC,Udinese Calcio,0.8283,0.8283,0.8283,2,1,1,1
+2026-10-16,SA,2026,Frosinone Calcio,US Sassuolo Calcio,0.7914,0.7914,0.7914,4,2,1,1
 2025-08-23,SA,2025,Genoa CFC,US Lecce,0.5931,0.5931,0.5931,0,0,0,0
 2025-08-23,SA,2025,US Sassuolo Calcio,SSC Napoli,0.7620,0.7620,0.7620,0,2,1,0
 2025-08-23,SA,2025,AS Roma,Bologna FC 1909,0.7647,0.7647,0.7647,1,0,0,0
