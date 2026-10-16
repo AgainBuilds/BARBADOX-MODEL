@@ -1,51 +1,87 @@
-name: Barbadox - Historical Backtest
+name: Barbadox - Full Historical Backtest
+
 on:
   workflow_dispatch: {}
+
 permissions:
   contents: write
+
 concurrency:
   group: barbadox-backtest
   cancel-in-progress: false
+
 jobs:
   backtest:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - name: Install dependencies
         run: pip install -r requirements.txt
-      - name: Run leakage-aware Core 1 walk-forward replay and export report
+
+      - name: Run Core 1 historical replay
         run: python core_calibration_check.py --seasons-back 3
         env:
           FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
-      - name: Merge qualifying historical Core 1 picks into picks.csv
+
+      - name: Merge Core 1 historical picks
         run: python core1_tracking.py
         env:
           CORE1_THRESHOLD: "0.79"
-      - name: Reconstruct and evaluate historical 3+1 slips
+
+      - name: Run Core 2.2 historical replay
+        shell: bash
+        run: |
+          set -o pipefail
+          python barbadox_core2.py 2>&1 | tee core2_backtest.log
+        env:
+          FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+          LEAGUES: "PL,PD,FL1,BL1,SA"
+          TEST_SEASONS: "2024,2025,2026"
+          WARMUP_SEASONS: "2023"
+          THRESHOLD: "0.80"
+          SAFETY_Z: "1.35"
+          UPCOMING_DAYS: "0"
+          USE_NB: "1"
+
+      - name: Merge Core 2.2 historical picks
+        run: python core2_tracking.py
+        env:
+          THRESHOLD: "0.80"
+
+      - name: Reconstruct historical 3+1 slips
         run: python slip_backtest.py
-      - name: Commit backtest outputs
+
+      - name: Commit backtest reports
         run: |
           git config user.name "barbadox-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add picks.csv reports/
+
+          git add picks.csv reports/ core2_backtest.log
+
           if git diff --cached --quiet; then
-            echo "No backtest changes to commit."
+            echo "No changes to commit."
           else
-            git commit -m "Historical backtest: Core 1 replay merged, 3+1 slips reconstructed"
+            git commit -m "Full historical backtest: Core 1, Core 2.2, and 3+1 slips"
             git push
           fi
-      - name: Upload backtest reports
+
+      - name: Upload backtest outputs
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: backtest-reports
-          path: reports/
+          name: full-historical-backtest
+          path: |
+            reports/
+            core2_backtest.log
           if-no-files-found: warn
