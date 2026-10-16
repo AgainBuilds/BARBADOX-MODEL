@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-Barbadox Core 2 (Under 3.5) - live feed for the slips.
+Barbadox Core 2 v2 (Under 3.5) - live feed for the slips.
 
-This does NOT change the Core 2 maths. It imports barbadox_core2.py as it is and uses
-its own functions (Poisson model, season baseline, calibration, safety haircut), then
-applies them to the upcoming fixtures and writes docs/under35.json for the console.
+This does NOT change the Core 2 maths. It imports barbadox_core2.py (v2:
+joint opponent-adjusted attack/defence strengths, Poisson predictive by
+default, calibration slope + walk-forward shrunk league offsets, safety
+haircut with optional P_CAP) and applies them to the upcoming fixtures,
+then writes docs/under35.json for the console.
 
 Same data as the Over 1.5 run: it reuses barbadox_core's loader and its data/ cache,
 so right after a normal run it makes no extra API calls.
@@ -19,6 +21,10 @@ USAGE
 ENVIRONMENT (optional)
     UNDER35_THRESHOLD   final-probability cutoff, default 0.75
     SAFETY_Z            Core 2 haircut strength, default 1.0 (read by barbadox_core2)
+    K_JOINT             joint-fit prior weight, default 30 (read by barbadox_core2)
+    USE_NB              1 = negative-binomial predictive (read by barbadox_core2)
+    LEAGUE_RIDGE        league-offset shrinkage, default 25 (read by barbadox_core2)
+    P_CAP               final probability cap, default 1.0 (read by barbadox_core2)
 """
 
 import argparse
@@ -79,7 +85,7 @@ def load_history(leagues):
 
 def analyse(matches, threshold, d0, d1):
     """
-    Analyse upcoming fixtures using Core 2's existing model.
+    Analyse upcoming fixtures using Core 2 v2.
 
     Returns:
         (status, reason, fixtures)
@@ -109,7 +115,7 @@ def analyse(matches, threshold, d0, d1):
         return "ok", "no fixtures in the window", []
 
     rows, states = c2.build_rows(matches)
-    model, k_by = c2.walk_forward(rows)
+    model, nb_by = c2.walk_forward(rows)
 
     if len(model) < c2.MIN_HISTORY:
         return (
@@ -125,19 +131,17 @@ def analyse(matches, threshold, d0, d1):
         for r in model
     ])
 
+    # NEW in v2: shrunk per-league logit offsets from walk-forward history.
+    deltas = c2.league_deltas(model, b)
+
     done = [
         r for r in model
         if r["p_cal"] is not None
     ]
 
-    K = (
-        k_by[latest]
-        if latest in k_by
-        else c2.tune_k([
-            r for r in rows
-            if r["season"] < latest
-        ])
-    )
+    # (v0, c) for the optional negative-binomial predictive.
+    # With USE_NB=0 (default) raw_prob ignores it and uses Poisson.
+    nbpar = nb_by.get(latest, (0.0, 0.0))
 
     out = []
 
@@ -167,21 +171,22 @@ def analyse(matches, threshold, d0, d1):
             out.append(entry)
             continue
 
-        p_raw = c2.pois_cdf(
-            c2.GOAL_LINE,
-            c2.lam_total(f, K),
-        )
+        # v2: expected total goals now comes from the joint fit
+        # (State2/JointState inside feats); K_JOINT governs the prior.
+        p_raw = c2.raw_prob(f, nbpar)
 
         off = c2.logit(
             c2.season_base(f, prior)
         )
 
+        # v2: slope calibration + per-league offset.
         p_cal = c2.sigmoid(
             off + b * (
                 c2.logit(p_raw) - off
-            )
+            ) + deltas.get(m["league"], 0.0)
         )
 
+        # Unchanged; v2 also applies P_CAP inside guard().
         p_fin = c2.guard(
             p_cal,
             done,
@@ -205,6 +210,9 @@ def analyse(matches, threshold, d0, d1):
             "p_raw": round(p_raw, 4),
             "p_cal": round(p_cal, 4),
             "p_final": round(p_fin, 4),
+            "league_delta": round(
+                deltas.get(m["league"], 0.0), 4
+            ),
         })
 
         out.append(entry)
@@ -214,7 +222,7 @@ def analyse(matches, threshold, d0, d1):
 
 def main():
     ap = argparse.ArgumentParser(
-        description="Barbadox Core 2 (Under 3.5) live feed"
+        description="Barbadox Core 2 v2 (Under 3.5) live feed"
     )
 
     ap.add_argument(
@@ -283,7 +291,7 @@ def main():
     d1 = d0 + timedelta(days=args.days)
 
     print(
-        "CORE 2 (UNDER 3.5): loading data..."
+        "CORE 2 v2 (UNDER 3.5): loading data..."
     )
 
     matches, empty = load_history(leagues)
@@ -301,7 +309,7 @@ def main():
             "from": str(d0),
             "to": str(d1 - timedelta(days=1)),
         },
-        "model": "Core 2 (Under 3.5)",
+        "model": "Core 2 v2 (Under 3.5)",
         "market": 3.5,
         "threshold": args.threshold,
         "status": status,
@@ -332,7 +340,7 @@ def main():
     ]
 
     print(
-        f"CORE 2 (UNDER 3.5): {len(fixtures)} fixture(s) "
+        f"CORE 2 v2 (UNDER 3.5): {len(fixtures)} fixture(s) "
         f"scanned, {len(qualified)} cleared "
         f"{args.threshold * 100:.0f}%. "
         f"Status: {status}"
@@ -359,7 +367,7 @@ def main():
 
     if empty:
         print(
-            "CORE 2 (UNDER 3.5): no data from: "
+            "CORE 2 v2 (UNDER 3.5): no data from: "
             + ", ".join(empty)
         )
 
