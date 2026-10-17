@@ -1,6 +1,6 @@
 # BARBADOX CORE 2.2 — UNDER 3.5 DIAGNOSTICS
 
-Generated: 2026-10-17 00:32 UTC
+Generated: 2026-10-17 01:03 UTC
 Model: Negative Binomial
 Threshold: 80.0%
 Safety z: 1.35
@@ -11,7 +11,7 @@ Safety z: 1.35
 - Historical matches with raw probabilities: **2838**
 - Qualified historical picks: **0**
 - Rejected or unscored historical rows: **3802**
-- Upcoming fixtures evaluated: **50**
+- Upcoming fixtures evaluated: **0**
 - Qualified upcoming fixtures: **0**
 
 ## Historical performance
