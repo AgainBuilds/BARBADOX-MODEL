@@ -18,7 +18,6 @@ Brier score, and out-of-sample performance before trusting selections.
 import csv
 import math
 import os
-import sys
 import time
 
 from collections import defaultdict
@@ -106,21 +105,37 @@ def api_key():
 
 
 def fetch_season(code, season, key):
+    """
+    Fetch one league-season.
+
+    Improvements:
+    - Shorter network timeout.
+    - One retry for transient failures.
+    - No long sleep after HTTP 429.
+    - Rate-limited league-seasons are skipped and logged.
+
+    Note: skipping HTTP 429 can leave a league-season incomplete.
+    """
+
     import requests
 
     url = f"{API}/competitions/{code}/matches"
 
-    for attempt in range(5):
+    for attempt in range(2):
         try:
             response = requests.get(
                 url,
                 headers={"X-Auth-Token": key},
                 params={"season": season},
-                timeout=45,
+                timeout=12,
             )
+
         except requests.RequestException as exc:
             print(f"Network error {code}/{season}: {exc}")
-            time.sleep(4)
+
+            if attempt == 0:
+                time.sleep(1)
+
             continue
 
         print(
@@ -129,26 +144,36 @@ def fetch_season(code, season, key):
         )
 
         if response.status_code == 200:
-            return response.json().get("matches", [])
+            try:
+                return response.json().get("matches", [])
+            except ValueError:
+                print(f"Invalid JSON for {code}/{season}")
+                return []
 
         if response.status_code in (400, 403, 404):
             print(f"Skipping unavailable {code}/{season}")
             return []
 
         if response.status_code == 429:
-            header = response.headers.get("Retry-After", "30")
+            reset = response.headers.get(
+                "X-RequestCounter-Reset", ""
+            )
 
-            try:
-                wait = min(65, int(header))
-            except ValueError:
-                wait = 30
+            message = (
+                f"Rate limited for {code}/{season}; "
+                "skipping this request."
+            )
 
-            print(f"Rate limited; waiting {wait + 1}s")
-            time.sleep(wait + 1)
+            if reset:
+                message += f" Counter reset in {reset}s."
 
-        else:
-            time.sleep(5 * (attempt + 1))
+            print(message)
+            return []
 
+        if attempt == 0:
+            time.sleep(2)
+
+    print(f"Failed to fetch {code}/{season} after retries.")
     return []
 
 
@@ -196,16 +221,15 @@ def load_matches():
         for season in seasons:
             print(f"Fetching {league} {season}...")
 
+            raw = fetch_season(league, season, key)
+
             matches.extend(
-                normalize(
-                    fetch_season(league, season, key),
-                    league,
-                    season,
-                )
+                normalize(raw, league, season)
             )
 
-            # Respect the football-data.org request limit.
-            time.sleep(6.5)
+            # Keep requests spaced to reduce rate-limit errors.
+            # Shortening this to 1 second may trigger HTTP 429.
+            time.sleep(6.2)
 
     return matches
 
@@ -252,9 +276,7 @@ def negative_binomial_pmf(k, mu, r):
 
 
 def dixon_coles_tau(x, y, lh, la, rho):
-    """
-    Standard low-score Dixon-Coles correction.
-    """
+    """Standard low-score Dixon-Coles correction."""
 
     if x == 0 and y == 0:
         tau = 1 - lh * la * rho
@@ -315,9 +337,7 @@ def probability_under35(lh, la, rho=-0.07):
 
 
 def wilson_lower(hits, n, z=1.35):
-    """
-    Wilson lower confidence bound for a binomial proportion.
-    """
+    """Wilson lower confidence bound for a binomial proportion."""
 
     if n <= 0:
         return 0.0
@@ -379,11 +399,7 @@ def fit_logit_slope(pairs, ridge=2.0, steps=250, lr=0.025):
 
 
 def isotonic_predict(train_pairs, target):
-    """
-    Pool Adjacent Violators isotonic regression.
-
-    train_pairs contains (probability, outcome).
-    """
+    """Pool Adjacent Violators isotonic regression."""
 
     if len(train_pairs) < 30:
         return target
@@ -399,7 +415,6 @@ def isotonic_predict(train_pairs, target):
     blocks = []
 
     for p, y in points:
-
         blocks.append({
             "xmin": p,
             "xmax": p,
@@ -499,12 +514,7 @@ class TeamState:
         self.last_date = None
 
     def advance(self, date):
-        """
-        Apply time decay from the previous state date to this date.
-
-        This method is required by add() and is included explicitly
-        to avoid the missing-method runtime error in the earlier ZIP.
-        """
+        """Apply time decay from the previous state date to this date."""
 
         if self.last_date is None:
             self.last_date = date
@@ -659,9 +669,7 @@ class TeamState:
         )
 
     def add(self, match):
-        """
-        Add a finished match after predictions for its date are made.
-        """
+        """Add a finished match after predictions for its date are made."""
 
         self.advance(match["date"])
 
@@ -745,9 +753,7 @@ def choose_k(history):
 
 
 def guard_probability(probability, calibration_history):
-    """
-    Compare the forecast with the nearest prior calibrated outcomes.
-    """
+    """Compare the forecast with the nearest prior calibrated outcomes."""
 
     if len(calibration_history) < MIN_HISTORY:
         return None, "guard_insufficient_history"
