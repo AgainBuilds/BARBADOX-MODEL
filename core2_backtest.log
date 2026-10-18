@@ -1,52 +1,486 @@
-Fetching PL 2023...
-API PL season=2023: HTTP 200
-Fetching PL 2024...
-API PL season=2024: HTTP 200
-Fetching PL 2025...
-API PL season=2025: HTTP 200
-Fetching PL 2026...
-API PL season=2026: HTTP 200
-Fetching PD 2023...
-API PD season=2023: HTTP 200
-Fetching PD 2024...
-API PD season=2024: HTTP 200
-Fetching PD 2025...
-API PD season=2025: HTTP 200
-Fetching PD 2026...
-API PD season=2026: HTTP 200
-Fetching FL1 2023...
-API FL1 season=2023: HTTP 200
-Fetching FL1 2024...
-API FL1 season=2024: HTTP 200
-Fetching FL1 2025...
-API FL1 season=2025: HTTP 200
-Fetching FL1 2026...
-API FL1 season=2026: HTTP 200
-Fetching BL1 2023...
-API BL1 season=2023: HTTP 200
-Fetching BL1 2024...
-API BL1 season=2024: HTTP 200
-Fetching BL1 2025...
-API BL1 season=2025: HTTP 200
-Fetching BL1 2026...
-API BL1 season=2026: HTTP 200
-Fetching SA 2023...
-API SA season=2023: HTTP 200
-Fetching SA 2024...
-API SA season=2024: HTTP 200
-Fetching SA 2025...
-API SA season=2025: HTTP 200
-Fetching SA 2026...
-API SA season=2026: HTTP 200
+Barbadox Core 2 - Under 3.5 goals
+Testing seasons: 2024-25, 2025-26, 2026-27
+Fetching 4 seasons of raw data total (warm-up seasons only feed tuning and calibration, they aren't tested)...
+  fetching PL 2023...
+  API GET /competitions/PL/matches -> HTTP 200
+  fetching PL 2024...
+  API GET /competitions/PL/matches -> HTTP 200
+  fetching PL 2025...
+  API GET /competitions/PL/matches -> HTTP 200
+  fetching PL 2026...
+  API GET /competitions/PL/matches -> HTTP 200
+  fetching PD 2023...
+  API GET /competitions/PD/matches -> HTTP 200
+  fetching PD 2024...
+  API GET /competitions/PD/matches -> HTTP 200
+  fetching PD 2025...
+  API GET /competitions/PD/matches -> HTTP 200
+  fetching PD 2026...
+  API GET /competitions/PD/matches -> HTTP 200
+  fetching FL1 2023...
+  API GET /competitions/FL1/matches -> HTTP 200
+  fetching FL1 2024...
+  API GET /competitions/FL1/matches -> HTTP 200
+  fetching FL1 2025...
+  API GET /competitions/FL1/matches -> HTTP 200
+  fetching FL1 2026...
+  API GET /competitions/FL1/matches -> HTTP 200
+  fetching BL1 2023...
+  API GET /competitions/BL1/matches -> HTTP 200
+  fetching BL1 2024...
+  API GET /competitions/BL1/matches -> HTTP 200
+  fetching BL1 2025...
+  API GET /competitions/BL1/matches -> HTTP 200
+  fetching BL1 2026...
+  API GET /competitions/BL1/matches -> HTTP 200
+  fetching SA 2023...
+  API GET /competitions/SA/matches -> HTTP 200
+  fetching SA 2024...
+  API GET /competitions/SA/matches -> HTTP 200
+  fetching SA 2025...
+  API GET /competitions/SA/matches -> HTTP 200
+  fetching SA 2026...
+  API GET /competitions/SA/matches -> HTTP 200
+Tuned shrinkage K by season: {2023: 60, 2024: 20, 2025: 30, 2026: 30}
 
-BARBADOX CORE 2.2 FINISHED
-Historical rows: 3802
-Qualified historical picks: 0
-Upcoming fixtures: 0
-Qualified upcoming fixtures: 0
+Walking forward through finished matches...
 
-Reports saved:
-reports/matches.csv
-reports/core2_results.csv
-reports/core2_upcoming.csv
-reports/core2_diagnostics.md
+3120 matches checked, 722 skipped (not enough prior data at the time)
+395 would have cleared 75.0% (final, after calibration + safety haircut)
+321/395 of those hit -> 81%   (break-even odds 1.23)
+longest losing run among cleared: 2 (matches with the same kickoff have no fixed order, so this can shift by 1-2)
+average final probability 77.8% | calibrated 79.2% | actual 81.3%
+Overconfidence check: OK (calibrated probability is not above the actual hit rate by more than 3 points)
+
+  2024-09-17 PD   RCD Mallorca vs Real Sociedad de Fútbol  77.9%  HIT  (1-0)
+  2024-09-19 PD   CD Leganés vs Athletic Club  77.9%  HIT  (0-2)
+  2024-09-20 PD   Deportivo Alavés vs Sevilla FC  75.8%  HIT  (2-1)
+  2024-09-21 PD   Real Valladolid CF vs Real Sociedad de Fútbol  78.9%  HIT  (0-0)
+  2024-09-21 PD   Real Madrid CF vs RCD Espanyol de Barcelona  77.4%  MISS  (4-1)
+  2024-09-22 PD   Getafe CF vs CD Leganés  78.7%  HIT  (1-1)
+  2024-09-22 PD   Rayo Vallecano de Madrid vs Club Atlético de Madrid  77.3%  HIT  (1-1)
+  2024-09-23 PD   Real Betis Balompié vs RCD Mallorca  79.4%  HIT  (1-2)
+  2024-09-27 PD   Real Valladolid CF vs RCD Mallorca  79.4%  HIT  (1-2)
+  2024-09-28 PD   Getafe CF vs Deportivo Alavés  79.4%  HIT  (2-0)
+  2024-09-28 PD   Rayo Vallecano de Madrid vs CD Leganés  79.4%  HIT  (1-1)
+  2024-09-28 SA   Genoa CFC vs Juventus FC  79.4%  HIT  (0-3)
+  2024-09-28 PD   Real Sociedad de Fútbol vs Valencia CF  79.4%  HIT  (3-0)
+  2024-09-29 SA   AS Roma vs Venezia FC  78.2%  HIT  (2-1)
+  2024-09-29 SA   Empoli FC vs ACF Fiorentina  76.5%  HIT  (0-0)
+  2024-09-29 PD   Real Betis Balompié vs RCD Espanyol de Barcelona  76.5%  HIT  (1-0)
+  2024-09-29 PD   Club Atlético de Madrid vs Real Madrid CF  75.8%  HIT  (1-1)
+  2024-10-04 PD   CD Leganés vs Valencia CF  80.1%  HIT  (0-0)
+  2024-10-05 PD   RCD Espanyol de Barcelona vs RCD Mallorca  80.8%  HIT  (2-1)
+  2024-10-05 PD   Getafe CF vs CA Osasuna  79.1%  HIT  (1-1)
+  2024-10-05 PD   Real Valladolid CF vs Rayo Vallecano de Madrid  79.0%  HIT  (1-2)
+  2024-10-06 PD   Girona FC vs Athletic Club  76.5%  HIT  (2-1)
+  2024-10-06 SA   AC Monza vs AS Roma  78.2%  HIT  (1-1)
+  2024-10-06 PD   Sevilla FC vs Real Betis Balompié  80.8%  HIT  (1-0)
+  2024-10-06 PD   Real Sociedad de Fútbol vs Club Atlético de Madrid  80.8%  HIT  (1-1)
+  2024-10-19 PD   CA Osasuna vs Real Betis Balompié  77.5%  HIT  (1-2)
+  2024-10-19 PD   Girona FC vs Real Sociedad de Fútbol  80.7%  HIT  (0-1)
+  2024-10-20 SA   Empoli FC vs SSC Napoli  79.2%  HIT  (0-1)
+  2024-10-20 PD   RCD Mallorca vs Rayo Vallecano de Madrid  80.8%  HIT  (1-0)
+  2024-10-20 SA   US Lecce vs ACF Fiorentina  76.9%  MISS  (0-6)
+  2024-10-20 PD   Club Atlético de Madrid vs CD Leganés  80.8%  MISS  (3-1)
+  2024-10-21 PL   Nottingham Forest FC vs Crystal Palace FC  76.6%  HIT  (1-0)
+  2024-10-21 PD   Valencia CF vs UD Las Palmas  76.9%  MISS  (2-3)
+  2024-10-27 SA   Parma Calcio 1913 vs Empoli FC  77.9%  HIT  (1-1)
+  2024-10-27 PD   Getafe CF vs Valencia CF  80.1%  HIT  (1-1)
+  2024-10-27 SA   FC Internazionale Milano vs Juventus FC  76.7%  MISS  (4-4)
+  2024-10-27 PD   Real Betis Balompié vs Club Atlético de Madrid  80.1%  HIT  (1-0)
+  2024-10-27 PD   Real Sociedad de Fútbol vs CA Osasuna  78.3%  HIT  (0-2)
+  2024-10-28 PD   RCD Mallorca vs Athletic Club  78.8%  HIT  (0-0)
+  2024-11-01 PD   Deportivo Alavés vs RCD Mallorca  80.0%  HIT  (1-0)
+  2024-11-02 PD   Girona FC vs CD Leganés  80.1%  MISS  (4-3)
+  2024-11-03 PD   Sevilla FC vs Real Sociedad de Fútbol  79.4%  HIT  (0-2)
+  2024-11-03 PD   Athletic Club vs Real Betis Balompié  79.4%  HIT  (1-1)
+  2024-11-04 PD   RC Celta de Vigo vs Getafe CF  77.2%  HIT  (1-0)
+  2024-11-08 SA   US Lecce vs Empoli FC  79.4%  HIT  (1-1)
+  2024-11-09 FL1  Racing Club de Lens vs FC Nantes  76.5%  MISS  (3-2)
+  2024-11-09 PD   CD Leganés vs Sevilla FC  77.6%  HIT  (1-0)
+  2024-11-10 PL   Nottingham Forest FC vs Newcastle United FC  78.7%  MISS  (1-3)
+  2024-11-10 PD   RCD Mallorca vs Club Atlético de Madrid  80.1%  HIT  (0-1)
+  2024-11-10 PD   Getafe CF vs Girona FC  80.1%  HIT  (0-1)
+  2024-11-22 PD   Getafe CF vs Real Valladolid CF  80.1%  HIT  (2-0)
+  2024-11-23 PD   Valencia CF vs Real Betis Balompié  80.1%  MISS  (4-2)
+  2024-11-23 PD   UD Las Palmas vs RCD Mallorca  80.1%  MISS  (2-3)
+  2024-11-24 PD   Sevilla FC vs Rayo Vallecano de Madrid  78.7%  HIT  (1-0)
+  2024-11-24 PD   Athletic Club vs Real Sociedad de Fútbol  79.4%  HIT  (1-0)
+  2024-11-25 SA   Empoli FC vs Udinese Calcio  78.7%  HIT  (1-1)
+  2024-11-29 PD   RCD Mallorca vs Valencia CF  78.7%  HIT  (2-1)
+  2024-11-30 PL   Crystal Palace FC vs Newcastle United FC  77.9%  HIT  (1-1)
+  2024-11-30 SA   AC Milan vs Empoli FC  79.3%  HIT  (3-0)
+  2024-11-30 PD   Real Valladolid CF vs Club Atlético de Madrid  79.4%  MISS  (0-5)
+  2024-12-01 PL   Manchester United FC vs Everton FC  77.2%  MISS  (4-0)
+  2024-12-01 PD   Real Madrid CF vs Getafe CF  78.8%  HIT  (2-0)
+  2024-12-01 PD   Rayo Vallecano de Madrid vs Athletic Club  79.4%  HIT  (1-2)
+  2024-12-01 SA   US Lecce vs Juventus FC  79.4%  HIT  (1-1)
+  2024-12-01 PD   Real Sociedad de Fútbol vs Real Betis Balompié  80.1%  HIT  (2-0)
+  2024-12-07 PD   Valencia CF vs Rayo Vallecano de Madrid  78.0%  HIT  (0-1)
+  2024-12-07 SA   AS Roma vs US Lecce  78.7%  MISS  (4-1)
+  2024-12-08 PD   CD Leganés vs Real Sociedad de Fútbol  79.4%  HIT  (0-3)
+  2024-12-08 PD   Club Atlético de Madrid vs Sevilla FC  76.5%  MISS  (4-3)
+  2024-12-09 SA   AC Monza vs Udinese Calcio  75.8%  HIT  (1-2)
+  2024-12-09 PD   Getafe CF vs RCD Espanyol de Barcelona  77.9%  HIT  (1-0)
+  2024-12-13 SA   Empoli FC vs Torino FC  78.7%  HIT  (0-1)
+  2024-12-14 SA   Udinese Calcio vs SSC Napoli  75.1%  MISS  (1-3)
+  2024-12-15 SA   US Lecce vs AC Monza  78.7%  HIT  (2-1)
+  2024-12-15 PD   Club Atlético de Madrid vs Getafe CF  79.4%  HIT  (1-0)
+  2024-12-15 PD   Real Sociedad de Fútbol vs UD Las Palmas  75.1%  HIT  (0-0)
+  2024-12-21 PD   Getafe CF vs RCD Mallorca  80.1%  HIT  (0-1)
+  2024-12-21 PD   RC Celta de Vigo vs Real Sociedad de Fútbol  79.4%  HIT  (2-0)
+  2024-12-21 SA   Genoa CFC vs SSC Napoli  77.9%  HIT  (1-2)
+  2024-12-22 SA   AC Monza vs Juventus FC  78.7%  HIT  (1-2)
+  2024-12-22 PD   Real Betis Balompié vs Rayo Vallecano de Madrid  76.5%  HIT  (1-1)
+  2024-12-28 SA   Empoli FC vs Genoa CFC  79.4%  HIT  (1-2)
+  2024-12-29 PL   Everton FC vs Nottingham Forest FC  78.7%  HIT  (0-2)
+  2025-01-04 SA   Venezia FC vs Empoli FC  78.1%  HIT  (1-1)
+  2025-01-04 SA   ACF Fiorentina vs SSC Napoli  77.9%  HIT  (0-3)
+  2025-01-05 FL1  Racing Club de Lens vs Toulouse FC  77.9%  HIT  (0-1)
+  2025-01-05 SA   US Lecce vs Genoa CFC  79.3%  HIT  (0-0)
+  2025-01-11 SA   Empoli FC vs US Lecce  81.5%  MISS  (1-3)
+  2025-01-11 SA   Torino FC vs Juventus FC  75.1%  HIT  (1-1)
+  2025-01-12 PD   UD Las Palmas vs Getafe CF  80.8%  HIT  (1-2)
+  2025-01-18 PD   CD Leganés vs Club Atlético de Madrid  75.1%  HIT  (1-0)
+  2025-01-19 SA   Cagliari Calcio vs US Lecce  76.5%  MISS  (4-1)
+  2025-01-19 PD   Valencia CF vs Real Sociedad de Fútbol  81.5%  HIT  (1-0)
+  2025-01-25 PD   RCD Mallorca vs Real Betis Balompié  80.0%  HIT  (0-1)
+  2025-01-25 SA   SSC Napoli vs Juventus FC  79.4%  HIT  (2-1)
+  2025-01-26 PD   Real Sociedad de Fútbol vs Getafe CF  82.2%  HIT  (0-3)
+  2025-01-26 BL1  FC St. Pauli 1910 vs 1. FC Union Berlin  80.8%  HIT  (3-0)
+  2025-01-27 SA   Genoa CFC vs AC Monza  79.3%  HIT  (2-0)
+  2025-01-31 PD   CD Leganés vs Rayo Vallecano de Madrid  80.3%  HIT  (0-1)
+  2025-02-01 PD   Getafe CF vs Sevilla FC  82.9%  HIT  (0-0)
+  2025-02-01 PD   Club Atlético de Madrid vs RCD Mallorca  78.9%  HIT  (2-0)
+  2025-02-02 SA   Juventus FC vs Empoli FC  75.1%  MISS  (4-1)
+  2025-02-02 PD   CA Osasuna vs Real Sociedad de Fútbol  83.6%  HIT  (2-1)
+  2025-02-02 PD   Real Betis Balompié vs Athletic Club  80.1%  MISS  (2-2)
+  2025-02-08 SA   Torino FC vs Genoa CFC  80.8%  HIT  (1-1)
+  2025-02-09 PD   Deportivo Alavés vs Getafe CF  82.9%  HIT  (0-1)
+  2025-02-09 PD   Valencia CF vs CD Leganés  75.8%  HIT  (2-0)
+  2025-02-09 PD   Real Sociedad de Fútbol vs RCD Espanyol de Barcelona  82.9%  HIT  (2-1)
+  2025-02-10 PD   RCD Mallorca vs CA Osasuna  78.7%  HIT  (1-1)
+  2025-02-14 PD   Girona FC vs Getafe CF  82.9%  HIT  (1-2)
+  2025-02-15 PD   CD Leganés vs Deportivo Alavés  77.9%  MISS  (3-3)
+  2025-02-15 PL   Crystal Palace FC vs Everton FC  79.2%  HIT  (1-2)
+  2025-02-16 SA   AC Monza vs US Lecce  77.9%  HIT  (0-0)
+  2025-02-16 SA   Udinese Calcio vs Empoli FC  75.1%  HIT  (3-0)
+  2025-02-16 PD   Real Betis Balompié vs Real Sociedad de Fútbol  82.2%  HIT  (3-0)
+  2025-02-17 SA   Genoa CFC vs Venezia FC  76.5%  HIT  (2-0)
+  2025-02-22 PL   Everton FC vs Manchester United FC  78.2%  MISS  (2-2)
+  2025-02-22 BL1  1. FSV Mainz 05 vs FC St. Pauli 1910  78.3%  HIT  (2-0)
+  2025-02-22 SA   Torino FC vs AC Milan  78.2%  HIT  (2-1)
+  2025-02-22 PD   Valencia CF vs Club Atlético de Madrid  76.5%  HIT  (0-3)
+  2025-02-23 PD   Getafe CF vs Real Betis Balompié  82.2%  HIT  (1-2)
+  2025-02-23 PD   Real Sociedad de Fútbol vs CD Leganés  82.2%  HIT  (3-0)
+  2025-02-24 PD   Sevilla FC vs RCD Mallorca  75.8%  HIT  (1-1)
+  2025-03-01 PD   Rayo Vallecano de Madrid vs Sevilla FC  78.9%  HIT  (1-1)
+  2025-03-01 PD   Club Atlético de Madrid vs Athletic Club  75.8%  HIT  (1-0)
+  2025-03-02 SA   AC Monza vs Torino FC  79.0%  HIT  (0-2)
+  2025-03-02 PD   CD Leganés vs Getafe CF  82.2%  HIT  (1-0)
+  2025-03-02 SA   Genoa CFC vs Empoli FC  79.7%  HIT  (1-1)
+  2025-03-07 SA   Cagliari Calcio vs Genoa CFC  79.4%  HIT  (1-1)
+  2025-03-08 SA   US Lecce vs AC Milan  77.2%  MISS  (2-3)
+  2025-03-09 PD   Getafe CF vs Club Atlético de Madrid  82.2%  HIT  (2-1)
+  2025-03-09 PD   Real Sociedad de Fútbol vs Sevilla FC  81.9%  HIT  (0-1)
+  2025-03-14 SA   Genoa CFC vs US Lecce  81.7%  HIT  (2-1)
+  2025-03-15 PD   RCD Mallorca vs RCD Espanyol de Barcelona  81.0%  HIT  (2-1)
+  2025-03-15 SA   Torino FC vs Empoli FC  76.5%  HIT  (1-0)
+  2025-03-16 SA   Venezia FC vs SSC Napoli  76.5%  HIT  (0-0)
+  2025-03-16 PD   CD Leganés vs Real Betis Balompié  76.5%  MISS  (2-3)
+  2025-03-16 PD   CA Osasuna vs Getafe CF  82.9%  HIT  (1-2)
+  2025-03-16 PD   Rayo Vallecano de Madrid vs Real Sociedad de Fútbol  82.9%  MISS  (2-2)
+  2025-03-29 PD   RCD Espanyol de Barcelona vs Club Atlético de Madrid  78.9%  HIT  (1-1)
+  2025-03-29 SA   Juventus FC vs Genoa CFC  76.5%  HIT  (1-0)
+  2025-03-29 PD   Deportivo Alavés vs Rayo Vallecano de Madrid  76.5%  HIT  (0-2)
+  2025-03-30 PD   Getafe CF vs Villarreal CF  79.0%  HIT  (1-2)
+  2025-04-04 SA   Genoa CFC vs Udinese Calcio  79.4%  HIT  (1-0)
+  2025-04-04 PD   Rayo Vallecano de Madrid vs RCD Espanyol de Barcelona  80.0%  MISS  (0-4)
+  2025-04-06 SA   US Lecce vs Venezia FC  81.5%  HIT  (1-1)
+  2025-04-06 PD   UD Las Palmas vs Real Sociedad de Fútbol  79.7%  MISS  (1-3)
+  2025-04-06 SA   Empoli FC vs Cagliari Calcio  79.1%  HIT  (0-0)
+  2025-04-06 PD   Sevilla FC vs Club Atlético de Madrid  77.9%  HIT  (1-2)
+  2025-04-06 PD   Real Valladolid CF vs Getafe CF  81.5%  MISS  (0-4)
+  2025-04-07 PD   CD Leganés vs CA Osasuna  75.1%  HIT  (1-1)
+  2025-04-11 FL1  Racing Club de Lens vs Stade de Reims  79.2%  HIT  (0-2)
+  2025-04-12 PD   Real Sociedad de Fútbol vs RCD Mallorca  81.5%  HIT  (0-2)
+  2025-04-12 SA   Venezia FC vs AC Monza  80.1%  HIT  (1-0)
+  2025-04-12 PD   Getafe CF vs UD Las Palmas  79.8%  MISS  (1-3)
+  2025-04-13 PD   Athletic Club vs Rayo Vallecano de Madrid  79.9%  MISS  (3-1)
+  2025-04-14 SA   SSC Napoli vs Empoli FC  75.8%  HIT  (3-0)
+  2025-04-18 PD   RCD Espanyol de Barcelona vs Getafe CF  80.8%  HIT  (1-0)
+  2025-04-19 PD   RCD Mallorca vs CD Leganés  80.1%  HIT  (0-0)
+  2025-04-20 SA   Empoli FC vs Venezia FC  80.8%  MISS  (2-2)
+  2025-04-23 SA   Genoa CFC vs SS Lazio  75.1%  HIT  (0-2)
+  2025-04-23 SA   Torino FC vs Udinese Calcio  75.8%  HIT  (2-0)
+  2025-04-23 PD   Deportivo Alavés vs Real Sociedad de Fútbol  78.7%  HIT  (1-0)
+  2025-04-23 PD   Getafe CF vs Real Madrid CF  80.0%  HIT  (0-1)
+  2025-04-27 SA   Como 1907 vs Genoa CFC  78.3%  HIT  (1-0)
+  2025-04-27 FL1  Angers SCO vs Lille OSC  75.1%  HIT  (0-2)
+  2025-04-27 FL1  Racing Club de Lens vs AJ Auxerre  75.7%  MISS  (0-4)
+  2025-04-27 SA   SSC Napoli vs Torino FC  80.1%  HIT  (2-0)
+  2025-05-02 SA   Torino FC vs Venezia FC  80.8%  HIT  (1-1)
+  2025-05-02 PD   Rayo Vallecano de Madrid vs Getafe CF  80.8%  HIT  (1-0)
+  2025-05-03 SA   US Lecce vs SSC Napoli  78.7%  HIT  (0-1)
+  2025-05-04 PD   Sevilla FC vs CD Leganés  79.0%  MISS  (2-2)
+  2025-05-04 SA   AS Roma vs ACF Fiorentina  75.8%  HIT  (1-0)
+  2025-05-04 PD   Real Sociedad de Fútbol vs Athletic Club  82.2%  HIT  (0-0)
+  2025-05-05 SA   Genoa CFC vs AC Milan  79.6%  HIT  (1-2)
+  2025-05-05 PD   Girona FC vs RCD Mallorca  78.6%  HIT  (1-0)
+  2025-05-10 PD   Valencia CF vs Getafe CF  81.5%  HIT  (3-0)
+  2025-05-10 PD   Club Atlético de Madrid vs Real Sociedad de Fútbol  78.7%  MISS  (4-0)
+  2025-05-10 FL1  Toulouse FC vs Racing Club de Lens  79.2%  HIT  (1-1)
+  2025-05-11 PD   CD Leganés vs RCD Espanyol de Barcelona  79.8%  MISS  (3-2)
+  2025-05-11 SA   Hellas Verona FC vs US Lecce  79.3%  HIT  (1-1)
+  2025-05-11 PD   Athletic Club vs Deportivo Alavés  79.0%  HIT  (1-0)
+  2025-05-11 SA   SSC Napoli vs Genoa CFC  80.8%  MISS  (2-2)
+  2025-05-12 SA   Venezia FC vs ACF Fiorentina  79.4%  HIT  (2-1)
+  2025-05-13 PD   Real Sociedad de Fútbol vs RC Celta de Vigo  75.1%  HIT  (0-1)
+  2025-05-15 PD   CA Osasuna vs Club Atlético de Madrid  75.3%  HIT  (2-0)
+  2025-05-15 PD   Getafe CF vs Athletic Club  79.4%  HIT  (0-2)
+  2025-05-17 BL1  FC Augsburg vs 1. FC Union Berlin  76.5%  HIT  (1-2)
+  2025-05-17 BL1  FC St. Pauli 1910 vs VfL Bochum 1848  78.8%  HIT  (0-2)
+  2025-05-17 SA   Genoa CFC vs Atalanta BC  75.1%  MISS  (2-3)
+  2025-05-18 PD   Valencia CF vs Athletic Club  79.6%  HIT  (0-1)
+  2025-05-18 PD   RCD Mallorca vs Getafe CF  79.4%  HIT  (1-2)
+  2025-05-18 PD   Real Sociedad de Fútbol vs Girona FC  77.2%  MISS  (3-2)
+  2025-05-18 PD   CA Osasuna vs RCD Espanyol de Barcelona  75.1%  HIT  (2-0)
+  2025-05-18 SA   Cagliari Calcio vs Venezia FC  80.1%  HIT  (3-0)
+  2025-05-18 SA   US Lecce vs Torino FC  80.1%  HIT  (1-0)
+  2025-05-18 SA   AC Monza vs Empoli FC  79.4%  MISS  (1-3)
+  2025-05-18 SA   Parma Calcio 1913 vs SSC Napoli  75.4%  HIT  (0-0)
+  2025-05-24 PD   Deportivo Alavés vs CA Osasuna  75.8%  HIT  (1-1)
+  2025-05-24 PD   Getafe CF vs RC Celta de Vigo  78.5%  HIT  (1-2)
+  2025-05-24 PD   Rayo Vallecano de Madrid vs RCD Mallorca  77.9%  HIT  (0-0)
+  2025-05-25 SA   Empoli FC vs Hellas Verona FC  76.5%  HIT  (1-2)
+  2025-05-25 SA   Torino FC vs AS Roma  77.9%  HIT  (0-2)
+  2025-05-25 SA   Venezia FC vs Juventus FC  77.2%  MISS  (2-3)
+  2025-09-27 PL   Crystal Palace FC vs Liverpool FC  75.8%  HIT  (2-1)
+  2025-09-27 PL   Leeds United FC vs AFC Bournemouth  77.2%  MISS  (2-2)
+  2025-09-27 PL   Nottingham Forest FC vs Sunderland AFC  75.1%  HIT  (0-1)
+  2025-09-27 PD   RCD Mallorca vs Deportivo Alavés  75.1%  HIT  (1-0)
+  2025-09-28 PL   Aston Villa FC vs Fulham FC  79.3%  MISS  (3-1)
+  2025-09-28 PL   Newcastle United FC vs Arsenal FC  79.0%  HIT  (1-2)
+  2025-09-28 PD   Real Betis Balompié vs CA Osasuna  75.1%  HIT  (2-0)
+  2025-10-03 SA   Hellas Verona FC vs US Sassuolo Calcio  78.8%  HIT  (0-1)
+  2025-10-04 SA   SS Lazio vs Torino FC  79.5%  MISS  (3-3)
+  2025-10-04 SA   Parma Calcio 1913 vs US Lecce  78.7%  HIT  (0-1)
+  2025-10-04 PD   Athletic Club vs RCD Mallorca  75.2%  HIT  (2-1)
+  2025-10-04 SA   Atalanta BC vs Como 1907  79.4%  HIT  (1-1)
+  2025-10-04 FL1  AJ Auxerre vs Racing Club de Lens  75.3%  HIT  (1-2)
+  2025-10-05 SA   Udinese Calcio vs Cagliari Calcio  78.7%  HIT  (1-1)
+  2025-10-05 PL   Everton FC vs Crystal Palace FC  77.2%  HIT  (2-1)
+  2025-10-05 SA   ACF Fiorentina vs AS Roma  75.8%  HIT  (1-2)
+  2025-10-05 SA   Bologna FC 1909 vs AC Pisa 1909  75.8%  MISS  (4-0)
+  2025-10-05 SA   SSC Napoli vs Genoa CFC  75.8%  HIT  (2-1)
+  2025-10-05 SA   Juventus FC vs AC Milan  75.1%  HIT  (0-0)
+  2025-10-18 SA   AC Pisa 1909 vs Hellas Verona FC  76.5%  HIT  (0-0)
+  2025-10-18 SA   US Lecce vs US Sassuolo Calcio  75.1%  HIT  (0-0)
+  2025-10-18 PL   Sunderland AFC vs Wolverhampton Wanderers FC  75.3%  HIT  (2-0)
+  2025-10-19 SA   Como 1907 vs Juventus FC  75.8%  HIT  (2-0)
+  2025-10-19 SA   Cagliari Calcio vs Bologna FC 1909  75.8%  HIT  (0-2)
+  2025-10-19 SA   Genoa CFC vs Parma Calcio 1913  75.8%  HIT  (0-0)
+  2025-10-19 PD   RC Celta de Vigo vs Real Sociedad de Fútbol  75.1%  HIT  (1-1)
+  2025-10-19 SA   AC Milan vs ACF Fiorentina  75.8%  HIT  (2-1)
+  2025-10-20 SA   US Cremonese vs Udinese Calcio  77.9%  HIT  (1-1)
+  2025-10-24 SA   AC Milan vs AC Pisa 1909  76.5%  MISS  (2-2)
+  2025-10-25 PD   Girona FC vs Real Oviedo  75.1%  MISS  (3-3)
+  2025-10-25 SA   Parma Calcio 1913 vs Como 1907  75.1%  HIT  (0-0)
+  2025-10-25 SA   Udinese Calcio vs US Lecce  75.8%  MISS  (3-2)
+  2025-10-25 PL   Newcastle United FC vs Fulham FC  75.1%  HIT  (2-1)
+  2025-10-25 PD   RCD Espanyol de Barcelona vs Elche CF  75.0%  HIT  (1-0)
+  2025-10-25 SA   US Cremonese vs Atalanta BC  76.5%  HIT  (1-1)
+  2025-10-26 PD   CA Osasuna vs RC Celta de Vigo  78.7%  MISS  (2-3)
+  2025-10-26 SA   SS Lazio vs Juventus FC  76.5%  HIT  (1-0)
+  2025-10-26 PD   Rayo Vallecano de Madrid vs Deportivo Alavés  78.2%  HIT  (1-0)
+  2025-10-28 SA   US Lecce vs SSC Napoli  75.1%  HIT  (0-1)
+  2025-10-28 SA   Atalanta BC vs AC Milan  76.5%  HIT  (1-1)
+  2025-10-29 SA   Juventus FC vs Udinese Calcio  78.7%  MISS  (3-1)
+  2025-11-01 SA   Udinese Calcio vs Atalanta BC  78.3%  HIT  (1-0)
+  2025-11-01 SA   SSC Napoli vs Como 1907  76.5%  HIT  (0-0)
+  2025-11-01 PD   Real Sociedad de Fútbol vs Athletic Club  78.3%  MISS  (3-2)
+  2025-11-01 SA   US Cremonese vs Juventus FC  76.5%  HIT  (1-2)
+  2025-11-02 SA   Hellas Verona FC vs FC Internazionale Milano  75.1%  HIT  (1-2)
+  2025-11-02 SA   ACF Fiorentina vs US Lecce  76.5%  HIT  (0-1)
+  2025-11-02 PD   Deportivo Alavés vs RCD Espanyol de Barcelona  77.8%  HIT  (2-1)
+  2025-11-02 SA   Parma Calcio 1913 vs Bologna FC 1909  75.1%  MISS  (1-3)
+  2025-11-02 SA   AC Milan vs AS Roma  75.1%  HIT  (1-0)
+  2025-11-08 PD   Girona FC vs Deportivo Alavés  75.1%  HIT  (1-0)
+  2025-11-08 SA   Juventus FC vs Torino FC  77.2%  HIT  (0-0)
+  2025-11-08 PL   Sunderland AFC vs Arsenal FC  79.4%  MISS  (2-2)
+  2025-11-08 SA   Parma Calcio 1913 vs AC Milan  75.1%  MISS  (2-2)
+  2025-11-09 SA   Bologna FC 1909 vs SSC Napoli  77.9%  HIT  (2-0)
+  2025-11-09 PD   RCD Mallorca vs Getafe CF  75.1%  HIT  (1-0)
+  2025-11-22 PD   Deportivo Alavés vs RC Celta de Vigo  75.1%  HIT  (0-1)
+  2025-11-22 SA   Udinese Calcio vs Bologna FC 1909  76.5%  HIT  (0-3)
+  2025-11-22 PL   Fulham FC vs Sunderland AFC  75.1%  HIT  (1-0)
+  2025-11-22 PL   Wolverhampton Wanderers FC vs Crystal Palace FC  75.3%  HIT  (0-2)
+  2025-11-22 PD   CA Osasuna vs Real Sociedad de Fútbol  78.6%  MISS  (1-3)
+  2025-11-23 PD   Real Oviedo vs Rayo Vallecano de Madrid  76.5%  HIT  (0-0)
+  2025-11-23 PD   Getafe CF vs Club Atlético de Madrid  75.3%  HIT  (0-1)
+  2025-11-28 SA   Como 1907 vs US Sassuolo Calcio  76.5%  HIT  (2-0)
+  2025-11-28 PD   Getafe CF vs Elche CF  78.6%  HIT  (1-0)
+  2025-11-29 PD   RCD Mallorca vs CA Osasuna  78.3%  MISS  (2-2)
+  2025-11-29 SA   Genoa CFC vs Hellas Verona FC  76.5%  HIT  (2-1)
+  2025-11-29 SA   Parma Calcio 1913 vs Udinese Calcio  78.7%  HIT  (0-2)
+  2025-11-29 SA   Juventus FC vs Cagliari Calcio  78.7%  HIT  (2-1)
+  2025-11-30 SA   US Lecce vs Torino FC  75.8%  HIT  (2-1)
+  2025-11-30 SA   AC Pisa 1909 vs FC Internazionale Milano  75.2%  HIT  (0-2)
+  2025-11-30 SA   Atalanta BC vs ACF Fiorentina  78.6%  HIT  (2-0)
+  2025-12-01 SA   Bologna FC 1909 vs US Cremonese  76.5%  MISS  (1-3)
+  2025-12-01 PD   Rayo Vallecano de Madrid vs Valencia CF  75.8%  HIT  (1-1)
+  2025-12-06 PL   Aston Villa FC vs Arsenal FC  75.1%  HIT  (2-1)
+  2025-12-06 SA   US Sassuolo Calcio vs ACF Fiorentina  76.5%  MISS  (3-1)
+  2025-12-06 SA   FC Internazionale Milano vs Como 1907  75.1%  MISS  (4-0)
+  2025-12-06 PD   Athletic Club vs Club Atlético de Madrid  75.1%  HIT  (1-0)
+  2025-12-07 SA   US Cremonese vs US Lecce  77.2%  HIT  (2-0)
+  2025-12-07 PD   RCD Espanyol de Barcelona vs Rayo Vallecano de Madrid  78.6%  HIT  (1-0)
+  2025-12-07 SA   SSC Napoli vs Juventus FC  79.4%  HIT  (2-1)
+  2025-12-08 SA   Torino FC vs AC Milan  78.5%  MISS  (2-3)
+  2025-12-13 PD   RCD Mallorca vs Elche CF  76.5%  MISS  (3-1)
+  2025-12-13 PD   Getafe CF vs RCD Espanyol de Barcelona  77.2%  HIT  (0-1)
+  2025-12-14 SA   ACF Fiorentina vs Hellas Verona FC  77.2%  HIT  (1-2)
+  2025-12-14 SA   Bologna FC 1909 vs Juventus FC  77.9%  HIT  (0-1)
+  2025-12-14 PD   Deportivo Alavés vs Real Madrid CF  75.1%  HIT  (1-2)
+  2025-12-19 PD   Valencia CF vs RCD Mallorca  75.4%  HIT  (1-1)
+  2025-12-20 PD   Real Oviedo vs RC Celta de Vigo  77.2%  HIT  (0-0)
+  2025-12-20 PL   Everton FC vs Arsenal FC  75.1%  HIT  (0-1)
+  2025-12-21 PD   Real Betis Balompié vs Getafe CF  75.1%  MISS  (4-0)
+  2025-12-22 PD   Athletic Club vs RCD Espanyol de Barcelona  75.8%  HIT  (1-2)
+  2025-12-27 SA   Parma Calcio 1913 vs ACF Fiorentina  75.8%  HIT  (1-0)
+  2025-12-28 SA   US Cremonese vs SSC Napoli  75.8%  HIT  (0-2)
+  2026-01-03 SA   Como 1907 vs Udinese Calcio  75.1%  HIT  (1-0)
+  2026-01-03 SA   Genoa CFC vs AC Pisa 1909  78.7%  HIT  (1-1)
+  2026-01-03 PD   CA Osasuna vs Athletic Club  77.9%  HIT  (1-1)
+  2026-01-04 SA   ACF Fiorentina vs US Cremonese  76.5%  HIT  (1-0)
+  2026-01-04 PL   Newcastle United FC vs Crystal Palace FC  75.1%  HIT  (2-0)
+  2026-01-04 FL1  Le Havre AC vs Angers SCO  77.9%  HIT  (2-1)
+  2026-01-06 SA   US Sassuolo Calcio vs Juventus FC  79.2%  HIT  (0-3)
+  2026-01-07 SA   Bologna FC 1909 vs Atalanta BC  77.9%  HIT  (0-2)
+  2026-01-08 SA   US Cremonese vs Cagliari Calcio  79.7%  MISS  (2-2)
+  2026-01-09 PD   Getafe CF vs Real Sociedad de Fútbol  75.1%  HIT  (1-2)
+  2026-01-10 SA   Udinese Calcio vs AC Pisa 1909  78.8%  MISS  (2-2)
+  2026-01-11 PD   Rayo Vallecano de Madrid vs RCD Mallorca  78.7%  HIT  (2-1)
+  2026-01-12 SA   Genoa CFC vs Cagliari Calcio  75.1%  HIT  (3-0)
+  2026-01-12 SA   Juventus FC vs US Cremonese  77.2%  MISS  (5-0)
+  2026-01-15 SA   Hellas Verona FC vs Bologna FC 1909  75.1%  MISS  (2-3)
+  2026-01-17 SA   SSC Napoli vs US Sassuolo Calcio  75.8%  HIT  (1-0)
+  2026-01-18 PD   Getafe CF vs Valencia CF  75.1%  HIT  (0-1)
+  2026-01-18 PD   Club Atlético de Madrid vs Deportivo Alavés  75.2%  HIT  (1-0)
+  2026-01-18 PD   RC Celta de Vigo vs Rayo Vallecano de Madrid  77.9%  HIT  (3-0)
+  2026-01-18 SA   AC Milan vs US Lecce  77.2%  HIT  (1-0)
+  2026-01-24 PD   Valencia CF vs RCD Espanyol de Barcelona  75.1%  MISS  (3-2)
+  2026-01-25 SA   US Sassuolo Calcio vs US Cremonese  77.9%  HIT  (1-0)
+  2026-01-30 PD   RCD Espanyol de Barcelona vs Deportivo Alavés  77.9%  HIT  (1-2)
+  2026-01-31 PD   Real Oviedo vs Girona FC  78.6%  HIT  (1-0)
+  2026-01-31 SA   SSC Napoli vs ACF Fiorentina  75.1%  HIT  (2-1)
+  2026-02-01 SA   Torino FC vs US Lecce  75.1%  HIT  (1-0)
+  2026-02-01 SA   Como 1907 vs Atalanta BC  77.2%  HIT  (0-0)
+  2026-02-01 PD   Getafe CF vs RC Celta de Vigo  75.8%  HIT  (0-0)
+  2026-02-07 PL   Arsenal FC vs Sunderland AFC  75.3%  HIT  (3-0)
+  2026-02-08 SA   Bologna FC 1909 vs Parma Calcio 1913  78.9%  HIT  (0-1)
+  2026-02-15 PD   Real Oviedo vs Athletic Club  75.8%  HIT  (1-2)
+  2026-02-15 PD   Rayo Vallecano de Madrid vs Club Atlético de Madrid  79.8%  HIT  (3-0)
+  2026-02-18 SA   AC Milan vs Como 1907  79.5%  HIT  (1-1)
+  2026-02-21 SA   Cagliari Calcio vs SS Lazio  75.1%  HIT  (0-0)
+  2026-02-22 SA   Atalanta BC vs SSC Napoli  79.1%  HIT  (2-1)
+  2026-02-22 FL1  FC Nantes vs Le Havre AC  75.8%  HIT  (2-0)
+  2026-02-27 PL   Wolverhampton Wanderers FC vs Aston Villa FC  76.5%  HIT  (2-0)
+  2026-02-28 SA   Hellas Verona FC vs SSC Napoli  75.3%  HIT  (1-2)
+  2026-03-01 SA   US Cremonese vs AC Milan  76.5%  HIT  (0-2)
+  2026-03-01 PL   Brighton & Hove Albion FC vs Nottingham Forest FC  75.0%  HIT  (2-1)
+  2026-03-01 SA   Torino FC vs SS Lazio  79.1%  HIT  (2-0)
+  2026-03-01 PD   Girona FC vs RC Celta de Vigo  75.7%  HIT  (1-2)
+  2026-03-04 PD   Rayo Vallecano de Madrid vs Real Oviedo  75.1%  HIT  (3-0)
+  2026-03-08 PD   Getafe CF vs Real Betis Balompié  78.8%  HIT  (2-0)
+  2026-03-08 SA   Genoa CFC vs AS Roma  79.1%  HIT  (2-1)
+  2026-03-08 PD   Valencia CF vs Deportivo Alavés  77.2%  MISS  (3-2)
+  2026-03-14 PD   Girona FC vs Athletic Club  75.1%  HIT  (3-0)
+  2026-03-14 PL   Sunderland AFC vs Brighton & Hove Albion FC  75.1%  HIT  (0-1)
+  2026-03-14 SA   SSC Napoli vs US Lecce  78.5%  HIT  (2-1)
+  2026-03-14 PD   Real Oviedo vs Valencia CF  75.8%  HIT  (1-0)
+  2026-03-15 SA   AC Pisa 1909 vs Cagliari Calcio  75.1%  MISS  (3-1)
+  2026-03-15 FL1  Le Havre AC vs Olympique Lyonnais  77.9%  HIT  (0-0)
+  2026-03-16 SA   US Cremonese vs ACF Fiorentina  78.8%  MISS  (1-4)
+  2026-03-16 PD   Rayo Vallecano de Madrid vs Levante UD  75.7%  HIT  (1-1)
+  2026-03-20 SA   Cagliari Calcio vs SSC Napoli  75.2%  HIT  (0-1)
+  2026-03-21 PD   RCD Espanyol de Barcelona vs Getafe CF  79.4%  HIT  (1-2)
+  2026-03-22 PL   Newcastle United FC vs Sunderland AFC  75.4%  HIT  (1-2)
+  2026-03-22 SA   Atalanta BC vs Hellas Verona FC  75.1%  HIT  (1-0)
+  2026-03-22 FL1  Paris FC vs Le Havre AC  77.9%  MISS  (3-2)
+  2026-04-03 PD   Rayo Vallecano de Madrid vs Elche CF  75.3%  HIT  (1-0)
+  2026-04-04 SA   Hellas Verona FC vs ACF Fiorentina  75.1%  HIT  (0-1)
+  2026-04-05 SA   US Cremonese vs Bologna FC 1909  77.9%  HIT  (1-2)
+  2026-04-06 SA   Udinese Calcio vs Como 1907  75.4%  HIT  (0-0)
+  2026-04-11 SA   Cagliari Calcio vs US Cremonese  77.9%  HIT  (1-0)
+  2026-04-11 SA   AC Milan vs Udinese Calcio  76.5%  HIT  (0-3)
+  2026-04-11 FL1  AJ Auxerre vs FC Nantes  78.7%  HIT  (0-0)
+  2026-04-12 SA   Bologna FC 1909 vs US Lecce  79.9%  HIT  (2-0)
+  2026-04-13 PD   Levante UD vs Getafe CF  79.4%  HIT  (1-0)
+  2026-04-19 SA   US Cremonese vs Torino FC  75.4%  HIT  (0-0)
+  2026-04-19 PL   Aston Villa FC vs Sunderland AFC  78.8%  MISS  (4-3)
+  2026-04-19 SA   AC Pisa 1909 vs Genoa CFC  75.5%  HIT  (1-2)
+  2026-04-22 PD   Real Sociedad de Fútbol vs Getafe CF  75.8%  HIT  (0-1)
+  2026-04-25 SA   Bologna FC 1909 vs AS Roma  77.9%  HIT  (0-2)
+  2026-04-26 PD   Real Oviedo vs Elche CF  75.7%  HIT  (1-2)
+  2026-04-26 SA   AC Milan vs Juventus FC  75.8%  HIT  (0-0)
+  2026-04-27 SA   Cagliari Calcio vs Atalanta BC  79.5%  MISS  (3-2)
+  2026-05-02 SA   Como 1907 vs SSC Napoli  75.8%  HIT  (0-0)
+  2026-05-02 SA   Atalanta BC vs Genoa CFC  75.8%  HIT  (0-0)
+  2026-05-03 SA   Bologna FC 1909 vs Cagliari Calcio  76.0%  HIT  (0-0)
+  2026-05-03 SA   US Sassuolo Calcio vs AC Milan  78.7%  HIT  (2-0)
+  2026-05-08 PD   Levante UD vs CA Osasuna  75.2%  MISS  (3-2)
+  2026-05-10 SA   Hellas Verona FC vs Como 1907  76.5%  HIT  (0-1)
+  2026-05-10 SA   ACF Fiorentina vs Genoa CFC  75.8%  HIT  (0-0)
+  2026-05-10 SA   US Cremonese vs AC Pisa 1909  79.7%  HIT  (3-0)
+  2026-05-14 PD   Valencia CF vs Rayo Vallecano de Madrid  79.0%  HIT  (1-1)
+  2026-05-17 SA   Genoa CFC vs AC Milan  79.0%  HIT  (1-2)
+  2026-05-17 SA   Como 1907 vs Parma Calcio 1913  79.8%  HIT  (1-0)
+  2026-05-17 SA   Juventus FC vs ACF Fiorentina  75.5%  HIT  (0-2)
+  2026-05-17 SA   AC Pisa 1909 vs SSC Napoli  75.1%  HIT  (0-3)
+  2026-05-17 PL   Everton FC vs Sunderland AFC  75.1%  MISS  (1-3)
+  2026-05-17 PD   Elche CF vs Getafe CF  77.2%  HIT  (1-0)
+  2026-05-17 SA   Udinese Calcio vs US Cremonese  75.8%  HIT  (0-1)
+  2026-05-22 SA   ACF Fiorentina vs Atalanta BC  78.7%  HIT  (1-1)
+  2026-05-23 SA   SS Lazio vs AC Pisa 1909  79.0%  HIT  (2-1)
+  2026-05-24 SA   SSC Napoli vs Udinese Calcio  75.1%  HIT  (1-0)
+  2026-05-24 SA   Hellas Verona FC vs AS Roma  79.0%  HIT  (0-2)
+  2026-05-24 SA   US Cremonese vs Como 1907  78.9%  MISS  (1-4)
+
+By season (cleared matches)
+  2024-25: all matches 1510, Under 3.5 rate 68.4% | cleared 204, hit 165/204 = 81%
+  2025-26: all matches 1510, Under 3.5 rate 70.2% | cleared 191, hit 156/191 = 82%
+  2026-27: all matches 100, Under 3.5 rate 59.0% | cleared 0
+
+Probability diagnostics (all scored test matches)
+  Scored matches: 3120
+  Model mean probability (calibrated): 68.89%   observed Under 3.5 rate: 68.97%
+  Brier score model 0.20890 | season-baseline 0.21115 | skill +0.01065
+  (skill > 0 means the model beats just using the season's overall Under rate)
+
+By league (cleared matches)
+  PL: scored 679, actual Under 3.5 rate 67.6% | cleared 28, hit 20/28 = 71.4%
+  PD: scored 695, actual Under 3.5 rate 74.0% | cleared 175, hit 144/175 = 82.3%
+  FL1: scored 538, actual Under 3.5 rate 66.2% | cleared 12, hit 9/12 = 75.0%
+  BL1: scored 530, actual Under 3.5 rate 58.5% | cleared 4, hit 4/4 = 100.0%
+  SA: scored 678, actual Under 3.5 rate 75.7% | cleared 176, hit 144/176 = 81.8%
+
+Calibration table (all scored matches, grouped by final probability)
+  bucket        n   avg raw  avg final  actual
+  0.00-0.55   498    56.5%     51.1%    59.2%
+  0.55-0.60   383    62.2%     57.2%    60.6%
+  0.60-0.65   607    68.0%     62.9%    69.2%
+  0.65-0.70   648    69.9%     67.2%    69.0%
+  0.70-0.75   589    76.5%     72.6%    74.2%
+  0.75-1.00   395    79.2%     77.8%    81.3%
+
+Threshold sweep (final probability)
+  >= 0.55: n=2622  hit 1857/2622 = 70.8%  break-even odds 1.41  longest losing run 5
+  >= 0.60: n=2239  hit 1625/2239 = 72.6%  break-even odds 1.38  longest losing run 5
+  >= 0.65: n=1632  hit 1205/1632 = 73.8%  break-even odds 1.35  longest losing run 6
+  >= 0.70: n= 984  hit 758/984 = 77.0%  break-even odds 1.30  longest losing run 6
+  >= 0.75: n= 395  hit 321/395 = 81.3%  break-even odds 1.23  longest losing run 2
+  >= 0.80: n=  58  hit 47/58 = 81.0%  break-even odds 1.23  longest losing run 2
+
+Wrote reports/core2_results.csv
