@@ -8,6 +8,8 @@ Over 1.5 goals.
 Core 2:
 Under 3.5 goals.
 
+Both cores scan the next 7 days by default.
+
 New context rows trigger a five-minute review window before
 the final Core 1 export. The checked=1 flag is not an approval
 requirement for upcoming fixtures.
@@ -40,6 +42,9 @@ _lock = threading.Lock()
 WAIT_SECONDS = 300
 CORE1_TIMEOUT = 1200
 CORE2_TIMEOUT = 900
+
+# Both models scan the next seven days.
+SCAN_DAYS = 7
 
 
 def utc_now():
@@ -86,15 +91,15 @@ _state = {
 
 def _export(defer_picks=False):
     """
-    Run the Core 1 exporter.
+    Run the Core 1 exporter over the next seven days.
 
-    The exporter must support --defer-picks.
+    The exporter supports --defer-picks.
     """
     command = [
         "python",
         "export_snapshot.py",
         "--days",
-        "3",
+        str(SCAN_DAYS),
     ]
 
     if defer_picks:
@@ -148,7 +153,7 @@ def _run_under35():
                 "python",
                 "barbadox_under35.py",
                 "--days",
-                "3",
+                str(SCAN_DAYS),
             ],
             capture_output=True,
             text=True,
@@ -570,6 +575,7 @@ def run():
         "ok": True,
         "message": (
             "Core 1 and Core 2 run started. "
+            "Both scan the next 7 days. "
             "New fixtures, if any, receive a five-minute review window."
         ),
     })
