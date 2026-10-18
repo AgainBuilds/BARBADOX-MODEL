@@ -1,1321 +1,1312 @@
 #!/usr/bin/env python3
 """
-BARBADOX CORE 2.2 — UNDER 3.5 GOALS
+Barbadox Core 2 - Under 3.5 goals - walk-forward calibration check.
 
-Outputs:
-  reports/matches.csv
-  reports/core2_results.csv
-  reports/core2_upcoming.csv
-  reports/core2_diagnostics.md
+What it does
 
-Every historical test match is exported, including rejected and unscored
-matches. Upcoming fixtures are also exported, whether or not they qualify.
+1. Pulls finished matches from football-data.org (v4) for each league/season.
 
-No target hit rate is guaranteed. Evaluate calibration, sample size,
-Brier score, and out-of-sample performance before trusting selections.
+
+2. Walks forward through matches in date order. Every prediction uses ONLY
+matches played on earlier dates in the SAME season.
+
+
+3. Model: shrunk attack/defence Poisson.
+P(Under 3.5) = P(total goals <= 3).
+K is tuned only on seasons BEFORE the one being tested.
+
+
+4. Anti-overconfidence layers:
+a) Season-level baseline.
+b) Calibration fitted on earlier matches.
+c) Safety haircut based on earlier similar predictions.
+d) Minimum-history requirements.
+
+
+5. Reports qualified matches, calibration, threshold sweeps, Brier scores,
+baseline Brier scores, Brier skill, per-league statistics, and CSV output.
+
+
+
+Environment variables:
+FOOTBALL_DATA_API_KEY   API token; also reads FOOTBALL_DATA_TOKEN,
+FOOTBALL_API_KEY, API_KEY
+LEAGUES                 Default: PL,PD,FL1,BL1,SA
+TEST_SEASONS            Default: 2024,2025,2026
+WARMUP_SEASONS          Default: 2023
+THRESHOLD               Default: 0.75
+SAFETY_Z                Default: 1.0; 0 disables the haircut
+UPCOMING_DAYS           Default: 7; 0 disables upcoming fixtures
+REPORT_DIR              Default: reports
 """
 
 import csv
 import math
 import os
+import sys
 import time
-
 from collections import defaultdict
-from datetime import datetime, timezone, timedelta
-from pathlib import Path
-
+from datetime import datetime, timezone
 
 API = "https://api.football-data.org/v4"
 
-ROOT = Path(__file__).resolve().parent
-REPORT_DIR = ROOT / os.getenv("REPORT_DIR", "reports")
-
 LEAGUES = [
-    x.strip()
-    for x in os.getenv(
-        "LEAGUES", "PL,PD,FL1,BL1,SA"
-    ).split(",")
-    if x.strip()
+x.strip()
+for x in os.getenv(
+"LEAGUES", "PL,PD,FL1,BL1,SA"
+).split(",")
+if x.strip()
 ]
 
-TEST_SEASONS = sorted({
-    int(x)
-    for x in os.getenv(
-        "TEST_SEASONS", "2024,2025,2026"
-    ).split(",")
-    if x.strip()
-})
-
-WARMUP_SEASONS = sorted({
-    int(x)
-    for x in os.getenv("WARMUP_SEASONS", "2023").split(",")
-    if x.strip()
-})
-
-THRESHOLD = float(os.getenv("THRESHOLD", "0.80"))
-SAFETY_Z = float(os.getenv("SAFETY_Z", "1.35"))
-UPCOMING_DAYS = max(0, int(os.getenv("UPCOMING_DAYS", "7")))
-
-# Half-life measured in years of match history.
-HALF_LIFE = max(0.25, float(os.getenv("HALF_LIFE", "7.5")))
-DECAY_PER_DAY = math.log(2) / (HALF_LIFE * 365.25)
-
-MIN_GAMES = int(os.getenv("MIN_GAMES", "6"))
-MIN_HISTORY = int(os.getenv("MIN_HISTORY", "90"))
-NEIGHBOURS = int(os.getenv("NEIGHBOURS", "100"))
-MIN_NEIGHBOURS = int(os.getenv("MIN_NEIGHBOURS", "40"))
-
-BASE_PRIOR_N = float(os.getenv("BASE_PRIOR_N", "20"))
-BASE_DEFAULT = float(os.getenv("BASE_DEFAULT", "0.60"))
-
-K_GRID = [
-    float(x)
-    for x in os.getenv(
-        "K_GRID", "25,40,60,90,130"
-    ).split(",")
-    if x.strip()
+TEST_SEASONS = [
+int(x)
+for x in os.getenv(
+"TEST_SEASONS", "2024,2025,2026"
+).split(",")
+if x.strip()
 ]
 
-USE_NB = os.getenv("USE_NB", "1").strip() == "1"
-NB_R = max(0.5, float(os.getenv("NB_R", "12")))
+WARMUP_SEASONS = [
+int(x)
+for x in os.getenv("WARMUP_SEASONS", "2023").split(",")
+if x.strip()
+]
 
+THRESHOLD = float(os.getenv("THRESHOLD", "0.75"))
+SAFETY_Z = float(os.getenv("SAFETY_Z", "1.0"))
+UPCOMING_DAYS = int(os.getenv("UPCOMING_DAYS", "7"))
+REPORT_DIR = os.getenv("REPORT_DIR", "reports")
 
-# ============================================================
-# API
-# ============================================================
+GOAL_LINE = 3
+MIN_GAMES = 5
 
-def api_key():
-    names = (
-        "FOOTBALL_DATA_API_KEY",
-        "FOOTBALL_DATA_TOKEN",
-        "FOOTBALL_API_KEY",
-        "API_KEY",
-        "FOOTBALL_DATA_KEY",
-    )
+K_GRID = [0, 10, 20, 30, 45, 60, 80, 120]
+K_DEFAULT = 60
 
-    for name in names:
-        value = os.getenv(name)
-        if value:
-            return value
+MIN_HISTORY = 120
+NEIGHBOURS = 150
+MIN_NEIGHBOURS = 60
+RIDGE = 4.0
 
-    raise SystemExit(
-        "Missing football-data.org API key. "
-        "Set FOOTBALL_DATA_API_KEY in GitHub Secrets."
-    )
+BASE_PRIOR_N = 30
+BASE_DEFAULT = 0.65
 
+---------------------------------------------------------------------
 
-def fetch_season(code, season, key):
-    """
-    Fetch one league-season.
+MATHS HELPERS
 
-    Improvements:
-    - Shorter network timeout.
-    - One retry for transient failures.
-    - No long sleep after HTTP 429.
-    - Rate-limited league-seasons are skipped and logged.
+---------------------------------------------------------------------
 
-    Note: skipping HTTP 429 can leave a league-season incomplete.
-    """
+def pois_cdf(k, lam):
+lam = max(lam, 1e-9)
+term = math.exp(-lam)
+total = term
 
-    import requests
+for i in range(1, k + 1):  
+    term *= lam / i  
+    total += term  
 
-    url = f"{API}/competitions/{code}/matches"
+return min(max(total, 0.0), 1.0)
 
-    for attempt in range(2):
-        try:
-            response = requests.get(
-                url,
-                headers={"X-Auth-Token": key},
-                params={"season": season},
-                timeout=12,
-            )
+def pois_logpmf(k, lam):
+lam = max(lam, 1e-9)
 
-        except requests.RequestException as exc:
-            print(f"Network error {code}/{season}: {exc}")
-
-            if attempt == 0:
-                time.sleep(1)
-
-            continue
-
-        print(
-            f"API {code} season={season}: "
-            f"HTTP {response.status_code}"
-        )
-
-        if response.status_code == 200:
-            try:
-                return response.json().get("matches", [])
-            except ValueError:
-                print(f"Invalid JSON for {code}/{season}")
-                return []
-
-        if response.status_code in (400, 403, 404):
-            print(f"Skipping unavailable {code}/{season}")
-            return []
-
-        if response.status_code == 429:
-            reset = response.headers.get(
-                "X-RequestCounter-Reset", ""
-            )
-
-            message = (
-                f"Rate limited for {code}/{season}; "
-                "skipping this request."
-            )
-
-            if reset:
-                message += f" Counter reset in {reset}s."
-
-            print(message)
-            return []
-
-        if attempt == 0:
-            time.sleep(2)
-
-    print(f"Failed to fetch {code}/{season} after retries.")
-    return []
-
-
-def normalize(raw, league, season):
-    rows = []
-
-    for match in raw:
-        home = match.get("homeTeam") or {}
-        away = match.get("awayTeam") or {}
-
-        score = (
-            (match.get("score") or {}).get("fullTime")
-            or {}
-        )
-
-        utc = match.get("utcDate")
-
-        if not utc or not home.get("id") or not away.get("id"):
-            continue
-
-        rows.append({
-            "date": utc[:10],
-            "utc": utc,
-            "league": league,
-            "season": season,
-            "home_id": str(home["id"]),
-            "away_id": str(away["id"]),
-            "home": home.get("name") or str(home["id"]),
-            "away": away.get("name") or str(away["id"]),
-            "status": match.get("status", ""),
-            "hg": score.get("home"),
-            "ag": score.get("away"),
-            "match_id": match.get("id", ""),
-        })
-
-    return rows
-
-
-def load_matches():
-    key = api_key()
-    seasons = sorted(set(TEST_SEASONS + WARMUP_SEASONS))
-    matches = []
-
-    for league in LEAGUES:
-        for season in seasons:
-            print(f"Fetching {league} {season}...")
-
-            raw = fetch_season(league, season, key)
-
-            matches.extend(
-                normalize(raw, league, season)
-            )
-
-            # Keep requests spaced to reduce rate-limit errors.
-            # Shortening this to 1 second may trigger HTTP 429.
-            time.sleep(6.2)
-
-    return matches
-
-
-# ============================================================
-# PROBABILITY MATHEMATICS
-# ============================================================
-
-def sigmoid(x):
-    if x >= 0:
-        e = math.exp(-min(x, 700))
-        return 1.0 / (1.0 + e)
-
-    e = math.exp(max(x, -700))
-    return e / (1.0 + e)
-
+return (  
+    -lam  
+    + k * math.log(lam)  
+    - math.lgamma(k + 1)  
+)
 
 def logit(p):
-    p = min(1 - 1e-8, max(1e-8, p))
-    return math.log(p / (1.0 - p))
+p = min(max(p, 1e-6), 1 - 1e-6)
 
+return math.log(p / (1 - p))
 
-def poisson_pmf(k, lam):
-    lam = max(1e-9, lam)
+def sigmoid(x):
+if x >= 0:
+return 1.0 / (1.0 + math.exp(-x))
 
-    return math.exp(
-        -lam
-        + k * math.log(lam)
-        - math.lgamma(k + 1)
+e = math.exp(x)  
+
+return e / (1.0 + e)
+
+def wilson_lower(hits, n, z):
+if n == 0:
+return 0.0
+
+if z <= 0:  
+    return hits / n  
+
+p = hits / n  
+d = 1 + z * z / n  
+c = p + z * z / (2 * n)  
+
+m = z * math.sqrt(  
+    p * (1 - p) / n  
+    + z * z / (4 * n * n)  
+)  
+
+return (c - m) / d
+
+---------------------------------------------------------------------
+
+PROBABILITY EVALUATION
+
+---------------------------------------------------------------------
+
+def probability_metrics(items, probability_key):
+"""
+Evaluate probability forecasts against binary outcomes.
+
+Brier score:  
+    Mean squared error of probability forecasts.  
+    Lower is better.  
+
+Observed rate:  
+    Actual proportion of Under 3.5 outcomes.  
+
+Mean probability:  
+    Average predicted probability for the same matches.  
+"""  
+usable = []  
+
+for row in items:  
+    probability = row.get(probability_key)  
+    actual = row.get("y")  
+
+    if probability is None or actual is None:  
+        continue  
+
+    try:  
+        probability = float(probability)  
+        actual = int(actual)  
+    except (TypeError, ValueError):  
+        continue  
+
+    if not 0 <= probability <= 1:  
+        continue  
+
+    if actual not in (0, 1):  
+        continue  
+
+    usable.append((probability, actual))  
+
+if not usable:  
+    return None  
+
+n = len(usable)  
+
+brier = sum(  
+    (p - y) ** 2  
+    for p, y in usable  
+) / n  
+
+observed = sum(  
+    y for p, y in usable  
+) / n  
+
+mean_probability = sum(  
+    p for p, y in usable  
+) / n  
+
+return {  
+    "n": n,  
+    "brier": brier,  
+    "observed_rate": observed,  
+    "mean_probability": mean_probability,  
+}
+
+def baseline_probability_metrics(items):
+"""
+Evaluate the season-baseline probability.
+
+IMPORTANT:  
+row['off'] is a logit, not a probability.  
+Convert it with sigmoid() before computing Brier scores.  
+"""  
+usable = []  
+
+for row in items:  
+    if row.get("off") is None or row.get("y") is None:  
+        continue  
+
+    try:  
+        baseline_probability = sigmoid(  
+            float(row["off"])  
+        )  
+        actual = int(row["y"])  
+    except (TypeError, ValueError, OverflowError):  
+        continue  
+
+    if actual not in (0, 1):  
+        continue  
+
+    usable.append((baseline_probability, actual))  
+
+if not usable:  
+    return None  
+
+n = len(usable)  
+
+return {  
+    "n": n,  
+    "brier": sum(  
+        (p - y) ** 2  
+        for p, y in usable  
+    ) / n,  
+    "observed_rate": sum(  
+        y for p, y in usable  
+    ) / n,  
+    "mean_probability": sum(  
+        p for p, y in usable  
+    ) / n,  
+}
+
+def brier_skill(model_brier, baseline_brier):
+"""
+Positive skill means the model improves on the baseline.
+Zero means equal Brier performance.
+Negative skill means the model performs worse.
+"""
+if model_brier is None or baseline_brier is None:
+return None
+
+if baseline_brier <= 0:  
+    return None  
+
+return 1 - model_brier / baseline_brier
+
+---------------------------------------------------------------------
+
+DATA
+
+---------------------------------------------------------------------
+
+def api_key():
+for name in (
+"FOOTBALL_DATA_API_KEY",
+"FOOTBALL_DATA_TOKEN",
+"FOOTBALL_API_KEY",
+"API_KEY",
+):
+value = os.getenv(name)
+
+if value:  
+        return value  
+
+sys.exit(  
+    "No API key found. Set FOOTBALL_DATA_API_KEY "  
+    "and pass it to this step."  
+)
+
+def fetch_season(code, season, key):
+import requests
+
+url = f"{API}/competitions/{code}/matches"  
+
+for _ in range(6):  
+    response = requests.get(  
+        url,  
+        headers={"X-Auth-Token": key},  
+        params={"season": season},  
+        timeout=60,  
+    )  
+
+    print(  
+        f"  API GET /competitions/{code}/matches "  
+        f"-> HTTP {response.status_code}"  
+    )  
+
+    if response.status_code == 200:  
+        return response.json().get("matches", [])  
+
+    if response.status_code == 429:  
+        try:  
+            wait = int(  
+                response.headers.get("Retry-After", "60")  
+            ) + 2  
+        except ValueError:  
+            wait = 62  
+
+        print(f"  rate limited, waiting {wait}s")  
+        time.sleep(wait)  
+
+    elif response.status_code in (400, 403, 404):  
+        print(  
+            f"  {code} {season} unavailable on this "  
+            "plan/token - skipping"  
+        )  
+        return []  
+
+    else:  
+        time.sleep(5)  
+
+return []
+
+def normalise(raw, league, season):
+out = []
+
+for match in raw:  
+    full_time = (  
+        (match.get("score") or {}).get("fullTime")  
+        or {}  
+    )  
+
+    home = match.get("homeTeam") or {}  
+    away = match.get("awayTeam") or {}  
+
+    if not home.get("id") or not away.get("id"):  
+        continue  
+
+    utc = match.get("utcDate")  
+
+    if not utc:  
+        continue  
+
+    out.append({  
+        "league": league,  
+        "season": season,  
+        "date": utc[:10],  
+        "utc": utc,  
+        "home_id": home["id"],  
+        "away_id": away["id"],  
+        "home": home.get("name") or str(home["id"]),  
+        "away": away.get("name") or str(away["id"]),  
+        "status": match.get("status", ""),  
+        "hg": full_time.get("home"),  
+        "ag": full_time.get("away"),  
+    })  
+
+return out
+
+def load_matches():
+key = api_key()
+
+seasons = sorted(  
+    set(WARMUP_SEASONS + TEST_SEASONS)  
+)  
+
+print(  
+    "Testing seasons: "  
+    + ", ".join(  
+        f"{season}-{str(season + 1)[2:]}"  
+        for season in TEST_SEASONS  
+    )  
+)  
+
+print(  
+    f"Fetching {len(seasons)} seasons of raw data total "  
+    "(warm-up seasons feed tuning/calibration only)."  
+)  
+
+matches = []  
+
+for league in LEAGUES:  
+    for season in seasons:  
+        print(f"  fetching {league} {season}...")  
+
+        matches += normalise(  
+            fetch_season(league, season, key),  
+            league,  
+            season,  
+        )  
+
+        # Respect the football-data.org free-tier request rate.  
+        time.sleep(6.5)  
+
+return matches
+
+---------------------------------------------------------------------
+
+MODEL
+
+---------------------------------------------------------------------
+
+class SeasonState:
+"""Running totals updated only after all matches on a date."""
+
+def __init__(self):  
+    self.t = {}  
+    self.H = 0  
+    self.A = 0  
+    self.N = 0  
+    self.U = 0  
+
+def feats(self, home_id, away_id):  
+    home = self.t.get(home_id, [0, 0, 0])  
+    away = self.t.get(away_id, [0, 0, 0])  
+
+    if (  
+        self.N == 0  
+        or home[2] < MIN_GAMES  
+        or away[2] < MIN_GAMES  
+    ):  
+        return None  
+
+    league_average = (  
+        self.H + self.A  
+    ) / (2 * self.N)  
+
+    if league_average <= 0:  
+        return None  
+
+    return {  
+        "hf": home[0],  
+        "ha": home[1],  
+        "nh": home[2],  
+        "af": away[0],  
+        "aa": away[1],  
+        "na": away[2],  
+        "L": league_average,  
+        "hm": self.H / self.N,  
+        "am": self.A / self.N,  
+        "bu": self.U,  
+        "bn": self.N,  
+    }  
+
+def add(self, match):  
+    home = self.t.setdefault(  
+        match["home_id"], [0, 0, 0]  
+    )  
+
+    away = self.t.setdefault(  
+        match["away_id"], [0, 0, 0]  
+    )  
+
+    home[0] += match["hg"]  
+    home[1] += match["ag"]  
+    home[2] += 1  
+
+    away[0] += match["ag"]  
+    away[1] += match["hg"]  
+    away[2] += 1  
+
+    self.H += match["hg"]  
+    self.A += match["ag"]  
+    self.N += 1  
+
+    self.U += int(  
+        match["hg"] + match["ag"] <= GOAL_LINE  
     )
 
+def lam_total(features, K):
+league_average = features["L"]
 
-def negative_binomial_pmf(k, mu, r):
-    mu = max(1e-9, mu)
-    r = max(0.5, r)
+def strength(goals, games):  
+    return (  
+        (goals + K * league_average)  
+        / (games + K)  
+    ) / league_average  
 
-    return math.exp(
-        math.lgamma(k + r)
-        - math.lgamma(r)
-        - math.lgamma(k + 1)
-        + r * math.log(r / (r + mu))
-        + k * math.log(mu / (r + mu))
+lam_home = (  
+    strength(features["hf"], features["nh"])  
+    * strength(features["aa"], features["na"])  
+    * features["hm"]  
+)  
+
+lam_away = (  
+    strength(features["af"], features["na"])  
+    * strength(features["ha"], features["nh"])  
+    * features["am"]  
+)  
+
+return lam_home + lam_away
+
+def build_rows(matches):
+by_league_season = defaultdict(list)
+
+for match in matches:  
+    by_league_season[  
+        (match["league"], match["season"])  
+    ].append(match)  
+
+rows = []  
+states = {}  
+
+for key, season_matches in by_league_season.items():  
+    state = SeasonState()  
+
+    finished = sorted(  
+        (  
+            match  
+            for match in season_matches  
+            if (  
+                match["status"] == "FINISHED"  
+                and match["hg"] is not None  
+                and match["ag"] is not None  
+            )  
+        ),  
+        key=lambda match: (  
+            match["date"],  
+            match["utc"],  
+        ),  
+    )  
+
+    i = 0  
+
+    while i < len(finished):  
+        j = i  
+
+        while (  
+            j < len(finished)  
+            and finished[j]["date"] == finished[i]["date"]  
+        ):  
+            j += 1  
+
+        day = finished[i:j]  
+
+        # First generate predictions using earlier dates only.  
+        for match in day:  
+            rows.append(dict(  
+                match,  
+                f=state.feats(  
+                    match["home_id"],  
+                    match["away_id"],  
+                ),  
+                tot=match["hg"] + match["ag"],  
+            ))  
+
+        # Then update the state with that date's results.  
+        for match in day:  
+            state.add(match)  
+
+        i = j  
+
+    states[key] = state  
+
+return rows, states
+
+def tune_k(rows):
+usable = [
+row for row in rows
+if row["f"] is not None
+]
+
+if len(usable) < 150:  
+    return K_DEFAULT  
+
+best = None  
+
+for K in K_GRID:  
+    nll = sum(  
+        -pois_logpmf(  
+            row["tot"],  
+            lam_total(row["f"], K),  
+        )  
+        for row in usable  
+    )  
+
+    if best is None or nll < best[1]:  
+        best = (K, nll)  
+
+return best[0]
+
+def season_base(features, prior):
+return (
+features["bu"] + BASE_PRIOR_N * prior
+) / (
+features["bn"] + BASE_PRIOR_N
+)
+
+def fit_slope(data):
+"""Fit a calibration slope using past observations only."""
+b = 1.0
+
+for _ in range(40):  
+    gradient = 0.0  
+    hessian = 0.0  
+
+    for offset, x, actual in data:  
+        probability = sigmoid(offset + b * x)  
+
+        gradient += (  
+            probability - actual  
+        ) * x  
+
+        hessian += (  
+            probability * (1 - probability) * x * x  
+        )  
+
+    gradient += RIDGE * (b - 1.0)  
+    hessian += RIDGE  
+
+    change = gradient / hessian  
+    b -= change  
+
+    if abs(change) < 1e-9:  
+        break  
+
+return min(max(b, 0.0), 1.0)
+
+def make_features(row, prior):
+baseline = season_base(row["f"], prior)
+
+row["off"] = logit(baseline)  
+row["x"] = logit(row["p_raw"]) - row["off"]
+
+def guard(probability, calibration_history):
+"""
+Conservative lower confidence bound based on similar past predictions.
+"""
+if len(calibration_history) < MIN_NEIGHBOURS:
+return None
+
+neighbours = sorted(  
+    calibration_history,  
+    key=lambda item: abs(  
+        item["p_cal"] - probability  
+    ),  
+)[:NEIGHBOURS]  
+
+hits = sum(  
+    item["y"] for item in neighbours  
+)  
+
+return min(  
+    probability,  
+    wilson_lower(  
+        hits,  
+        len(neighbours),  
+        SAFETY_Z,  
+    ),  
+)
+
+def walk_forward(rows):
+seasons = sorted({
+row["season"] for row in rows
+})
+
+# K for a season uses only rows from earlier seasons.  
+k_by = {  
+    season: tune_k([  
+        row for row in rows  
+        if row["season"] < season  
+    ])  
+    for season in seasons  
+}  
+
+model = [  
+    row for row in rows  
+    if row["f"] is not None  
+]  
+
+for row in model:  
+    row["p_raw"] = pois_cdf(  
+        GOAL_LINE,  
+        lam_total(  
+            row["f"],  
+            k_by[row["season"]],  
+        ),  
+    )  
+
+    row["y"] = int(  
+        row["tot"] <= GOAL_LINE  
+    )  
+
+    row["p_cal"] = None  
+    row["p_final"] = None  
+
+model.sort(  
+    key=lambda row: (  
+        row["date"],  
+        row["utc"],  
+    )  
+)  
+
+history = []  
+calibration_history = []  
+ysum = 0  
+i = 0  
+
+while i < len(model):  
+    j = i  
+
+    while (  
+        j < len(model)  
+        and model[j]["date"] == model[i]["date"]  
+    ):  
+        j += 1  
+
+    day = model[i:j]  
+
+    prior = (  
+        ysum / len(history)  
+        if history  
+        else BASE_DEFAULT  
+    )  
+
+    for row in day:  
+        make_features(row, prior)  
+
+    slope = (  
+        fit_slope([  
+            (h["off"], h["x"], h["y"])  
+            for h in history  
+        ])  
+        if len(history) >= MIN_HISTORY  
+        else None  
+    )  
+
+    # Predict the entire date before learning its results.  
+    for row in day:  
+        if slope is not None:  
+            row["slope"] = slope  
+
+            row["p_cal"] = sigmoid(  
+                row["off"] + slope * row["x"]  
+            )  
+
+            row["p_final"] = guard(  
+                row["p_cal"],  
+                calibration_history,  
+            )  
+
+    # Only after predictions are complete do we add outcomes.  
+    for row in day:  
+        history.append(row)  
+        ysum += row["y"]  
+
+        if row["p_cal"] is not None:  
+            calibration_history.append(row)  
+
+    i = j  
+
+return model, k_by
+
+---------------------------------------------------------------------
+
+REPORTS
+
+---------------------------------------------------------------------
+
+def longest_losing_run(sequence):
+best = 0
+run = 0
+
+for hit in sequence:  
+    run = 0 if hit else run + 1  
+    best = max(best, run)  
+
+return best
+
+def print_probability_diagnostics(scored):
+"""
+Evaluate final model forecasts against the season-baseline forecasts.
+
+These metrics are diagnostic only. They do not alter predictions.  
+"""  
+model_metrics = probability_metrics(  
+    scored,  
+    "p_final",  
+)  
+
+baseline_metrics = baseline_probability_metrics(  
+    scored,  
+)  
+
+print("\nProbability diagnostics (all scored test matches)")  
+
+if model_metrics is None:  
+    print("  No final probabilities available.")  
+    return  
+
+print(f"  Scored matches: {model_metrics['n']}")  
+print(  
+    f"  Model mean probability: "  
+    f"{model_metrics['mean_probability'] * 100:.2f}%"  
+)  
+print(  
+    f"  Model observed Under 3.5 rate: "  
+    f"{model_metrics['observed_rate'] * 100:.2f}%"  
+)  
+print(  
+    f"  Model Brier score: "  
+    f"{model_metrics['brier']:.5f}"  
+)  
+
+if baseline_metrics is None:  
+    print("  Baseline metrics unavailable.")  
+    return  
+
+skill = brier_skill(  
+    model_metrics["brier"],  
+    baseline_metrics["brier"],  
+)  
+
+print(  
+    f"  Baseline mean probability: "  
+    f"{baseline_metrics['mean_probability'] * 100:.2f}%"  
+)  
+print(  
+    f"  Baseline Brier score: "  
+    f"{baseline_metrics['brier']:.5f}"  
+)  
+
+if skill is not None:  
+    print(f"  Brier skill: {skill:+.5f}")  
+
+    if skill > 0:  
+        print(  
+            "  Interpretation: model beats the "  
+            "season-baseline forecast on Brier score."  
+        )  
+    elif skill < 0:  
+        print(  
+            "  Interpretation: model is worse than "  
+            "the season-baseline forecast on Brier score."  
+        )  
+    else:  
+        print(  
+            "  Interpretation: model matches the "  
+            "season-baseline forecast on Brier score."  
+        )
+
+def report(model, rows):
+test = [
+row for row in model
+if row["season"] in TEST_SEASONS
+]
+
+scored = [  
+    row for row in test  
+    if row["p_final"] is not None  
+]  
+
+test_all = [  
+    row for row in rows  
+    if row["season"] in TEST_SEASONS  
+]  
+
+skipped = len(test_all) - len(scored)  
+
+print("\nWalking forward through finished matches...\n")  
+
+print(  
+    f"{len(scored)} matches checked, "  
+    f"{skipped} skipped "  
+    "(not enough prior data at the time)"  
+)  
+
+cleared = sorted(  
+    [  
+        row for row in scored  
+        if row["p_final"] >= THRESHOLD  
+    ],  
+    key=lambda row: (  
+        row["date"],  
+        row["utc"],  
+    ),  
+)  
+
+hits = sum(row["y"] for row in cleared)  
+
+print(  
+    f"{len(cleared)} would have cleared "  
+    f"{THRESHOLD * 100:.1f}% "  
+    "(final, after calibration + safety haircut)"  
+)  
+
+if cleared:  
+    hit_rate = hits / len(cleared)  
+
+    print(  
+        f"{hits}/{len(cleared)} hit -> "  
+        f"{hit_rate * 100:.1f}% "  
+        f"(break-even odds "  
+        f"{len(cleared) / max(hits, 1):.2f})"  
+    )  
+
+    print(  
+        "Longest losing run among cleared: "  
+        f"{longest_losing_run([r['y'] for r in cleared])}"  
+    )  
+
+    mean_final = sum(  
+        row["p_final"] for row in cleared  
+    ) / len(cleared)  
+
+    mean_calibrated = sum(  
+        row["p_cal"] for row in cleared  
+    ) / len(cleared)  
+
+    gap = mean_calibrated - hit_rate  
+
+    print(  
+        f"Average final probability "  
+        f"{mean_final * 100:.1f}% | "  
+        f"calibrated {mean_calibrated * 100:.1f}% | "  
+        f"actual {hit_rate * 100:.1f}%"  
+    )  
+
+    if gap > 0.03:  
+        print(  
+            "WARNING: calibrated probabilities exceed "  
+            f"the actual hit rate by {gap * 100:.1f} points."  
+        )  
+    else:  
+        print(  
+            "Overconfidence check: calibrated probability "  
+            "is not more than 3 points above the actual rate."  
+        )  
+
+print_probability_diagnostics(scored)  
+
+print("\nBy season (cleared matches)")  
+
+for season in TEST_SEASONS:  
+    cleared_season = [  
+        row for row in cleared  
+        if row["season"] == season  
+    ]  
+
+    all_season = [  
+        row for row in scored  
+        if row["season"] == season  
+    ]  
+
+    if not all_season:  
+        print(f"  {season}: no scored matches")  
+        continue  
+
+    base_rate = sum(  
+        row["y"] for row in all_season  
+    ) / len(all_season)  
+
+    line = (  
+        f"  {season}-{str(season + 1)[2:]}: "  
+        f"all matches {len(all_season)}, "  
+        f"Under 3.5 rate {base_rate * 100:.1f}%"  
+    )  
+
+    if cleared_season:  
+        season_hits = sum(  
+            row["y"] for row in cleared_season  
+        )  
+
+        line += (  
+            f" | cleared {len(cleared_season)}, "  
+            f"hit {season_hits}/{len(cleared_season)} "  
+            f"= {season_hits / len(cleared_season) * 100:.1f}%"  
+        )  
+    else:  
+        line += " | cleared 0"  
+
+    print(line)  
+
+print("\nBy league (cleared matches)")  
+
+for league in LEAGUES:  
+    league_cleared = [  
+        row for row in cleared  
+        if row["league"] == league  
+    ]  
+
+    league_scored = [  
+        row for row in scored  
+        if row["league"] == league  
+    ]  
+
+    if not league_scored:  
+        print(f"  {league}: no scored matches")  
+        continue  
+
+    actual_rate = sum(  
+        row["y"] for row in league_scored  
+    ) / len(league_scored)  
+
+    line = (  
+        f"  {league}: scored {len(league_scored)}, "  
+        f"actual Under 3.5 rate {actual_rate * 100:.1f}%"  
+    )  
+
+    if league_cleared:  
+        league_hits = sum(  
+            row["y"] for row in league_cleared  
+        )  
+
+        line += (  
+            f" | cleared {len(league_cleared)}, "  
+            f"hit {league_hits}/{len(league_cleared)} "  
+            f"= {league_hits / len(league_cleared) * 100:.1f}%"  
+        )  
+    else:  
+        line += " | cleared 0"  
+
+    print(line)  
+
+print(  
+    "\nCalibration table "  
+    "(all scored matches, grouped by final probability)"  
+)  
+
+print("  bucket        n   avg raw  avg final  actual")  
+
+edges = [  
+    0.0, 0.55, 0.60, 0.65,  
+    0.70, 0.75, 1.01,  
+]  
+
+for low, high in zip(edges, edges[1:]):  
+    group = [  
+        row for row in scored  
+        if low <= row["p_final"] < high  
+    ]  
+
+    if not group:  
+        continue  
+
+    n = len(group)  
+
+    print(  
+        f"  {low:.2f}-{min(high, 1.0):.2f} "  
+        f"{n:4d}   "  
+        f"{sum(r['p_raw'] for r in group) / n * 100:5.1f}%    "  
+        f"{sum(r['p_final'] for r in group) / n * 100:5.1f}%   "  
+        f"{sum(r['y'] for r in group) / n * 100:5.1f}%"  
+    )  
+
+print("\nThreshold sweep (final probability)")  
+
+for threshold in (  
+    0.55, 0.60, 0.65, 0.70, 0.75, 0.80  
+):  
+    group = sorted(  
+        [  
+            row for row in scored  
+            if row["p_final"] >= threshold  
+        ],  
+        key=lambda row: (  
+            row["date"],  
+            row["utc"],  
+        ),  
+    )  
+
+    if not group:  
+        print(f"  >= {threshold:.2f}: n=0")  
+        continue  
+
+    group_hits = sum(  
+        row["y"] for row in group  
+    )  
+
+    print(  
+        f"  >= {threshold:.2f}: n={len(group):4d} "  
+        f"hit {group_hits}/{len(group)} "  
+        f"= {group_hits / len(group) * 100:.1f}% "  
+        f"break-even odds "  
+        f"{len(group) / max(group_hits, 1):.2f} "  
+        f"longest losing run "  
+        f"{longest_losing_run([r['y'] for r in group])}"  
+    )  
+
+os.makedirs(REPORT_DIR, exist_ok=True)  
+
+path = os.path.join(  
+    REPORT_DIR,  
+    "core2_results.csv",  
+)  
+
+with open(path, "w", newline="", encoding="utf-8") as fh:  
+    writer = csv.writer(fh)  
+
+    writer.writerow([  
+        "date",  
+        "league",  
+        "season",  
+        "home",  
+        "away",  
+        "hg",  
+        "ag",  
+        "p_raw",  
+        "p_cal",  
+        "p_final",  
+        "baseline_probability",  
+        "hit",  
+        "cleared",  
+    ])  
+
+    for row in sorted(  
+        scored,  
+        key=lambda r: (r["date"], r["utc"]),  
+    ):  
+        writer.writerow([  
+            row["date"],  
+            row["league"],  
+            row["season"],  
+            row["home"],  
+            row["away"],  
+            row["hg"],  
+            row["ag"],  
+            f"{row['p_raw']:.4f}",  
+            f"{row['p_cal']:.4f}",  
+            f"{row['p_final']:.4f}",  
+            f"{sigmoid(row['off']):.4f}",  
+            row["y"],  
+            int(row["p_final"] >= THRESHOLD),  
+        ])  
+
+print(f"\nWrote {path}")
+
+---------------------------------------------------------------------
+
+UPCOMING FIXTURES
+
+---------------------------------------------------------------------
+
+def upcoming(matches, states, rows, model, k_by):
+if UPCOMING_DAYS <= 0:
+return
+
+latest = max(TEST_SEASONS)  
+
+today = datetime.now(timezone.utc).date()  
+end = today + __import__("datetime").timedelta(  
+    days=UPCOMING_DAYS  
+)  
+
+fixtures = [  
+    match for match in matches  
+    if (  
+        match["season"] == latest  
+        and match["status"] in ("SCHEDULED", "TIMED")  
+        and today.isoformat() <= match["date"] <= end.isoformat()  
+    )  
+]  
+
+print(  
+    f"\nUpcoming fixtures (next {UPCOMING_DAYS} days)"  
+)  
+
+if not fixtures:  
+    print("  none found")  
+    return  
+
+done = [  
+    row for row in model  
+    if row["p_cal"] is not None  
+]  
+
+if len(model) < MIN_HISTORY:  
+    print("  not enough history yet to calibrate")  
+    return  
+
+prior = sum(  
+    row["y"] for row in model  
+) / len(model)  
+
+slope = fit_slope([  
+    (row["off"], row["x"], row["y"])  
+    for row in model  
+])  
+
+K = (  
+    k_by.get(latest)  
+    or tune_k([  
+        row for row in rows  
+        if row["season"] < latest  
+    ])  
+)  
+
+for match in sorted(  
+    fixtures,  
+    key=lambda item: item["utc"],  
+):  
+    state = states.get(  
+        (match["league"], latest)  
+    )  
+
+    features = (  
+        state.feats(  
+            match["home_id"],  
+            match["away_id"],  
+        )  
+        if state  
+        else None  
+    )  
+
+    if features is None:  
+        print(  
+            f"  {match['date']} {match['league']:<4} "  
+            f"{match['home']} vs {match['away']} "  
+            "- not enough games yet"  
+        )  
+        continue  
+
+    p_raw = pois_cdf(  
+        GOAL_LINE,  
+        lam_total(features, K),  
+    )  
+
+    offset = logit(  
+        season_base(features, prior)  
+    )  
+
+    p_cal = sigmoid(  
+        offset + slope * (  
+            logit(p_raw) - offset  
+        )  
+    )  
+
+    p_final = guard(  
+        p_cal,  
+        done,  
+    )  
+
+    if p_final is None:  
+        print(  
+            f"  {match['date']} {match['league']:<4} "  
+            f"{match['home']} vs {match['away']} "  
+            "- not enough history"  
+        )  
+        continue  
+
+    flag = (  
+        "CLEARS"  
+        if p_final >= THRESHOLD  
+        else "below"  
+    )  
+
+    print(  
+        f"  {match['date']} {match['league']:<4} "  
+        f"{match['home']} vs {match['away']} "  
+        f"{p_final * 100:.1f}% "  
+        f"(raw {p_raw * 100:.1f}%) "  
+        f"fair odds {1 / p_final:.2f} {flag}"  
     )
 
+---------------------------------------------------------------------
 
-def dixon_coles_tau(x, y, lh, la, rho):
-    """Standard low-score Dixon-Coles correction."""
+ENTRY POINT
 
-    if x == 0 and y == 0:
-        tau = 1 - lh * la * rho
+---------------------------------------------------------------------
 
-    elif x == 0 and y == 1:
-        tau = 1 + lh * rho
+def run(matches):
+rows, states = build_rows(matches)
 
-    elif x == 1 and y == 0:
-        tau = 1 + la * rho
+model, k_by = walk_forward(rows)  
 
-    elif x == 1 and y == 1:
-        tau = 1 - rho
+print(f"Tuned shrinkage K by season: {k_by}")  
 
-    else:
-        tau = 1.0
+report(model, rows)  
 
-    return max(1e-6, tau)
-
-
-def probability_under35(lh, la, rho=-0.07):
-    """
-    Calculate P(total goals <= 3).
-
-    The Poisson version uses Dixon-Coles low-score corrections.
-    The negative-binomial version uses NB marginals without a
-    Dixon-Coles correction.
-    """
-
-    total = 0.0
-
-    for home_goals in range(4):
-        for away_goals in range(4 - home_goals):
-
-            if USE_NB:
-                ph = negative_binomial_pmf(
-                    home_goals, lh, NB_R
-                )
-                pa = negative_binomial_pmf(
-                    away_goals, la, NB_R
-                )
-                correction = 1.0
-
-            else:
-                ph = poisson_pmf(home_goals, lh)
-                pa = poisson_pmf(away_goals, la)
-
-                correction = dixon_coles_tau(
-                    home_goals,
-                    away_goals,
-                    lh,
-                    la,
-                    rho,
-                )
-
-            total += ph * pa * correction
-
-    return min(1.0, max(0.0, total))
-
-
-def wilson_lower(hits, n, z=1.35):
-    """Wilson lower confidence bound for a binomial proportion."""
-
-    if n <= 0:
-        return 0.0
-
-    p = hits / n
-    z2 = z * z
-    denominator = 1 + z2 / n
-
-    center = p + z2 / (2 * n)
-
-    margin = z * math.sqrt(
-        (p * (1 - p) + z2 / (4 * n)) / n
-    )
-
-    return (center - margin) / denominator
-
-
-# ============================================================
-# CALIBRATION
-# ============================================================
-
-def fit_logit_slope(pairs, ridge=2.0, steps=250, lr=0.025):
-    """
-    Fit logistic calibration parameters using prior predictions only.
-    """
-
-    if len(pairs) < 50:
-        return 1.0, 0.0
-
-    slope = 1.0
-    intercept = 0.0
-
-    for _ in range(steps):
-        grad_slope = ridge * (slope - 1.0)
-        grad_intercept = 0.0
-
-        for p, outcome in pairs:
-            x = logit(p)
-
-            z = max(
-                -25,
-                min(25, intercept + slope * x),
-            )
-
-            predicted = sigmoid(z)
-
-            grad_slope += (predicted - outcome) * x
-            grad_intercept += predicted - outcome
-
-        n = len(pairs)
-
-        slope -= lr * grad_slope / n
-        intercept -= lr * grad_intercept / n
-
-        slope = min(3.0, max(0.15, slope))
-        intercept = min(2.0, max(-2.0, intercept))
-
-    return slope, intercept
-
-
-def isotonic_predict(train_pairs, target):
-    """Pool Adjacent Violators isotonic regression."""
-
-    if len(train_pairs) < 30:
-        return target
-
-    points = sorted(
-        (
-            min(1.0, max(0.0, float(p))),
-            int(y),
-        )
-        for p, y in train_pairs
-    )
-
-    blocks = []
-
-    for p, y in points:
-        blocks.append({
-            "xmin": p,
-            "xmax": p,
-            "sum": float(y),
-            "weight": 1,
-        })
-
-        while len(blocks) >= 2:
-            a = blocks[-2]
-            b = blocks[-1]
-
-            mean_a = a["sum"] / a["weight"]
-            mean_b = b["sum"] / b["weight"]
-
-            if mean_a <= mean_b:
-                break
-
-            blocks.pop()
-            blocks.pop()
-
-            blocks.append({
-                "xmin": a["xmin"],
-                "xmax": b["xmax"],
-                "sum": a["sum"] + b["sum"],
-                "weight": a["weight"] + b["weight"],
-            })
-
-    for block in blocks:
-        if target <= block["xmax"]:
-            return block["sum"] / block["weight"]
-
-    return blocks[-1]["sum"] / blocks[-1]["weight"]
-
-
-def calibrate(raw_probability, prior_pairs):
-    """
-    Fit calibration only on predictions from earlier dates.
-
-    Returns:
-      calibrated probability, slope, intercept, method
-    """
-
-    if len(prior_pairs) < 50:
-        return (
-            raw_probability,
-            1.0,
-            0.0,
-            "insufficient_history",
-        )
-
-    slope, intercept = fit_logit_slope(prior_pairs)
-
-    logit_probability = sigmoid(
-        intercept + slope * logit(raw_probability)
-    )
-
-    transformed_history = [
-        (
-            sigmoid(intercept + slope * logit(p)),
-            y,
-        )
-        for p, y in prior_pairs
-    ]
-
-    calibrated = isotonic_predict(
-        transformed_history,
-        logit_probability,
-    )
-
-    return (
-        min(0.999, max(0.001, calibrated)),
-        slope,
-        intercept,
-        "logit_plus_isotonic",
-    )
-
-
-# ============================================================
-# LEAKAGE-AWARE TEAM STATE
-# ============================================================
-
-class TeamState:
-    """
-    Stores exponentially decayed team and league statistics.
-
-    All matches on the same date must be predicted before their
-    scores are added to this state.
-    """
-
-    def __init__(self):
-        self.teams = {}
-
-        self.home_goals = 0.0
-        self.away_goals = 0.0
-        self.n = 0.0
-
-        self.last_date = None
-
-    def advance(self, date):
-        """Apply time decay from the previous state date to this date."""
-
-        if self.last_date is None:
-            self.last_date = date
-            return
-
-        try:
-            previous = datetime.fromisoformat(self.last_date)
-            current = datetime.fromisoformat(date)
-            elapsed_days = max(
-                0,
-                (current - previous).days,
-            )
-        except ValueError:
-            elapsed_days = 0
-
-        if elapsed_days:
-            factor = math.exp(
-                -DECAY_PER_DAY * elapsed_days
-            )
-
-            for team in self.teams.values():
-                team[0] *= factor
-                team[1] *= factor
-                team[2] *= factor
-
-            self.home_goals *= factor
-            self.away_goals *= factor
-            self.n *= factor
-
-        self.last_date = date
-
-    def features(self, match):
-        home = self.teams.get(
-            match["home_id"],
-            [0.0, 0.0, 0.0],
-        )
-
-        away = self.teams.get(
-            match["away_id"],
-            [0.0, 0.0, 0.0],
-        )
-
-        if (
-            home[2] < MIN_GAMES
-            or away[2] < MIN_GAMES
-            or self.n < MIN_GAMES * 2
-        ):
-            return None
-
-        home_mean = (
-            self.home_goals + BASE_DEFAULT * BASE_PRIOR_N
-        ) / (self.n + BASE_PRIOR_N)
-
-        away_mean = (
-            self.away_goals + BASE_DEFAULT * BASE_PRIOR_N
-        ) / (self.n + BASE_PRIOR_N)
-
-        overall = max(
-            0.15,
-            (home_mean + away_mean) / 2,
-        )
-
-        home_advantage = min(
-            0.35,
-            max(
-                -0.05,
-                (home_mean - away_mean)
-                / max(0.3, overall),
-            ),
-        )
-
-        home_for = (
-            home[0] + overall * 5
-        ) / (home[2] + 5)
-
-        home_against = (
-            home[1] + overall * 5
-        ) / (home[2] + 5)
-
-        away_for = (
-            away[0] + overall * 5
-        ) / (away[2] + 5)
-
-        away_against = (
-            away[1] + overall * 5
-        ) / (away[2] + 5)
-
-        return {
-            "home_games": home[2],
-            "away_games": away[2],
-            "home_for": home_for,
-            "home_against": home_against,
-            "away_for": away_for,
-            "away_against": away_against,
-            "home_mean": home_mean,
-            "away_mean": away_mean,
-            "overall": overall,
-            "home_adv": home_advantage,
-            "league_matches": self.n,
-        }
-
-    def lambdas(self, features, k):
-        """
-        Estimate expected home and away goals.
-
-        k controls shrinkage toward league-average scoring rates.
-        """
-
-        overall = max(0.1, features["overall"])
-
-        attack_home = features["home_for"] / overall
-        defence_away = features["away_against"] / overall
-
-        attack_away = features["away_for"] / overall
-        defence_home = features["home_against"] / overall
-
-        shrink_home = (
-            features["home_games"]
-            / (features["home_games"] + k)
-        )
-
-        shrink_away = (
-            features["away_games"]
-            / (features["away_games"] + k)
-        )
-
-        attack_home = 1 + shrink_home * (attack_home - 1)
-        defence_away = 1 + shrink_away * (defence_away - 1)
-
-        attack_away = 1 + shrink_away * (attack_away - 1)
-        defence_home = 1 + shrink_home * (defence_home - 1)
-
-        home_factor = 1 + features["home_adv"] * 0.5
-
-        lh = (
-            features["home_mean"]
-            * attack_home
-            * defence_away
-            * home_factor
-        )
-
-        la = (
-            features["away_mean"]
-            * attack_away
-            * defence_home
-            / max(0.1, home_factor)
-        )
-
-        return (
-            min(4.5, max(0.08, lh)),
-            min(4.5, max(0.08, la)),
-        )
-
-    def add(self, match):
-        """Add a finished match after predictions for its date are made."""
-
-        self.advance(match["date"])
-
-        home = self.teams.setdefault(
-            match["home_id"],
-            [0.0, 0.0, 0.0],
-        )
-
-        away = self.teams.setdefault(
-            match["away_id"],
-            [0.0, 0.0, 0.0],
-        )
-
-        home[0] += match["hg"]
-        home[1] += match["ag"]
-        home[2] += 1
-
-        away[0] += match["ag"]
-        away[1] += match["hg"]
-        away[2] += 1
-
-        self.home_goals += match["hg"]
-        self.away_goals += match["ag"]
-        self.n += 1
-
-
-# ============================================================
-# MODEL TUNING AND FILTERS
-# ============================================================
-
-def estimate_rho(history):
-    if len(history) < 80:
-        return -0.07
-
-    n = len(history)
-
-    low00 = sum(
-        r["hg"] == 0 and r["ag"] == 0
-        for r in history
-    ) / n
-
-    low01 = sum(
-        r["hg"] == 0 and r["ag"] == 1
-        for r in history
-    ) / n
-
-    low10 = sum(
-        r["hg"] == 1 and r["ag"] == 0
-        for r in history
-    ) / n
-
-    low11 = sum(
-        r["hg"] == 1 and r["ag"] == 1
-        for r in history
-    ) / n
-
-    rho = -0.07 + 0.5 * (
-        (low00 + low11) - (low01 + low10)
-    )
-
-    return min(0.05, max(-0.15, rho))
-
-
-def choose_k(history):
-    """
-    Choose shrinkage from prior history only.
-
-    This is a limited heuristic tuning step, not a full refit
-    of the goal model for every possible K.
-    """
-
-    if len(history) < 80:
-        return 60.0
-
-    # Conservative default until a dedicated rolling K-validation
-    # procedure is implemented.
-    return min(
-        K_GRID,
-        key=lambda k: abs(k - 60.0),
-    )
-
-
-def guard_probability(probability, calibration_history):
-    """Compare the forecast with the nearest prior calibrated outcomes."""
-
-    if len(calibration_history) < MIN_HISTORY:
-        return None, "guard_insufficient_history"
-
-    neighbours = sorted(
-        calibration_history,
-        key=lambda row: abs(row[0] - probability),
-    )[:NEIGHBOURS]
-
-    if len(neighbours) < MIN_NEIGHBOURS:
-        return None, "guard_insufficient_neighbours"
-
-    hits = sum(y for _, y in neighbours)
-
-    lower = wilson_lower(
-        hits,
-        len(neighbours),
-        SAFETY_Z,
-    )
-
-    return min(probability, lower), (
-        f"wilson_guard_n{len(neighbours)}_lb{lower:.4f}"
-    )
-
-
-def group_dates(rows):
-    groups = defaultdict(list)
-
-    for row in rows:
-        groups[row["date"]].append(row)
-
-    return [
-        groups[date]
-        for date in sorted(groups)
-    ]
-
-
-# ============================================================
-# HISTORICAL WALK-FORWARD REPLAY
-# ============================================================
-
-def evaluate_historical(matches):
-    """
-    All fixtures on a date are predicted before that date's results
-    enter the model or calibration history.
-    """
-
-    finished = [
-        m for m in matches
-        if m["status"] == "FINISHED"
-        and m["hg"] is not None
-        and m["ag"] is not None
-    ]
-
-    finished.sort(
-        key=lambda m: (
-            m["date"],
-            m["utc"],
-            m["league"],
-            m["season"],
-        )
-    )
-
-    states = {}
-    season_history = defaultdict(list)
-
-    output = []
-    global_history = []
-    calibration_history = []
-
-    for day in group_dates(finished):
-        day_rows = []
-
-        # Advance states before predicting fixtures on this date.
-        for match in day:
-            state = states.setdefault(
-                (match["league"], match["season"]),
-                TeamState(),
-            )
-            state.advance(match["date"])
-
-        # Predict the whole day before updating any match results.
-        for match in day:
-            key = (match["league"], match["season"])
-            state = states[key]
-
-            features = state.features(match)
-
-            lh = la = raw = calibrated = final = None
-            slope = intercept = None
-
-            rho = estimate_rho(season_history[key])
-
-            reason = "not_test_season"
-
-            if match["season"] not in TEST_SEASONS:
-                day_rows.append((match, None))
-                continue
-
-            if features is None:
-                reason = "insufficient_team_or_league_history"
-
-            else:
-                k = choose_k(season_history[key])
-
-                lh, la = state.lambdas(features, k)
-
-                raw = probability_under35(
-                    lh,
-                    la,
-                    rho,
-                )
-
-                prior_pairs = [
-                    (r["p_raw"], r["y"])
-                    for r in global_history
-                ]
-
-                calibrated, slope, intercept, _ = calibrate(
-                    raw,
-                    prior_pairs,
-                )
-
-                guarded, guard_reason = guard_probability(
-                    calibrated,
-                    calibration_history,
-                )
-
-                if (
-                    features["home_games"] < MIN_GAMES
-                    or features["away_games"] < MIN_GAMES
-                ):
-                    reason = "team_history_below_minimum"
-
-                elif lh + la > 2.45:
-                    reason = "expected_total_goals_above_filter"
-
-                elif guarded is None:
-                    reason = guard_reason
-
-                else:
-                    final = guarded
-
-                    if final >= THRESHOLD:
-                        reason = "QUALIFIED"
-                    else:
-                        reason = "below_threshold"
-
-            outcome = int(
-                match["hg"] + match["ag"] <= 3
-            )
-
-            row = {
-                "date": match["date"],
-                "utc": match["utc"],
-                "league": match["league"],
-                "season": match["season"],
-                "home": match["home"],
-                "away": match["away"],
-                "home_id": match["home_id"],
-                "away_id": match["away_id"],
-                "hg": match["hg"],
-                "ag": match["ag"],
-                "total_goals": match["hg"] + match["ag"],
-                "y": outcome,
-                "lambda_home": round(lh, 5) if lh is not None else "",
-                "lambda_away": round(la, 5) if la is not None else "",
-                "lambda_total": round(lh + la, 5) if lh is not None else "",
-                "rho": round(rho, 5),
-                "p_raw": round(raw, 6) if raw is not None else "",
-                "p_cal": round(calibrated, 6) if calibrated is not None else "",
-                "p_final": round(final, 6) if final is not None else "",
-                "calibration_slope": round(slope, 5) if slope is not None else "",
-                "calibration_intercept": round(intercept, 5) if intercept is not None else "",
-                "cleared": int(
-                    final is not None and final >= THRESHOLD
-                ),
-                "filter_reason": reason,
-                "model": (
-                    "Core2.2_NB"
-                    if USE_NB
-                    else "Core2.2_DC_Poisson"
-                ),
-            }
-
-            day_rows.append((match, row))
-
-        # Only now do results from this date enter model history.
-        for match, row in day_rows:
-            key = (match["league"], match["season"])
-
-            season_history[key].append(match)
-            states[key].add(match)
-
-            if row is None:
-                continue
-
-            output.append(row)
-
-            if row["p_raw"] != "":
-                global_history.append({
-                    "p_raw": float(row["p_raw"]),
-                    "y": row["y"],
-                })
-
-                calibration_history.append((
-                    float(row["p_cal"]),
-                    row["y"],
-                ))
-
-    return output, finished
-
-
-# ============================================================
-# UPCOMING FIXTURES
-# ============================================================
-
-def evaluate_upcoming(matches, historical_rows):
-    now = datetime.now(timezone.utc)
-    end = now + timedelta(days=UPCOMING_DAYS)
-
-    fixtures = []
-
-    excluded_statuses = {
-        "FINISHED",
-        "CANCELLED",
-        "POSTPONED",
-        "AWARDED",
-    }
-
-    for match in matches:
-        if match["status"] in excluded_statuses:
-            continue
-
-        try:
-            dt = datetime.fromisoformat(
-                match["utc"].replace("Z", "+00:00")
-            )
-        except ValueError:
-            continue
-
-        if now <= dt <= end:
-            fixtures.append(match)
-
-    finished = [
-        m for m in matches
-        if m["status"] == "FINISHED"
-        and m["hg"] is not None
-        and m["ag"] is not None
-    ]
-
-    output = []
-
-    for fixture in sorted(fixtures, key=lambda m: m["utc"]):
-        history = [
-            m for m in finished
-            if m["league"] == fixture["league"]
-            and m["season"] == fixture["season"]
-            and m["utc"] < fixture["utc"]
-        ]
-
-        state = TeamState()
-
-        for match in sorted(
-            history,
-            key=lambda m: (m["date"], m["utc"]),
-        ):
-            state.add(match)
-
-        features = state.features(fixture)
-
-        lh = la = raw = calibrated = final = None
-        rho = estimate_rho(history)
-
-        if features is None:
-            reason = "insufficient_team_or_league_history"
-
-        else:
-            k = choose_k(history)
-            lh, la = state.lambdas(features, k)
-
-            raw = probability_under35(lh, la, rho)
-
-            prior_pairs = [
-                (float(r["p_raw"]), int(r["y"]))
-                for r in historical_rows
-                if r.get("p_raw") not in ("", None)
-                and r.get("y") not in ("", None)
-            ]
-
-            calibrated, _, _, _ = calibrate(
-                raw,
-                prior_pairs,
-            )
-
-            calibration_pairs = [
-                (float(r["p_cal"]), int(r["y"]))
-                for r in historical_rows
-                if r.get("p_cal") not in ("", None)
-                and r.get("y") not in ("", None)
-            ]
-
-            guarded, guard_reason = guard_probability(
-                calibrated,
-                calibration_pairs,
-            )
-
-            if lh + la > 2.45:
-                reason = "expected_total_goals_above_filter"
-
-            elif guarded is None:
-                reason = guard_reason
-
-            else:
-                final = guarded
-
-                reason = (
-                    "QUALIFIED"
-                    if final >= THRESHOLD
-                    else "below_threshold"
-                )
-
-        output.append({
-            "date": fixture["date"],
-            "utc": fixture["utc"],
-            "league": fixture["league"],
-            "season": fixture["season"],
-            "home": fixture["home"],
-            "away": fixture["away"],
-            "home_id": fixture["home_id"],
-            "away_id": fixture["away_id"],
-            "lambda_home": round(lh, 5) if lh is not None else "",
-            "lambda_away": round(la, 5) if la is not None else "",
-            "lambda_total": round(lh + la, 5) if lh is not None else "",
-            "rho": round(rho, 5),
-            "p_raw": round(raw, 6) if raw is not None else "",
-            "p_cal": round(calibrated, 6) if calibrated is not None else "",
-            "p_final": round(final, 6) if final is not None else "",
-            "cleared": int(
-                final is not None and final >= THRESHOLD
-            ),
-            "filter_reason": reason,
-            "model": (
-                "Core2.2_NB"
-                if USE_NB
-                else "Core2.2_DC_Poisson"
-            ),
-        })
-
-    return output
-
-
-# ============================================================
-# REPORTING
-# ============================================================
-
-def write_csv(path, rows, fields=None):
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    if fields is None:
-        fields = []
-
-        for row in rows:
-            for key in row:
-                if key not in fields:
-                    fields.append(key)
-
-    with path.open(
-        "w",
-        newline="",
-        encoding="utf-8",
-    ) as file:
-        writer = csv.DictWriter(
-            file,
-            fieldnames=fields,
-            extrasaction="ignore",
-        )
-
-        writer.writeheader()
-        writer.writerows(rows)
-
-
-def brier_score(rows, probability_key):
-    values = []
-
-    for row in rows:
-        try:
-            p = float(row[probability_key])
-            y = int(row["y"])
-        except (ValueError, TypeError, KeyError):
-            continue
-
-        values.append((p - y) ** 2)
-
-    if not values:
-        return None
-
-    return sum(values) / len(values)
-
-
-def write_report(historical, upcoming):
-    scored = [
-        row for row in historical
-        if row.get("p_raw") not in ("", None)
-    ]
-
-    selected = [
-        row for row in historical
-        if str(row.get("cleared")) == "1"
-    ]
-
-    hit_count = sum(
-        int(row["y"])
-        for row in selected
-    )
-
-    selected_count = len(selected)
-
-    base_rate = (
-        sum(int(row["y"]) for row in scored) / len(scored)
-        if scored else 0.0
-    )
-
-    raw_brier = brier_score(scored, "p_raw")
-    calibrated_brier = brier_score(scored, "p_cal")
-
-    reasons = defaultdict(int)
-
-    for row in historical:
-        reasons[row.get("filter_reason") or "unknown"] += 1
-
-    lines = [
-        "# BARBADOX CORE 2.2 — UNDER 3.5 DIAGNOSTICS",
-        "",
-        f"Generated: {datetime.now(timezone.utc):%Y-%m-%d %H:%M UTC}",
-        f"Model: {'Negative Binomial' if USE_NB else 'Dixon-Coles Poisson'}",
-        f"Threshold: {THRESHOLD:.1%}",
-        f"Safety z: {SAFETY_Z}",
-        "",
-        "## Coverage",
-        "",
-        f"- Historical test matches: **{len(historical)}**",
-        f"- Historical matches with raw probabilities: **{len(scored)}**",
-        f"- Qualified historical picks: **{selected_count}**",
-        f"- Rejected or unscored historical rows: **{len(historical) - selected_count}**",
-        f"- Upcoming fixtures evaluated: **{len(upcoming)}**",
-        f"- Qualified upcoming fixtures: **{sum(str(r.get('cleared')) == '1' for r in upcoming)}**",
-        "",
-        "## Historical performance",
-        "",
-        f"- Under 3.5 base rate: **{base_rate:.2%}**",
-        f"- Raw Brier score: **{raw_brier:.5f}**" if raw_brier is not None else "- Raw Brier score: n/a",
-        f"- Calibrated Brier score: **{calibrated_brier:.5f}**" if calibrated_brier is not None else "- Calibrated Brier score: n/a",
-        (
-            f"- Qualified pick hit rate: **{hit_count / selected_count:.2%}** "
-            f"({hit_count}/{selected_count})"
-            if selected_count
-            else "- Qualified pick hit rate: n/a"
-        ),
-        "",
-        "## Rejection reasons",
-        "",
-        "| Reason | Count |",
-        "|---|---:|",
-    ]
-
-    for reason, count in sorted(
-        reasons.items(),
-        key=lambda item: (-item[1], item[0]),
-    ):
-        lines.append(f"| {reason} | {count} |")
-
-    lines += [
-        "",
-        "## Important limitations",
-        "",
-        "- A qualified pick is not proof of a reliable probability.",
-        "- The threshold is a selection rule, not a guarantee.",
-        "- Calibration and the Wilson guard depend on earlier recorded predictions.",
-        "- Historical performance must be checked on a genuinely unseen period.",
-        "- Inspect sample size and Brier scores alongside hit rate.",
-        "",
-        "All historical rows, including rejected and unscored fixtures, are retained in `core2_results.csv`.",
-        "",
-    ]
-
-    REPORT_DIR.mkdir(parents=True, exist_ok=True)
-
-    (REPORT_DIR / "core2_diagnostics.md").write_text(
-        "\n".join(lines),
-        encoding="utf-8",
-    )
-
-
-# ============================================================
-# MAIN
-# ============================================================
+upcoming(  
+    matches,  
+    states,  
+    rows,  
+    model,  
+    k_by,  
+)
 
 def main():
-    REPORT_DIR.mkdir(parents=True, exist_ok=True)
+print("Barbadox Core 2 - Under 3.5 goals")
 
-    matches = load_matches()
+if not 0 < THRESHOLD < 1:  
+    sys.exit("THRESHOLD must be between 0 and 1.")  
 
-    completed = [
-        m for m in matches
-        if m["status"] == "FINISHED"
-        and m["hg"] is not None
-        and m["ag"] is not None
-    ]
+if SAFETY_Z < 0:  
+    sys.exit("SAFETY_Z cannot be negative.")  
 
-    write_csv(
-        REPORT_DIR / "matches.csv",
-        completed,
-        [
-            "date", "utc", "league", "season",
-            "home", "away", "hg", "ag",
-            "home_id", "away_id", "match_id",
-        ],
-    )
+run(load_matches())
 
-    historical, _ = evaluate_historical(matches)
-
-    upcoming = (
-        evaluate_upcoming(matches, historical)
-        if UPCOMING_DAYS > 0
-        else []
-    )
-
-    write_csv(
-        REPORT_DIR / "core2_results.csv",
-        historical,
-    )
-
-    write_csv(
-        REPORT_DIR / "core2_upcoming.csv",
-        upcoming,
-    )
-
-    write_report(historical, upcoming)
-
-    selected = [
-        row for row in historical
-        if str(row.get("cleared")) == "1"
-    ]
-
-    print()
-    print("BARBADOX CORE 2.2 FINISHED")
-    print(f"Historical rows: {len(historical)}")
-    print(f"Qualified historical picks: {len(selected)}")
-    print(f"Upcoming fixtures: {len(upcoming)}")
-    print(
-        "Qualified upcoming fixtures: "
-        f"{sum(str(r.get('cleared')) == '1' for r in upcoming)}"
-    )
-
-    print()
-    print("Reports saved:")
-    print("reports/matches.csv")
-    print("reports/core2_results.csv")
-    print("reports/core2_upcoming.csv")
-    print("reports/core2_diagnostics.md")
-
-
-if __name__ == "__main__":
-    main()
+if name == "main":
+main()
