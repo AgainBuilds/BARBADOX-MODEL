@@ -1,30 +1,23 @@
 #!/usr/bin/env python3
 """
-Barbadox Core 2 v2 (Under 3.5) - live feed for the slips.
+Barbadox Core 2 - Under 3.5 Goals - Live Feed.
 
-This does NOT change the Core 2 maths. It imports barbadox_core2.py (v2:
-joint opponent-adjusted attack/defence strengths, Poisson predictive by
-default, calibration slope + walk-forward shrunk league offsets, safety
-haircut with optional P_CAP) and applies them to the upcoming fixtures,
-then writes docs/under35.json for the console.
+Uses barbadox_core2.py for:
+    - Shrunk attack and defence strengths
+    - Poisson Under 3.5 probability
+    - Season-baseline adjustment
+    - Walk-forward calibration
+    - Wilson-neighbour safety guard
 
-Same data as the Over 1.5 run: it reuses barbadox_core's loader and its data/ cache,
-so right after a normal run it makes no extra API calls.
+The live feed reads match data through barbadox_core.py and writes:
+    docs/under35.json
 
-It never touches picks.csv, context.csv or docs/data.json.
+It does not modify:
+    picks.csv
+    context.csv
+    docs/data.json
 
-USAGE
-    python barbadox_under35.py
-    python barbadox_under35.py --days 3 --threshold 0.75
-    python barbadox_under35.py --leagues PL,PD,FL1,BL1,SA
-
-ENVIRONMENT (optional)
-    UNDER35_THRESHOLD   final-probability cutoff, default 0.75
-    SAFETY_Z            Core 2 haircut strength, default 1.0 (read by barbadox_core2)
-    K_JOINT             joint-fit prior weight, default 30 (read by barbadox_core2)
-    USE_NB              1 = negative-binomial predictive (read by barbadox_core2)
-    LEAGUE_RIDGE        league-offset shrinkage, default 25 (read by barbadox_core2)
-    P_CAP               final probability cap, default 1.0 (read by barbadox_core2)
+Default scan window: 7 days.
 """
 
 import argparse
@@ -42,80 +35,115 @@ BASE_DIR = Path(__file__).resolve().parent
 OUT_FILE = BASE_DIR / "docs" / "under35.json"
 
 DEFAULT_LEAGUES = "PL,PD,FL1,BL1,SA"
+
 DEFAULT_THRESHOLD = float(
     os.environ.get("UNDER35_THRESHOLD", "0.75")
 )
 
 
 def load_history(leagues):
-    """Load the previous and current seasons in the format Core 2 expects."""
+    """
+    Load finished and upcoming matches from Core 1's cached data.
+
+    Convert each match into the structure expected by Core 2.
+    """
     out = []
     empty = []
 
-    for lg in leagues:
-        got = 0
+    for league in leagues:
+        league_count = 0
 
         for season in (
             bc.CURRENT_SEASON - 1,
             bc.CURRENT_SEASON,
         ):
-            for m in bc.load_league(lg, season, False):
-                got += 1
+            matches = bc.load_league(
+                league,
+                season,
+                False,
+            )
+
+            for match in matches:
+                league_count += 1
 
                 out.append({
-                    "league": lg,
+                    "league": league,
                     "season": season,
-                    "date": m["date"][:10],
-                    "utc": m["date"],
-                    "home_id": m["hk"],
-                    "away_id": m["ak"],
-                    "home": m["home"],
-                    "away": m["away"],
-                    "status": m.get("status", ""),
-                    "hg": m.get("hg"),
-                    "ag": m.get("ag"),
-                    "dt": m["dt"],
+                    "date": match["date"][:10],
+                    "utc": match["date"],
+                    "home_id": match["hk"],
+                    "away_id": match["ak"],
+                    "home": match["home"],
+                    "away": match["away"],
+                    "status": match.get("status", ""),
+                    "hg": match.get("hg"),
+                    "ag": match.get("ag"),
+                    "dt": match["dt"],
                 })
 
-        if not got:
-            empty.append(lg)
+        if league_count == 0:
+            empty.append(league)
 
     return out, empty
 
 
 def analyse(matches, threshold, d0, d1):
     """
-    Analyse upcoming fixtures using Core 2 v2.
+    Analyse upcoming Under 3.5 fixtures using the supplied Core 2 model.
+
+    d0 is inclusive.
+    d1 is exclusive.
 
     Returns:
-        (status, reason, fixtures)
+        status, reason, fixtures
     """
-    tz = timedelta(
+    timezone_offset = timedelta(
         hours=bc.CFG["kickoff_tz_hours"]
     )
 
-    latest = bc.CURRENT_SEASON
-    fixtures = []
+    latest_season = bc.CURRENT_SEASON
 
-    for m in matches:
-        if (
-            m["season"] != latest
-            or m["status"] not in ("SCHEDULED", "TIMED")
+    upcoming = []
+
+    # ---------------------------------------------------------
+    # 1. Select fixtures inside the requested date window.
+    # ---------------------------------------------------------
+    for match in matches:
+        if match["season"] != latest_season:
+            continue
+
+        if match["status"] not in (
+            "SCHEDULED",
+            "TIMED",
         ):
             continue
 
-        loc = m["dt"] + tz
+        local_datetime = (
+            match["dt"] + timezone_offset
+        )
 
-        if d0 <= loc.date() < d1:
-            fixtures.append((loc, m))
+        if d0 <= local_datetime.date() < d1:
+            upcoming.append(
+                (local_datetime, match)
+            )
 
-    fixtures.sort(key=lambda x: x[0])
+    upcoming.sort(
+        key=lambda item: item[0]
+    )
 
-    if not fixtures:
-        return "ok", "no fixtures in the window", []
+    if not upcoming:
+        return (
+            "ok",
+            "no fixtures in the window",
+            [],
+        )
 
+    # ---------------------------------------------------------
+    # 2. Build the Core 2 historical rows and team states.
+    # ---------------------------------------------------------
     rows, states = c2.build_rows(matches)
-    model, nb_by = c2.walk_forward(rows)
+
+    model, k_by_season = c2.walk_forward(rows)
 
     if len(model) < c2.MIN_HISTORY:
         return (
@@ -124,132 +152,193 @@ def analyse(matches, threshold, d0, d1):
             [],
         )
 
-    prior = sum(r["y"] for r in model) / len(model)
+    # Use the same historical baseline as Core 2's upcoming
+    # prediction function.
+    historical_under35_rate = (
+        sum(row["y"] for row in model)
+        / len(model)
+    )
 
-    b = c2.fit_slope([
-        (r["off"], r["x"], r["y"])
-        for r in model
+    # ---------------------------------------------------------
+    # 3. Fit the walk-forward calibration slope.
+    # ---------------------------------------------------------
+    slope = c2.fit_slope([
+        (
+            row["off"],
+            row["x"],
+            row["y"],
+        )
+        for row in model
     ])
 
-    # NEW in v2: shrunk per-league logit offsets from walk-forward history.
-    deltas = c2.league_deltas(model, b)
-
-    done = [
-        r for r in model
-        if r["p_cal"] is not None
+    # Only historical predictions with calibrated probabilities
+    # are available for the safety guard.
+    completed_predictions = [
+        row
+        for row in model
+        if row["p_cal"] is not None
     ]
 
-    # (v0, c) for the optional negative-binomial predictive.
-    # With USE_NB=0 (default) raw_prob ignores it and uses Poisson.
-    nbpar = nb_by.get(latest, (0.0, 0.0))
+    # ---------------------------------------------------------
+    # 4. Choose the model's K value.
+    # ---------------------------------------------------------
+    if latest_season in k_by_season:
+        K = k_by_season[latest_season]
+    else:
+        earlier_rows = [
+            row
+            for row in rows
+            if row["season"] < latest_season
+        ]
 
-    out = []
+        K = c2.tune_k(earlier_rows)
 
-    for loc, m in fixtures:
+    output = []
+
+    # ---------------------------------------------------------
+    # 5. Predict each upcoming fixture.
+    # ---------------------------------------------------------
+    for local_datetime, match in upcoming:
         entry = {
-            "date": loc.strftime("%Y-%m-%d"),
-            "time": loc.strftime("%H:%M"),
-            "league": m["league"],
-            "home": m["home"],
-            "away": m["away"],
+            "date": local_datetime.strftime("%Y-%m-%d"),
+            "time": local_datetime.strftime("%H:%M"),
+            "league": match["league"],
+            "home": match["home"],
+            "away": match["away"],
         }
 
-        st = states.get((m["league"], latest))
-
-        f = (
-            st.feats(m["home_id"], m["away_id"])
-            if st
-            else None
+        state = states.get(
+            (
+                match["league"],
+                latest_season,
+            )
         )
 
-        if f is None:
+        if state is None:
+            entry.update({
+                "decision": "skipped",
+                "reason": "no season state available",
+            })
+
+            output.append(entry)
+            continue
+
+        features = state.feats(
+            match["home_id"],
+            match["away_id"],
+        )
+
+        if features is None:
             entry.update({
                 "decision": "skipped",
                 "reason": "not enough games yet",
             })
 
-            out.append(entry)
+            output.append(entry)
             continue
 
-        # v2: expected total goals now comes from the joint fit
-        # (State2/JointState inside feats); K_JOINT governs the prior.
-        p_raw = c2.raw_prob(f, nbpar)
-
-        off = c2.logit(
-            c2.season_base(f, prior)
+        # Expected total goals from the Core 2 model.
+        lambda_total = c2.lam_total(
+            features,
+            K,
         )
 
-        # v2: slope calibration + per-league offset.
+        # Probability of 0, 1, 2 or 3 total goals.
+        p_raw = c2.pois_cdf(
+            c2.GOAL_LINE,
+            lambda_total,
+        )
+
+        # Season baseline and calibration.
+        offset = c2.logit(
+            c2.season_base(
+                features,
+                historical_under35_rate,
+            )
+        )
+
+        x = (
+            c2.logit(p_raw)
+            - offset
+        )
+
         p_cal = c2.sigmoid(
-            off + b * (
-                c2.logit(p_raw) - off
-            ) + deltas.get(m["league"], 0.0)
+            offset + slope * x
         )
 
-        # Unchanged; v2 also applies P_CAP inside guard().
-        p_fin = c2.guard(
+        # Apply the Core 2 historical safety guard.
+        p_final = c2.guard(
             p_cal,
-            done,
+            completed_predictions,
         )
 
-        if p_fin is None:
+        if p_final is None:
             entry.update({
                 "decision": "skipped",
-                "reason": "not enough history",
+                "reason": "not enough history for safety check",
             })
 
-            out.append(entry)
+            output.append(entry)
             continue
 
+        # -----------------------------------------------------
+        # 6. Record the decision and probabilities.
+        # -----------------------------------------------------
         entry.update({
             "decision": (
                 "qualified"
-                if p_fin >= threshold
+                if p_final >= threshold
                 else "below-line"
             ),
             "p_raw": round(p_raw, 4),
             "p_cal": round(p_cal, 4),
-            "p_final": round(p_fin, 4),
-            "league_delta": round(
-                deltas.get(m["league"], 0.0), 4
-            ),
+            "p_final": round(p_final, 4),
+            "lambda_total": round(lambda_total, 4),
+            "threshold": threshold,
         })
 
-        out.append(entry)
+        output.append(entry)
 
-    return "ok", "", out
+    return "ok", "", output
 
 
 def main():
-    ap = argparse.ArgumentParser(
-        description="Barbadox Core 2 v2 (Under 3.5) live feed"
+    parser = argparse.ArgumentParser(
+        description=(
+            "Barbadox Core 2 - Under 3.5 Goals - Live Feed"
+        )
     )
 
-    ap.add_argument(
+    parser.add_argument(
         "--date",
         default=None,
-        help="start date YYYY-MM-DD (default: today)",
+        help=(
+            "Start date in YYYY-MM-DD format "
+            "(default: today)"
+        ),
     )
 
-    ap.add_argument(
+    parser.add_argument(
         "--days",
         type=int,
-        default=3,
-        help="scan window (default: 3 days)",
+        default=7,
+        help="Number of days to scan (default: 7)",
     )
 
-    ap.add_argument(
+    parser.add_argument(
         "--leagues",
         default=DEFAULT_LEAGUES,
+        help="Comma-separated league keys",
     )
 
-    ap.add_argument(
+    parser.add_argument(
         "--threshold",
         type=float,
         default=DEFAULT_THRESHOLD,
+        help="Minimum final probability, default 0.75",
     )
 
-    args = ap.parse_args()
+    args = parser.parse_args()
 
     if not 0 < args.threshold < 1:
         sys.exit(
@@ -257,65 +346,81 @@ def main():
         )
 
     if args.days < 1:
-        sys.exit("--days must be at least 1.")
-
-    leagues = [
-        x.strip().upper()
-        for x in args.leagues.split(",")
-        if x.strip()
-    ]
-
-    bad = [
-        x for x in leagues
-        if x not in bc.LEAGUES
-    ]
-
-    if bad:
         sys.exit(
-            f"Unknown league key(s): {', '.join(bad)}"
+            "--days must be at least 1."
         )
 
-    tz = timedelta(
+    leagues = [
+        item.strip().upper()
+        for item in args.leagues.split(",")
+        if item.strip()
+    ]
+
+    invalid_leagues = [
+        league
+        for league in leagues
+        if league not in bc.LEAGUES
+    ]
+
+    if invalid_leagues:
+        sys.exit(
+            "Unknown league key(s): "
+            + ", ".join(invalid_leagues)
+        )
+
+    timezone_offset = timedelta(
         hours=bc.CFG["kickoff_tz_hours"]
     )
 
-    d0 = (
-        datetime.strptime(
-            args.date,
-            "%Y-%m-%d",
+    if args.date:
+        try:
+            start_date = datetime.strptime(
+                args.date,
+                "%Y-%m-%d",
+            ).date()
+        except ValueError:
+            sys.exit(
+                "--date must use YYYY-MM-DD format."
+            )
+    else:
+        start_date = (
+            bc.NOW + timezone_offset
         ).date()
-        if args.date
-        else (bc.NOW + tz).date()
-    )
 
-    d1 = d0 + timedelta(days=args.days)
+    end_date = start_date + timedelta(
+        days=args.days
+    )
 
     print(
-        "CORE 2 v2 (UNDER 3.5): loading data..."
+        "CORE 2 UNDER 3.5: loading match data..."
     )
 
-    matches, empty = load_history(leagues)
+    matches, empty_leagues = load_history(
+        leagues
+    )
 
     status, reason, fixtures = analyse(
         matches,
         args.threshold,
-        d0,
-        d1,
+        start_date,
+        end_date,
     )
 
     snapshot = {
         "generated_at": bc.NOW.isoformat(),
         "window": {
-            "from": str(d0),
-            "to": str(d1 - timedelta(days=1)),
+            "from": str(start_date),
+            "to": str(
+                end_date - timedelta(days=1)
+            ),
         },
-        "model": "Core 2 v2 (Under 3.5)",
+        "model": "Core 2 - Under 3.5",
         "market": 3.5,
         "threshold": args.threshold,
         "status": status,
         "reason": reason,
         "scanned": len(fixtures),
-        "leagues_empty": empty,
+        "leagues_empty": empty_leagues,
         "fixtures": fixtures,
     }
 
@@ -324,51 +429,59 @@ def main():
         exist_ok=True,
     )
 
-    tmp = OUT_FILE.with_suffix(".json.tmp")
+    temporary_file = OUT_FILE.with_suffix(
+        ".json.tmp"
+    )
 
-    tmp.write_text(
-        json.dumps(snapshot, indent=1),
+    temporary_file.write_text(
+        json.dumps(
+            snapshot,
+            indent=1,
+        ),
         encoding="utf-8",
     )
 
     # Atomic replacement prevents a partially written JSON file.
-    tmp.replace(OUT_FILE)
+    temporary_file.replace(OUT_FILE)
 
     qualified = [
-        f for f in fixtures
-        if f["decision"] == "qualified"
+        fixture
+        for fixture in fixtures
+        if fixture["decision"] == "qualified"
     ]
 
     print(
-        f"CORE 2 v2 (UNDER 3.5): {len(fixtures)} fixture(s) "
+        f"CORE 2 UNDER 3.5: {len(fixtures)} fixture(s) "
         f"scanned, {len(qualified)} cleared "
         f"{args.threshold * 100:.0f}%. "
         f"Status: {status}"
         f"{' (' + reason + ')' if reason else ''}."
     )
 
-    top = sorted(
+    top_fixtures = sorted(
         qualified,
-        key=lambda x: -x["p_final"],
+        key=lambda fixture: -fixture["p_final"],
     )[:5]
 
-    for f in top:
+    for fixture in top_fixtures:
         print(
-            f"  {f['date']} {f['league']:<4} "
-            f"{f['home']} vs {f['away']}  "
-            f"{f['p_final'] * 100:.1f}%"
+            f"  {fixture['date']} "
+            f"{fixture['league']:<4} "
+            f"{fixture['home']} vs {fixture['away']}  "
+            f"{fixture['p_final'] * 100:.1f}%"
         )
 
-    if len(qualified) > len(top):
+    if len(qualified) > len(top_fixtures):
         print(
-            f"  ... and {len(qualified) - len(top)} more "
+            f"  ... and "
+            f"{len(qualified) - len(top_fixtures)} more "
             "in docs/under35.json"
         )
 
-    if empty:
+    if empty_leagues:
         print(
-            "CORE 2 v2 (UNDER 3.5): no data from: "
-            + ", ".join(empty)
+            "CORE 2 UNDER 3.5: no data from: "
+            + ", ".join(empty_leagues)
         )
 
 
