@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parent
 REPORT = ROOT / os.getenv("REPORT_DIR", "reports")
 PICKS = ROOT / "picks.csv"
 
-THRESHOLD = float(os.getenv("THRESHOLD", "0.80"))
+THRESHOLD = float(os.getenv("THRESHOLD", "0.75"))
 
 FIELDS = [
     "date",
@@ -54,9 +54,12 @@ def normalize_name(value):
 
 
 def is_core2(row):
-    return str(
-        row.get("note", "")
-    ).strip().upper().startswith("CORE2_UNDER35")
+    return (
+        str(row.get("note", ""))
+        .strip()
+        .upper()
+        .startswith("CORE2_UNDER35")
+    )
 
 
 def fixture_key(row):
@@ -83,7 +86,8 @@ def main():
     #
     # Core 1 and other non-Core-2 records are preserved.
     existing = [
-        row for row in old_rows
+        row
+        for row in old_rows
         if not is_core2(row)
     ]
 
@@ -107,7 +111,6 @@ def main():
     ]
 
     for rows, historical in sources:
-
         for row in rows:
 
             if str(row.get("cleared", "0")) != "1":
@@ -172,7 +175,6 @@ def main():
                 positions[key] = len(existing)
                 existing.append(pick)
                 added += 1
-
             else:
                 index = positions[key]
                 existing[index] = pick
