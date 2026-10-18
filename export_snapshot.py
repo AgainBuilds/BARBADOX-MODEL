@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import barbadox_core as bc
-import gh_sync as gh
+import gh_sync
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -101,7 +101,7 @@ def export(args):
 
     threshold = args.threshold
     market = args.market
-    use_github = gh.enabled()
+    use_github = gh_sync.enabled()
 
     if use_github:
         print(
@@ -141,9 +141,7 @@ def export(args):
                 f"REVIEW WINDOW: {added_context} new fixture(s) "
                 "were appended to context.csv."
             )
-            print(
-                "WAIT 5 MINUTES before final pick logging."
-            )
+            print("WAIT 5 MINUTES before final pick logging.")
             print(
                 "Do not change checked=1 on upcoming fixtures "
                 "to approve them."
@@ -219,14 +217,9 @@ def export(args):
                 decision = "logged"
 
             elif args.defer_picks:
-                # Do not log picks during the initial pass.
-                # The server will wait five minutes if new context rows
-                # were added, then run the normal export again.
                 decision = "review-window"
 
             elif probability >= threshold:
-                # Upcoming fixtures can qualify without checked=1.
-                # Blank contextual fields remain neutral in the model.
                 picks.append(
                     bc.make_pick(
                         fixture,
@@ -260,199 +253,4 @@ def export(args):
                 "core": round(result["core"], 4),
                 "p_form": p_form,
                 "p_base": p_base,
-                "point": round(probability, 4),
-                "low": round(result["low"], 4),
-                "high": round(result["high"], 4),
-                "upper": round(upper_bound, 4),
-                "factors": result.get("factors", {}),
-                "notes": result.get("notes", []),
-                "sheet": result.get("sheet", []),
-            })
-
-            output_fixtures.append(entry)
-
-        # Do not write picks.csv during a deferred review pass.
-        if new_picks and not args.defer_picks:
-            bc.write_picks(picks)
-            bc.write_html_report(picks)
-
-        review_pending = sum(
-            1
-            for fixture in output_fixtures
-            if fixture.get("decision") == "review-window"
-        )
-
-        snapshot = {
-            "generated_at": bc.NOW.isoformat(),
-            "window": {
-                "from": str(d0),
-                "to": str(d1 - timedelta(days=1)),
-            },
-            "threshold": threshold,
-            "market": market,
-            "leagues": bc.LEAGUES,
-            "fixtures": output_fixtures,
-            "picks": picks,
-            "context_added": added_context,
-            "scanned": len(output_fixtures),
-            "leagues_empty": [
-                league
-                for league in leagues
-                if not pools.get(league)
-            ],
-            "owner_pending": 0,
-            "context_ready": True,
-            "pick_logging_deferred": bool(args.defer_picks),
-            "review_pending": review_pending,
-        }
-
-        return (
-            snapshot,
-            output_fixtures,
-            added_context,
-            new_picks,
-        )
-
-    added_total = 0
-
-    for attempt in range(4):
-        if use_github:
-            # Always pull the latest owner-maintained files first.
-            gh.pull("context.csv")
-            gh.pull("picks.csv")
-
-        (
-            snapshot,
-            output_fixtures,
-            added_context,
-            new_picks,
-        ) = build()
-
-        try:
-            if use_github:
-                if added_context:
-                    gh.push(
-                        "context.csv",
-                        (
-                            "Barbadox: append new fixtures "
-                            "for the five-minute review window"
-                        ),
-                    )
-
-                    added_total += added_context
-                    added_context = 0
-
-                if new_picks and not args.defer_picks:
-                    gh.push(
-                        "picks.csv",
-                        f"Barbadox: log {new_picks} qualifying pick(s)",
-                    )
-
-            # When GitHub sync is off, context additions are local.
-            added_total += added_context
-
-            break
-
-        except gh.Conflict as error:
-            print(
-                f"GitHub file {error} changed while processing. "
-                f"Re-reading and retrying ({attempt + 1}/4)."
-            )
-
-    else:
-        raise SystemExit(
-            "Could not save to GitHub after four attempts. "
-            "The file kept changing. Run again."
-        )
-
-    snapshot["context_added"] = added_total
-    snapshot["github"] = "synced" if use_github else "off"
-
-    SNAPSHOT_FILE.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-    SNAPSHOT_FILE.write_text(
-        json.dumps(snapshot, indent=1),
-        encoding="utf-8",
-    )
-
-    logged_count = sum(
-        1
-        for fixture in output_fixtures
-        if fixture.get("decision") == "logged"
-    )
-
-    print(
-        f"Snapshot written: {SNAPSHOT_FILE} "
-        f"({len(output_fixtures)} fixtures, "
-        f"{logged_count} logged or previously logged)."
-    )
-
-    print(
-        f"New picks written this pass: {new_picks}."
-    )
-
-    if args.defer_picks:
-        print(
-            "Deferred pass complete. "
-            "The server must decide whether to wait and rerun."
-        )
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description=(
-            "Export the BARBADOX model snapshot for the console UI"
-        )
-    )
-
-    parser.add_argument(
-        "--date",
-        default=None,
-        help="Start date YYYY-MM-DD; defaults to today.",
-    )
-
-    parser.add_argument(
-        "--days",
-        type=int,
-        default=3,
-        help="Number of days to scan; default is 3.",
-    )
-
-    parser.add_argument(
-        "--leagues",
-        default=",".join(bc.LEAGUES),
-        help="Comma-separated league keys; defaults to all.",
-    )
-
-    parser.add_argument(
-        "--market",
-        type=float,
-        default=bc.CFG["market"],
-        help="Goals line; defaults to CFG.",
-    )
-
-    parser.add_argument(
-        "--threshold",
-        type=float,
-        default=bc.CFG["threshold"],
-        help="Pick threshold; defaults to CFG.",
-    )
-
-    parser.add_argument(
-        "--refresh",
-        action="store_true",
-        help="Ignore cached data.",
-    )
-
-    parser.add_argument(
-        "--defer-picks",
-        action="store_true",
-        help=(
-            "Do not log new picks during the initial review pass."
-        ),
-    )
-
-    export(parser.parse_args())
+                "point": round(probability, 
