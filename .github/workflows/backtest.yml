@@ -30,16 +30,16 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Run Core 1 historical replay
-        run: python core_calibration_check.py --seasons-back 3
+        run: python core_calibration_check.py --seasons-back 3 --threshold 0.80
         env:
           FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
 
       - name: Merge Core 1 historical picks
         run: python core1_tracking.py
         env:
-          CORE1_THRESHOLD: "0.79"
+          CORE1_THRESHOLD: "0.80"
 
-      - name: Run Core 2.2 historical replay
+      - name: Run validated Core 2 historical replay
         shell: bash
         run: |
           set -o pipefail
@@ -49,15 +49,14 @@ jobs:
           LEAGUES: "PL,PD,FL1,BL1,SA"
           TEST_SEASONS: "2024,2025,2026"
           WARMUP_SEASONS: "2023"
-          THRESHOLD: "0.80"
-          SAFETY_Z: "1.35"
+          THRESHOLD: "0.75"
+          SAFETY_Z: "1.0"
           UPCOMING_DAYS: "0"
-          USE_NB: "1"
 
-      - name: Merge Core 2.2 historical picks
+      - name: Merge validated Core 2 historical picks
         run: python core2_tracking.py
         env:
-          THRESHOLD: "0.80"
+          THRESHOLD: "0.75"
 
       - name: Reconstruct historical 3+1 slips
         run: python slip_backtest.py
@@ -72,7 +71,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "Full historical backtest: Core 1, Core 2.2, and 3+1 slips"
+            git commit -m "Full historical backtest: Core 1, validated Core 2, and 3+1 slips"
             git push
           fi
 
