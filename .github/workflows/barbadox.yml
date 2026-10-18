@@ -11,6 +11,7 @@ permissions:
 jobs:
   run-model:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -20,13 +21,13 @@ jobs:
 
       - run: pip install -r requirements.txt
 
-      - name: Run today's picks
+      - name: Run today's picks across the next 7 days
         env:
           FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
-        run: python barbadox_core.py run --days 3
+        run: python barbadox_core.py run --days 7
 
-      - name: Grade yesterday's picks
+      - name: Grade finished picks
         env:
           FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
