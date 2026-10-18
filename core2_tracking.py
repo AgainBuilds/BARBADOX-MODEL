@@ -1,36 +1,23 @@
 #!/usr/bin/env python3
-"""Merge qualifying Core 2.2 picks into picks.csv."""
+"""Merge qualified Core 2 Under 3.5 selections into picks.csv without clashing with Core 1."""
 
 import csv
 import os
-
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent
-REPORT = ROOT / os.getenv("REPORT_DIR", "reports")
+REPORT_DIR = ROOT / os.getenv("REPORT_DIR", "reports")
 PICKS = ROOT / "picks.csv"
+RUN_LOG = ROOT / "core2_run.log"
 
 THRESHOLD = float(os.getenv("THRESHOLD", "0.75"))
 
 FIELDS = [
-    "date",
-    "league",
-    "home",
-    "away",
-    "market",
-    "probability",
-    "core_probability",
-    "low",
-    "high",
-    "field_temp_c",
-    "factors",
-    "logged_at",
-    "hg",
-    "ag",
-    "result",
-    "note",
+    "date", "league", "home", "away", "market", "probability",
+    "core_probability", "low", "high", "field_temp_c", "factors",
+    "logged_at", "hg", "ag", "result", "note",
 ]
 
 
@@ -38,175 +25,252 @@ def read_csv(path):
     if not path.exists():
         return []
 
-    with path.open(
-        newline="",
-        encoding="utf-8-sig",
-    ) as file:
-        return list(csv.DictReader(file))
+    with path.open(newline="", encoding="utf-8-sig") as f:
+        return list(csv.DictReader(f))
 
 
-def normalize_name(value):
+def norm(s):
     return "".join(
-        char.lower()
-        for char in str(value or "")
-        if char.isalnum()
+        c.lower() for c in str(s or "") if c.isalnum()
     )
 
 
-def is_core2(row):
-    return (
-        str(row.get("note", ""))
-        .strip()
-        .upper()
-        .startswith("CORE2_UNDER35")
+def is_core2(r):
+    return str(r.get("note", "")).strip().upper().startswith(
+        "CORE2_UNDER35"
     )
 
 
-def fixture_key(row):
-    market = (
-        "U3.5"
-        if is_core2(row)
-        else str(row.get("market", "")).strip()
-    )
+def key(r):
+    # Market is part of the key: a fixture can have both O1.5 and U3.5 records.
+    market = "3.5" if is_core2(r) else str(
+        r.get("market", "")
+    ).strip()
 
     return (
-        str(row.get("date", ""))[:10],
-        str(row.get("league", "")).upper().strip(),
-        normalize_name(row.get("home")),
-        normalize_name(row.get("away")),
+        str(r.get("date", ""))[:10],
+        str(r.get("league", "")).upper().strip(),
+        norm(r.get("home")),
+        norm(r.get("away")),
         market,
     )
 
 
-def main():
-    old_rows = read_csv(PICKS)
+def make_pick(s, historical):
+    try:
+        p = float(s.get("p_final", ""))
+    except (ValueError, TypeError):
+        return None
 
-    # Remove previous Core 2 records so old-version predictions
-    # cannot silently contaminate the new Core 2.2 record.
-    #
-    # Core 1 and other non-Core-2 records are preserved.
-    existing = [
-        row
-        for row in old_rows
-        if not is_core2(row)
-    ]
+    if not 0 <= p <= 1 or p < THRESHOLD:
+        return None
 
-    positions = {
-        fixture_key(row): index
-        for index, row in enumerate(existing)
+    hg = ag = result = ""
+
+    if historical:
+        try:
+            hg, ag = int(s["hg"]), int(s["ag"])
+        except (KeyError, ValueError, TypeError):
+            return None
+
+        result = "HIT" if hg + ag <= 3 else "MISS"
+
+        flag = str(s.get("hit", "")).strip()
+
+        if flag in ("0", "1") and flag != (
+            "1" if result == "HIT" else "0"
+        ):
+            print(
+                "WARNING: Core 2 report hit flag disagrees with score:",
+                s.get("home"), "vs", s.get("away")
+            )
+
+    return {
+        "date": str(s.get("date", ""))[:10],
+        "league": s.get("league", ""),
+        "home": s.get("home", ""),
+        "away": s.get("away", ""),
+        "market": "3.5",
+        "probability": f"{p:.4f}",
+        "core_probability": (
+            s.get("p_cal", "") or s.get("p_raw", "")
+        ),
+        "low": "",
+        "high": "",
+        "field_temp_c": "",
+        "factors": "Core 2 Under 3.5 walk-forward",
+        "logged_at": datetime.now(timezone.utc).isoformat(),
+        "hg": hg,
+        "ag": ag,
+        "result": result,
+        "note": (
+            "CORE2_UNDER35|HISTORICAL"
+            if historical
+            else "CORE2_UNDER35|UPCOMING"
+        ),
     }
 
-    added = 0
-    updated = 0
 
-    sources = [
-        (
-            read_csv(REPORT / "core2_results.csv"),
-            True,
-        ),
-        (
-            read_csv(REPORT / "core2_upcoming.csv"),
-            False,
-        ),
-    ]
+def parse_upcoming_log():
+    """Convert qualified upcoming predictions from the console log to CSV rows."""
+    if not RUN_LOG.exists():
+        return []
 
-    for rows, historical in sources:
-        for row in rows:
+    pattern = re.compile(
+        r"^\s*(\d{4}-\d{2}-\d{2})\s+([A-Z0-9]+)\s+"
+        r"(.+?)\s+vs\s+(.+?)\s+(\d+(?:\.\d+)?)%"
+        r"\s+\(raw\s+(\d+(?:\.\d+)?)%\)",
+        re.I,
+    )
 
-            if str(row.get("cleared", "0")) != "1":
-                continue
+    out = []
 
-            try:
-                probability = float(row.get("p_final", ""))
-            except (TypeError, ValueError):
-                continue
+    for line in RUN_LOG.read_text(
+        encoding="utf-8", errors="replace"
+    ).splitlines():
 
-            if probability < THRESHOLD:
-                continue
+        m = pattern.search(line)
 
-            goals_home = ""
-            goals_away = ""
-            result = ""
+        if not m:
+            continue
 
-            if historical:
-                try:
-                    goals_home = int(row["hg"])
-                    goals_away = int(row["ag"])
-                except (KeyError, TypeError, ValueError):
-                    continue
+        date, league, home, away, final, raw = m.groups()
+        p = float(final) / 100
 
-                result = (
-                    "HIT"
-                    if goals_home + goals_away <= 3
-                    else "MISS"
+        if p >= THRESHOLD:
+            out.append({
+                "date": date,
+                "league": league,
+                "home": home.strip(),
+                "away": away.strip(),
+                "p_final": f"{p:.4f}",
+                "p_cal": f"{p:.4f}",
+                "p_raw": f"{float(raw) / 100:.4f}",
+                "cleared": "1",
+            })
+
+    return out
+
+
+def main():
+    existing = read_csv(PICKS)
+    positions = {
+        key(row): i for i, row in enumerate(existing)
+    }
+
+    historical = read_csv(
+        REPORT_DIR / "core2_results.csv"
+    )
+
+    upcoming = read_csv(
+        REPORT_DIR / "core2_upcoming.csv"
+    )
+
+    if not upcoming:
+        upcoming = parse_upcoming_log()
+
+        if upcoming:
+            REPORT_DIR.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
+
+            with (
+                REPORT_DIR / "core2_upcoming.csv"
+            ).open(
+                "w",
+                newline="",
+                encoding="utf-8",
+            ) as f:
+
+                w = csv.DictWriter(
+                    f,
+                    fieldnames=[
+                        "date", "league", "home", "away",
+                        "p_final", "p_cal", "p_raw", "cleared",
+                    ],
                 )
 
-            pick = {
-                "date": str(row.get("date", ""))[:10],
-                "league": row.get("league", ""),
-                "home": row.get("home", ""),
-                "away": row.get("away", ""),
-                "market": "3.5",
-                "probability": f"{probability:.6f}",
-                "core_probability": (
-                    row.get("p_cal", "")
-                    or row.get("p_raw", "")
-                ),
-                "low": "",
-                "high": "",
-                "field_temp_c": "",
-                "factors": "Core 2.2 Under 3.5",
-                "logged_at": datetime.now(
-                    timezone.utc
-                ).isoformat(),
-                "hg": goals_home,
-                "ag": goals_away,
-                "result": result,
-                "note": (
-                    "CORE2_UNDER35|HISTORICAL"
-                    if historical
-                    else "CORE2_UNDER35|UPCOMING"
-                ),
-            }
+                w.writeheader()
+                w.writerows(upcoming)
 
-            key = fixture_key(pick)
+            print(
+                f"Exported {len(upcoming)} qualified upcoming "
+                "Core 2 forecasts from console log."
+            )
 
-            if key not in positions:
-                positions[key] = len(existing)
+    added = updated = protected = 0
+
+    for rows, is_hist in (
+        (historical, True),
+        (upcoming, False),
+    ):
+        for source in rows:
+
+            if (
+                is_hist
+                and str(source.get("cleared", "")).strip() != "1"
+            ):
+                continue
+
+            pick = make_pick(source, is_hist)
+
+            if pick is None:
+                continue
+
+            k = key(pick)
+
+            if k not in positions:
+                positions[k] = len(existing)
                 existing.append(pick)
                 added += 1
-            else:
-                index = positions[key]
-                existing[index] = pick
+                continue
+
+            i = positions[k]
+            old = existing[i]
+
+            if not is_core2(old):
+                protected += 1
+                continue
+
+            was_hist = (
+                "HISTORICAL"
+                in str(old.get("note", "")).upper()
+            )
+
+            if is_hist or not was_hist:
+                existing[i] = pick
                 updated += 1
 
     with PICKS.open(
         "w",
         newline="",
         encoding="utf-8",
-    ) as file:
-        writer = csv.DictWriter(
-            file,
+    ) as f:
+
+        w = csv.DictWriter(
+            f,
             fieldnames=FIELDS,
             extrasaction="ignore",
         )
 
-        writer.writeheader()
+        w.writeheader()
 
-        writer.writerows(
+        w.writerows(
             {
-                field: row.get(field, "")
+                field: r.get(field, "")
                 for field in FIELDS
             }
-            for row in existing
+            for r in existing
         )
 
-    print()
-    print("BARBADOX CORE 2.2 TRACKING COMPLETE")
-    print(f"Threshold: {THRESHOLD:.1%}")
-    print(f"Added: {added}")
-    print(f"Updated: {updated}")
-    print(f"Total rows in picks.csv: {len(existing)}")
+    print("\nBARBADOX CORE 2 TRACKING COMPLETE")
+    print(
+        f"Threshold: {THRESHOLD:.1%} | "
+        f"new: {added} | updated: {updated} | "
+        f"protected: {protected}"
+    )
+    print(f"Total shared picks: {len(existing)}")
 
 
 if __name__ == "__main__":
