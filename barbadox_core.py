@@ -30,7 +30,7 @@ calls are to football-data.org (free tier) for fixtures and results.
 USAGE
     python barbadox_core.py run
     python barbadox_core.py run --date 2026-10-10 --days 3
-    python barbadox_core.py run --leagues PL,PD --threshold 0.79
+    python barbadox_core.py run --leagues PL,PD --threshold 0.80
     python barbadox_core.py review
     python barbadox_core.py slip
 
@@ -89,7 +89,7 @@ DOMESTIC = ["PL", "PD", "FL1", "BL1", "SA", "SAUDI"]
 SKIP_STATUSES = ("POSTPONED", "SUSPENDED", "CANCELLED", "IN_PLAY", "PAUSED")
 
 CFG = {
-    "threshold": 0.79,
+    "threshold": 0.80,
     "market": 1.5,
     "baseline_games": 38,
     "shrink_games": 12,
@@ -1328,7 +1328,7 @@ def main():
         help="analyze fixtures and log picks >= threshold",
     )
     pr.add_argument("--date", default=None, help="YYYY-MM-DD, default today")
-    pr.add_argument("--days", type=int, default=3)
+    pr.add_argument("--days", type=int, default=7)
     pr.add_argument("--leagues", default=",".join(LEAGUES.keys()))
     pr.add_argument("--threshold", type=float, default=CFG["threshold"])
     pr.add_argument("--market", type=float, default=CFG["market"])
@@ -1357,4 +1357,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
