@@ -49,14 +49,14 @@ jobs:
           LEAGUES: "PL,PD,FL1,BL1,SA"
           TEST_SEASONS: "2024,2025,2026"
           WARMUP_SEASONS: "2023"
-          THRESHOLD: "0.75"
+          THRESHOLD: "0.60"
           SAFETY_Z: "1.0"
           UPCOMING_DAYS: "0"
 
       - name: Merge validated Core 2 historical picks
         run: python core2_tracking.py
         env:
-          THRESHOLD: "0.75"
+          THRESHOLD: "0.60"
 
       - name: Reconstruct historical 3+1 slips
         run: python slip_backtest.py
