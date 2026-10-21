@@ -61,7 +61,8 @@ def pull(name):
         (BASE / name).unlink(missing_ok=True)
         return False
     if r.status_code in (401, 403):
-        raise SyncError(f"GitHub rejected the token while reading {name} (HTTP {r.status_code})")
+        raise SyncError(f"GitHub rejected the token while reading {name} (HTTP 
+{r.status_code})")
     if not r.ok:
         raise SyncError(f"GitHub HTTP {r.status_code} while reading {name}")
     j = r.json()
@@ -96,3 +97,41 @@ def push(name, message):
     if not r.ok:
         raise SyncError(f"GitHub HTTP {r.status_code} while writing {name}")
     _shas[name] = r.json()["content"]["sha"]
+
+
+def push_snapshot(name, message):
+    """Overwrite GitHub's copy of a generated snapshot file.
+
+    Unlike push(), this reads only the remote sha (never the remote
+    content), so the freshly generated local file is exactly what gets
+    committed. Use for machine-written artifacts like docs/data.json
+    and docs/under35.json, never for owner-maintained files.
+    """
+    sha = None
+    url = f"{API}/repos/{_repo()}/contents/{name}"
+    try:
+        r = requests.get(url, headers=_headers(), params={"ref": _branch()}, timeout=30)
+    except requests.RequestException as e:
+        raise SyncError(f"GitHub unreachable while reading sha of {name}: {e}")
+    if r.status_code == 404:
+        sha = None
+    elif r.ok:
+        sha = r.json().get("sha")
+    else:
+        raise SyncError(f"GitHub HTTP {r.status_code} while reading sha of {name}")
+
+    body = {"message": message + " [skip render]",
+            "content": base64.b64encode((BASE / name).read_bytes()).decode(),
+            "branch": _branch()}
+    if sha:
+        body["sha"] = sha
+    try:
+        r = requests.put(url, headers=_headers(), json=body, timeout=30)
+    except requests.RequestException as e:
+        raise SyncError(f"GitHub unreachable while writing {name}: {e}")
+    if r.status_code in (401, 403):
+        raise SyncError(f"GitHub refused the write to {name} (HTTP {r.status_code}). "
+                        "Check the token has Contents: Read and write on this repo.")
+    if not r.ok:
+        raise SyncError(f"GitHub HTTP {r.status_code} while writing {name}")
+    return r.json()["content"]["sha"]
