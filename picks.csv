@@ -1426,9 +1426,9 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-10-18,BL1,Borussia Mönchengladbach,TSG 1899 Hoffenheim,1.5,0.8734,0.8734,0.8418,0.8990,,core 87.3 | form 95 | base 81,2026-10-16T11:06:49.119810+00:00,1,2,HIT,
 2026-10-18,PD,Real Madrid CF,Sevilla FC,1.5,0.8555,0.8555,0.8218,0.8833,,core 85.5 | form 86 | base 86,2026-10-16T11:06:49.119810+00:00,4,1,HIT,
 2026-10-16,SA,Frosinone Calcio,US Sassuolo Calcio,1.5,0.7914,0.7914,,,,Core 1 Over 1.5 walk-forward (factors 1-2 only),2026-10-17T00:41:24.688598+00:00,4,2,HIT,CORE1_OVER15|HISTORICAL
-2026-10-20,CL,VfB Stuttgart,Club Atlético de Madrid,1.5,0.8120,0.8320,0.7758,0.8623,,core 83.2 | form 85 | base 82,2026-10-18T10:44:39.708877+00:00,,,,
-2026-10-20,CL,Liverpool FC,Villarreal CF,1.5,0.8560,0.8760,0.8248,0.9014,,core 87.6 | form 86 | base 88,2026-10-18T10:44:39.708877+00:00,,,,
-2026-10-20,CL,Paris Saint-Germain FC,FC Barcelona,1.5,0.9258,0.9458,0.9066,0.9602,,core 94.6 | form 98 | base 91,2026-10-18T10:44:39.708877+00:00,,,,
+2026-10-20,CL,VfB Stuttgart,Club Atlético de Madrid,1.5,0.8120,0.8320,0.7758,0.8623,,core 83.2 | form 85 | base 82,2026-10-18T10:44:39.708877+00:00,1,1,HIT,
+2026-10-20,CL,Liverpool FC,Villarreal CF,1.5,0.8560,0.8760,0.8248,0.9014,,core 87.6 | form 86 | base 88,2026-10-18T10:44:39.708877+00:00,4,3,HIT,
+2026-10-20,CL,Paris Saint-Germain FC,FC Barcelona,1.5,0.9258,0.9458,0.9066,0.9602,,core 94.6 | form 98 | base 91,2026-10-18T10:44:39.708877+00:00,4,2,HIT,
 2024-09-17,PD,RCD Mallorca,Real Sociedad de Fútbol,3.5,0.7795,0.8174,,,,Core 2 Under 3.5 walk-forward,2026-10-18T22:50:58.993648+00:00,1,0,HIT,CORE2_UNDER35|HISTORICAL
 2024-09-19,PD,CD Leganés,Athletic Club,3.5,0.7795,0.7964,,,,Core 2 Under 3.5 walk-forward,2026-10-18T22:50:58.993689+00:00,0,2,HIT,CORE2_UNDER35|HISTORICAL
 2024-09-20,PD,Deportivo Alavés,Sevilla FC,3.5,0.7584,0.7646,,,,Core 2 Under 3.5 walk-forward,2026-10-18T22:50:58.993704+00:00,2,1,HIT,CORE2_UNDER35|HISTORICAL
