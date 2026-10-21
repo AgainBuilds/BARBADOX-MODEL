@@ -108,7 +108,8 @@ def _export(defer_picks=False):
 
 
 def _read_snapshot():
-    return read_json(SNAPSHOT)
+   
+ return read_json(SNAPSHOT)
 
 
 def _run_under35():
@@ -187,7 +188,8 @@ def _run_under35():
         fixtures = snapshot.get("fixtures")
 
         if not isinstance(fixtures, list):
-            error = "Core 2 JSON is missing a valid fixtures list."
+            error = "Co
+re 2 JSON is missing a valid fixtures list."
 
             _state.update(
                 core2_status="failed",
@@ -259,7 +261,8 @@ def _run_under35():
             core2_finished_at=utc_now(),
         )
 
-        return "\n--- CORE 2 TIMEOUT ---\n" + error + "\n"
+        return "\n-
+-- CORE 2 TIMEOUT ---\n" + error + "\n"
 
     except Exception as exc:
         error = str(exc)
@@ -334,7 +337,8 @@ def _do_run():
                     log += (
                         "\n"
                         + "!" * 65
-                        + "\n"
+                   
+     + "\n"
                         + str(added)
                         + " NEW FIXTURE(S) ADDED TO context.csv.\n"
                         + "WAIT 5 MINUTES BEFORE FINAL PICK LOGGING.\n"
@@ -391,7 +395,8 @@ def _do_run():
 
                     log += "\nCORE 1 ERROR: " + error + "\n"
 
-                else:
+     
+           else:
                     snapshot = _read_snapshot() or {}
 
                     scanned = int(
@@ -441,6 +446,37 @@ def _do_run():
         # CORE 2: INDEPENDENT UNDER 3.5 MODEL
         log += _run_under35()
 
+        # PERSIST SNAPSHOTS TO GITHUB
+        # Render restarts and redeploys wipe the local disk. Committing
+        # the snapshots keeps the console serving the last good analysis.
+        if gh_sync.enabled():
+            for name, path in (
+                ("docs/data.json", SNAPSHOT),
+                ("docs/under35.json", UNDER35),
+            ):
+                if not path.exists():
+                    continue
+
+                try:
+                    gh_sync.push_snapshot(
+                        name,
+                        "Barbadox: persist console snapshot",
+                    )
+                    log += "\nSnapshot persisted: " + name + "\n"
+                except Exception as exc:
+                    log += (
+                        "\nSnapshot persistence failed for "
+                        + name
+                        + ": "
+                        + str(exc)
+                        + "\n"
+                    )
+        else:
+            log += (
+                "\nSnapshot persistence skipped: "
+                "GITHUB_TOKEN is not configured.\n"
+            )
+
     except Exception as exc:
         log += "\nSERVER RUN ERROR: " + str(exc) + "\n"
 
@@ -454,11 +490,40 @@ def _do_run():
         )
 
 
-def _worker():
+def _wo
+rker():
     try:
         _do_run()
     finally:
         _lock.release()
+
+
+def _startup_restore():
+    """Pull the persisted snapshots from GitHub if the local disk is empty.
+
+    After a Render restart or redeploy the service comes back with no
+    docs/data.json or docs/under35.json. Restoring them keeps the
+    console showing the last completed analysis instead of the empty
+    state.
+    """
+    if not gh_sync.enabled():
+        return
+
+    for name, path in (
+        ("docs/data.json", SNAPSHOT),
+        ("docs/under35.json", UNDER35),
+    ):
+        if path.exists():
+            continue
+
+        try:
+            if gh_sync.pull(name):
+                print("Restored " + name + " from GitHub.")
+        except Exception as exc:
+            print("Could not restore " + name + ": " + str(exc))
+
+
+_startup_restore()
 
 
 @app.get("/")
@@ -547,7 +612,8 @@ def run():
 
         return jsonify({
             "ok": False,
-            "message": "Could not start model run: " + str(exc),
+            "message": "Could n
+ot start model run: " + str(exc),
         }), 500
 
     return jsonify({
