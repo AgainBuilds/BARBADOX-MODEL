@@ -5,7 +5,7 @@ reports/slip_backtest.md.
 
 Slip reconstruction policy (per calendar day, chronological):
 - Eligible Over legs: CORE1_OVER15|HISTORICAL rows with probability >= 0.80, settled.
-- Eligible Under legs: CORE2_UNDER35|HISTORICAL rows with probability >= 0.75, settled.
+- Eligible Under legs: CORE2_UNDER35|HISTORICAL rows with probability >= 0.60, settled.
 - One slip per day: the three highest-probability Over legs on distinct fixtures plus
   the highest-probability Under leg on a fourth distinct fixture.
 - A day with fewer than 3 eligible Overs or no eligible Under produces no slip.
@@ -24,7 +24,7 @@ Honesty rules printed in the report:
 - No bookmaker odds are used anywhere: no combined odds, stake, return, or ROI is
   claimed. Only model-derived fair odds (1/p) are shown, and the break-even price of
   each slip is reported.
-- The 0.80/0.75 thresholds were themselves chosen in hindsight over data like this,
+- The 0.80/0.60 thresholds were themselves chosen in hindsight over data like this,
   so hit rates here are an upper bound, not an independent validation.
 - Legs in a slip are correlated (shared leagues, matchdays); hit rates are not
   independent coin flips.
@@ -37,10 +37,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 PICKS = ROOT / "picks.csv"
-OUT = ROOT / "reports" / "slip_backtest.md"
+OUT = ROOT / "reports" / 
+"slip_backtest.md"
 
 OVER_T = 0.80
-UNDER_T = 0.75
+UNDER_T = 0.60
 
 
 def read(path):
@@ -133,7 +134,8 @@ def build_slips(picks):
             if len(top) == 3:
                 break
 
-        # Under leg must be a fourth, distinct fixture.
+        # Under
+ leg must be a fourth, distinct fixture.
         under = next(
             (u for u in unders if fixture(u) not in seen),
             None,
@@ -212,7 +214,8 @@ def main():
 
     by_season = defaultdict(lambda: [0, 0])
 
-    for s in slips:
+    for 
+s in slips:
         season = season_of(s["date"])
         by_season[season][0] += 1
 
@@ -236,7 +239,7 @@ def main():
         "- NO bookmaker odds are used. Fair odds shown are 1/probability "
         "(model-derived). No stake, return, or ROI is claimed, because no "
         "real prices exist for these matches.",
-        "- The 0.80 / 0.75 thresholds were chosen with knowledge of this data; "
+        "- The 0.80 / 0.60 thresholds were chosen with knowledge of this data; "
         "hit rates below are an upper bound, not independent validation.",
         "- Core 1 historical probabilities use factors 1-2 only (Poisson core); "
         "live picks also use factors 3-5, so live results can differ.",
@@ -262,7 +265,8 @@ def main():
             if slips else "- Slip hit rate: n/a"
         ),
         (
-            f"- Average product of the four leg probabilities: "
+            f"- Average product of the four 
+leg probabilities: "
             f"**{avg_product:.1%}** "
             f"(model's own expectation of slip hit rate)"
             if slips else ""
@@ -334,7 +338,8 @@ def main():
 
     print(
         f"Historical slips reconstructed: {len(slips)} | "
-        f"hits: {hits} | misses: {losses}"
+  
+      f"hits: {hits} | misses: {losses}"
     )
 
     if slips:
