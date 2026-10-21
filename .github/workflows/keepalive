@@ -1,0 +1,27 @@
+name: Keep Render awake
+
+# Render free web services sleep after ~15 minutes without inbound
+# HTTP traffic. A full model run (Core 1 + review window + Core 2)
+# takes longer than that, so a run can be killed mid-analysis and the
+# console resets to the empty state. This workflow pings the console
+# every 10 minutes to keep the instance awake.
+#
+# Note: GitHub disables scheduled workflows after 60 days with no
+# repository activity; any push resets that clock.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping BARBADOX console
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 120 https://barbadox.onrender.com/api/status || echo 000)
+          echo "HTTP $code"
+          if [ "$code" = "000" ]; then
+            echo "::warning::Ping failed entirely (service may be down)"
+          fi
