@@ -20,8 +20,8 @@ from pathlib import Path
 
 ROOT=Path(__file__).resolve().parent
 PICKS=ROOT/"picks.csv"; HISTORY=ROOT/"slip_history.csv"; REPORT=ROOT/"slip.md"; ODDS=ROOT/"odds_snapshot.csv"
-OVER=float(os.getenv("CORE1_SLIP_THRESHOLD","0.79"))
-UNDER=float(os.getenv("CORE2_SLIP_THRESHOLD","0.75"))
+OVER=float(os.getenv("CORE1_SLIP_THRESHOLD","0.80"))
+UNDER=float(os.getenv("CORE2_SLIP_THRESHOLD","0.60"))
 MAX_NEW=max(0,int(os.getenv("MAX_NEW_SLIPS","3")))
 STAKE=float(os.getenv("STAKE","10"))
 CURRENCY=os.getenv("STAKE_CURRENCY","")
@@ -228,7 +228,7 @@ def render(history,totals):
     lines += [""]
     if not groups:
         lines += ["No complete slip exists yet.",
-        "Need 3 eligible Core 1 Over 1.5 picks at ≥79% and 1 eligible Core 2 Under 3.5 pick at ≥75%. Run Core 2 before running this workflow.",""]
+        "Need 3 eligible Core 1 Over 1.5 picks at ≥80% and 1 eligible Core 2 Under 3.5 pick at ≥60%. Run Core 2 before running this workflow.",""]
     for ident,rows in sorted(groups.items(),key=lambda item:item[1][0].get("generated_at",""),reverse=True):
         first=rows[0]
         lines += [f"## Slip {first.get('slip_no',ident)} — **{first.get('slip_result','PENDING')}**","",
