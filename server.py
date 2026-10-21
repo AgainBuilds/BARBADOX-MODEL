@@ -43,7 +43,6 @@ WAIT_SECONDS = 300
 CORE1_TIMEOUT = 1200
 CORE2_TIMEOUT = 900
 
-# Both models scan the next seven days.
 SCAN_DAYS = 7
 
 
@@ -65,7 +64,6 @@ _state = {
     "log": "",
     "finished_at": None,
 
-    # Core 1 status.
     "ok": None,
     "ready": False,
     "owner_pending": 0,
@@ -77,7 +75,6 @@ _state = {
     "core1_finished_at": None,
     "core1_error": None,
 
-    # Core 2 status.
     "core2_status": "idle",
     "core2_model_status": None,
     "core2_error": None,
@@ -85,16 +82,12 @@ _state = {
     "core2_generated_at": None,
     "core2_scanned": 0,
     "core2_qualified": 0,
-    "core2_threshold": 0.75,
+    "core2_threshold": 0.60,
 }
 
 
 def _export(defer_picks=False):
-    """
-    Run the Core 1 exporter over the next seven days.
-
-    The exporter supports --defer-picks.
-    """
+    """Run the Core 1 exporter over the next seven days."""
     command = [
         "python",
         "export_snapshot.py",
@@ -119,12 +112,7 @@ def _read_snapshot():
 
 
 def _run_under35():
-    """
-    Run Core 2 independently of Core 1.
-
-    Remove old output first so stale results cannot be
-    mistaken for results from this run.
-    """
+    """Run Core 2 independently of Core 1."""
     _state.update(
         core2_status="running",
         core2_model_status=None,
@@ -242,7 +230,7 @@ def _run_under35():
             core2_generated_at=snapshot.get("generated_at"),
             core2_scanned=len(fixtures),
             core2_qualified=len(qualified),
-            core2_threshold=snapshot.get("threshold", 0.75),
+            core2_threshold=snapshot.get("threshold", 0.60),
             core2_finished_at=utc_now(),
         )
 
@@ -295,9 +283,7 @@ def _do_run():
     log = ""
 
     try:
-        # -----------------------------------------------------
         # CORE 1: INITIAL DEFERRED EXPORT
-        # -----------------------------------------------------
         _state.update(
             core1_status="running",
             core1_error=None,
@@ -337,9 +323,7 @@ def _do_run():
                 _state["context_added"] = added
                 _state["owner_pending"] = 0
 
-                # -------------------------------------------------
                 # FIVE-MINUTE REVIEW WINDOW
-                # -------------------------------------------------
                 if added > 0:
                     _state.update(
                         waiting=True,
@@ -381,9 +365,7 @@ def _do_run():
                         "Skipping the five-minute wait.\n"
                     )
 
-                # -------------------------------------------------
                 # CORE 1: FINAL EXPORT
-                # -------------------------------------------------
                 final = _export(defer_picks=False)
 
                 log += (
@@ -416,8 +398,7 @@ def _do_run():
                         snapshot.get(
                             "scanned",
                             len(snapshot.get("fixtures", [])),
-                        )
-                        or 0
+                        ) or 0
                     )
 
                     _state.update(
@@ -457,9 +438,7 @@ def _do_run():
         finally:
             _state["core1_finished_at"] = utc_now()
 
-        # -----------------------------------------------------
         # CORE 2: INDEPENDENT UNDER 3.5 MODEL
-        # -----------------------------------------------------
         log += _run_under35()
 
     except Exception as exc:
