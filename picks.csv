@@ -1824,10 +1824,10 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-05-24,SA,SSC Napoli,Udinese Calcio,3.5,0.7512,0.7512,,,,Core 2 Under 3.5 walk-forward,2026-10-21T17:57:15.547491+00:00,1,0,HIT,CORE2_UNDER35|HISTORICAL
 2026-05-24,SA,Hellas Verona FC,AS Roma,3.5,0.7896,0.7896,,,,Core 2 Under 3.5 walk-forward,2026-10-21T17:57:15.547502+00:00,0,2,HIT,CORE2_UNDER35|HISTORICAL
 2026-05-24,SA,US Cremonese,Como 1907,3.5,0.7887,0.7887,,,,Core 2 Under 3.5 walk-forward,2026-10-21T17:57:15.547507+00:00,1,4,MISS,CORE2_UNDER35|HISTORICAL
-2026-10-21,CL,Como 1907,Manchester United FC,1.5,0.8648,0.8848,0.8348,0.9090,,core 88.5 | form 86 | base 90,2026-10-19T12:44:48.556677+00:00,,,,
-2026-10-21,PD,Levante UD,Athletic Club,1.5,0.8040,0.8040,0.7654,0.8368,,core 80.4 | form 79 | base 79,2026-10-19T12:44:48.556677+00:00,,,,
-2026-10-21,CL,Real Madrid CF,RB Leipzig,1.5,0.9027,0.9227,0.8787,0.9412,,core 92.3 | form 96 | base 89,2026-10-19T12:44:48.556677+00:00,,,,
-2026-10-21,CL,FC Bayern München,Arsenal FC,1.5,0.8770,0.8970,0.8487,0.9195,,core 89.7 | form 89 | base 90,2026-10-19T12:44:48.556677+00:00,,,,
+2026-10-21,CL,Como 1907,Manchester United FC,1.5,0.8648,0.8848,0.8348,0.9090,,core 88.5 | form 86 | base 90,2026-10-19T12:44:48.556677+00:00,4,1,HIT,
+2026-10-21,PD,Levante UD,Athletic Club,1.5,0.8040,0.8040,0.7654,0.8368,,core 80.4 | form 79 | base 79,2026-10-19T12:44:48.556677+00:00,3,1,HIT,
+2026-10-21,CL,Real Madrid CF,RB Leipzig,1.5,0.9027,0.9227,0.8787,0.9412,,core 92.3 | form 96 | base 89,2026-10-19T12:44:48.556677+00:00,4,1,HIT,
+2026-10-21,CL,FC Bayern München,Arsenal FC,1.5,0.8770,0.8970,0.8487,0.9195,,core 89.7 | form 89 | base 90,2026-10-19T12:44:48.556677+00:00,2,2,HIT,
 2026-10-23,BL1,VfB Stuttgart,Borussia Mönchengladbach,1.5,0.8090,0.8090,0.7708,0.8414,,core 80.9 | form 88 | base 75,2026-10-19T12:44:48.556677+00:00,,,,
 2026-10-23,SA,Torino FC,AC Monza,1.5,0.8656,0.8656,0.8330,0.8922,,core 86.6 | form 84 | base 78,2026-10-19T12:44:48.556677+00:00,,,,
 2026-10-23,PL,Ipswich Town FC,Nottingham Forest FC,1.5,0.8085,0.8085,0.7703,0.8409,,core 80.8 | form 80 | base 78,2026-10-19T12:44:48.556677+00:00,,,,
@@ -2434,3 +2434,5 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-10-11,SA,Cagliari Calcio,Juventus FC,3.5,0.7096,0.7318,,,,Core 2 Under 3.5 walk-forward,2026-10-21T17:57:15.547540+00:00,1,1,HIT,CORE2_UNDER35|HISTORICAL
 2026-10-18,PD,RC Celta de Vigo,Deportivo Alavés,3.5,0.7165,0.7253,,,,Core 2 Under 3.5 walk-forward,2026-10-21T17:57:15.547550+00:00,2,1,HIT,CORE2_UNDER35|HISTORICAL
 2026-10-24,SA,Cagliari Calcio,Bologna FC 1909,3.5,0.7230,0.7230,,,,Core 2 Under 3.5 walk-forward,2026-10-21T17:57:15.547557+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-10-28,SA,Venezia FC,FC Internazionale Milano,1.5,0.8760,0.8760,0.8447,0.9013,,core 87.6 | form 87 | base 81,2026-10-22T11:31:41.960853+00:00,,,,
+2026-10-28,SA,AC Monza,SSC Napoli,1.5,0.8090,0.8090,0.7708,0.8414,,core 80.9 | form 82 | base 68,2026-10-22T11:31:41.960853+00:00,,,,
