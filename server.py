@@ -13,6 +13,10 @@ Both cores scan the next 7 days by default.
 New context rows trigger a five-minute review window before
 the final Core 1 export. The checked=1 flag is not an approval
 requirement for upcoming fixtures.
+
+Slips tracker:
+Serves the tracker frontend at /slips and its data at
+/api/slipstracker (backed by slips_tracker.py).
 """
 
 import json
@@ -20,16 +24,14 @@ import os
 import subprocess
 import threading
 import time
-from flask import Flask, Response, jsonify, send_from_directory  # add Response
 
-import gh_sync
-import slips_tracker  # add this
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, Response, jsonify, send_from_directory
 
 import gh_sync
+import slips_tracker
 
 
 BASE = Path(__file__).resolve().parent
@@ -111,8 +113,7 @@ def _export(defer_picks=False):
 
 
 def _read_snapshot():
-   
- return read_json(SNAPSHOT)
+    return read_json(SNAPSHOT)
 
 
 def _run_under35():
@@ -191,8 +192,7 @@ def _run_under35():
         fixtures = snapshot.get("fixtures")
 
         if not isinstance(fixtures, list):
-            error = "Co
-re 2 JSON is missing a valid fixtures list."
+            error = "Core 2 JSON is missing a valid fixtures list."
 
             _state.update(
                 core2_status="failed",
@@ -264,8 +264,7 @@ re 2 JSON is missing a valid fixtures list."
             core2_finished_at=utc_now(),
         )
 
-        return "\n-
--- CORE 2 TIMEOUT ---\n" + error + "\n"
+        return "\n--- CORE 2 TIMEOUT ---\n" + error + "\n"
 
     except Exception as exc:
         error = str(exc)
@@ -340,8 +339,7 @@ def _do_run():
                     log += (
                         "\n"
                         + "!" * 65
-                   
-     + "\n"
+                        + "\n"
                         + str(added)
                         + " NEW FIXTURE(S) ADDED TO context.csv.\n"
                         + "WAIT 5 MINUTES BEFORE FINAL PICK LOGGING.\n"
@@ -398,8 +396,7 @@ def _do_run():
 
                     log += "\nCORE 1 ERROR: " + error + "\n"
 
-     
-           else:
+                else:
                     snapshot = _read_snapshot() or {}
 
                     scanned = int(
@@ -493,8 +490,7 @@ def _do_run():
         )
 
 
-def _wo
-rker():
+def _worker():
     try:
         _do_run()
     finally:
@@ -531,7 +527,57 @@ _startup_restore()
 
 @app.get("/")
 def index():
-    return send_from_directory(str(BASE), "console.html")
+    """Serve the console with a SLIPS TRACKER button injected."""
+    try:
+        body = (BASE / "console.html").read_text(encoding="utf-8")
+    except Exception:
+        return send_from_directory(str(BASE), "console.html")
+
+    slip_button = '<button class="runbtn ghost" id="btnSlip">GENERATE SLIPS</button>'
+    tracker_button = (
+        '<button class="runbtn ghost" '
+        'onclick="window.location.href=&quot;/slips&quot;">'
+        "SLIPS TRACKER</button>"
+    )
+    if slip_button in body:
+        body = body.replace(slip_button, slip_button + tracker_button, 1)
+
+    return Response(body, mimetype="text/html")
+
+
+@app.get("/slips")
+def slips_page():
+    return send_from_directory(str(BASE), "slips.html")
+
+
+@app.get("/api/slipstracker")
+def slipstracker():
+    """Refresh slip history, then return the slips tracker summary."""
+    if gh_sync.enabled():
+        try:
+            gh_sync.pull("picks.csv")
+        except Exception as exc:
+            return jsonify({
+                "ok": False,
+                "error": "Could not read picks from GitHub: " + str(exc),
+            }), 500
+
+    try:
+        subprocess.run(
+            ["python", "barbadox_slips.py"],
+            cwd=str(BASE),
+            capture_output=True,
+            text=True,
+            timeout=300,
+            check=False,
+        )
+    except Exception as exc:
+        return jsonify({
+            "ok": False,
+            "error": "Slip tracking refresh failed: " + str(exc),
+        }), 500
+
+    return jsonify({"ok": True, **slips_tracker.tracker_data()})
 
 
 @app.get("/api/data")
@@ -615,8 +661,7 @@ def run():
 
         return jsonify({
             "ok": False,
-            "message": "Could n
-ot start model run: " + str(exc),
+            "message": "Could not start model run: " + str(exc),
         }), 500
 
     return jsonify({
