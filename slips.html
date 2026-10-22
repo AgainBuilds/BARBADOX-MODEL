@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BARBADOX - Slips Tracker</title>
+<style>
+:root{--bg:#0B1020;--panel:#131A2E;--panel2:#1A2340;--line:#2A3558;
+--ink:#F2F5FF;--dim:#8B96B8;--acid:#B8FF3C;--cyan:#37E0FF;
+--magenta:#FF3D71;--amber:#FFB13D;--green:#3DFF9E}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh}
+.wrap{max-width:1080px;margin:0 auto;padding:26px 20px 60px}
+.head{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:24px}
+.brand{font-size:26px;font-weight:800;letter-spacing:.12em}
+.brand i{color:var(--acid);font-style:normal}
+.sub{font-size:10px;color:var(--dim);letter-spacing:.35em;margin-top:2px}
+.back{background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:99px;padding:7px 16px;font-size:10px;letter-spacing:.15em;cursor:pointer}
+.back:hover{border-color:var(--magenta);color:var(--magenta)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:22px;margin-bottom:16px;position:relative;overflow:hidden}
+.panel::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;opacity:.5;background:linear-gradient(90deg,var(--green),transparent 70%)}
+.phead{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.phead h2{font-size:13px;letter-spacing:.2em;font-weight:700}
+.tag{font-size:10px;letter-spacing:.15em;padding:3px 10px;border-radius:99px;border:1px solid rgba(61,255,158,.35);color:var(--green);background:rgba(255,255,255,.04)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:var(--panel2);border-radius:12px;padding:14px;text-align:center}
+.kpi .v{font-size:22px;font-weight:800}
+.kpi .k{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-top:4px}
+.runbtn{background:var(--cyan);border:none;color:var(--bg);font-weight:800;letter-spacing:.12em;font-size:13px;padding:13px 22px;border-radius:14px;cursor:pointer}
+.runbtn:hover{box-shadow:0 0 18px rgba(55,224,255,.35)}
+.status{font-size:12px;color:var(--dim);line-height:1.7;margin-top:12px}
+.slipcard{background:var(--panel2);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px;margin-bottom:14px}
+.sliphead{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.sliphead .id{font-weight:800;letter-spacing:.1em;font-size:14px}
+.sliphead .meta{font-size:10px;color:var(--dim);letter-spacing:.12em}
+.chip{font-size:10px;font-weight:800;letter-spacing:.15em;padding:3px 12px;border-radius:99px}
+.chip.HIT{background:rgba(61,255,158,.1);color:var(--green)}
+.chip.MISS{background:rgba(255,61,113,.1);color:var(--magenta)}
+.chip.VOID{background:rgba(139,150,184,.1);color:var(--dim)}
+.chip.PENDING{background:rgba(255,177,61,.1);color:var(--amber)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:9px;color:var(--dim);letter-spacing:.15em;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:top}
+.money{font-size:11px;color:var(--dim);letter-spacing:.08em;margin-top:10px;line-height:1.8}
+.money b{color:var(--ink)}
+.empty{color:var(--dim);font-size:12px;text-align:center;padding:34px 10px;letter-spacing:.08em;line-height:2}
+footer{text-align:center;font-size:10px;color:var(--dim);letter-spacing:.12em;padding:20px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <div class="brand">BARBADOX<i>&middot;</i></div>
+      <div class="sub">SLIPS TRACKER</div>
+    </div>
+    <button class="back" onclick="window.location.href='/'">&larr; BACK TO CONSOLE</button>
+  </div>
+
+  <section class="panel">
+    <div class="phead"><h2>TRACKER CONTROL</h2><span class="tag" id="tTag">&mdash;</span></div>
+    <button class="runbtn" id="btnRefresh">&#8635; REFRESH TRACKER</button>
+    <div class="status" id="tStatus">Loading slips data&hellip;</div>
+  </section>
+
+  <section class="panel">
+    <div class="phead"><h2>TRACKER SUMMARY</h2><span class="tag" id="sumTag">&mdash;</span></div>
+    <div class="kpis" id="kpis"></div>
+    <div class="status" id="sumStatus"></div>
+  </section>
+
+  <section class="panel">
+    <div class="phead"><h2>SLIPS</h2><span class="tag" id="slipsTag">&mdash;</span></div>
+    <div id="slipsList"></div>
+  </section>
+
+  <footer>BARBADOX &middot; SLIPS TRACKER &middot; BUILT BY AGAINBUILDS</footer>
+</div>
+
+<script>
+var $ = function (id) { return document.getElementById(id); };
+var esc = function (s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+};
+var pct = function (x) {
+  return (x == null) ? "&mdash;" : (x * 100).toFixed(1) + "%";
+};
+var money = function (x) { return Number(x || 0).toFixed(2); };
+
+function chip(result) {
+  return '<span class="chip ' + esc(result) + '">' + esc(result) + "</span>";
+}
+
+function renderKpis(d) {
+  var hitRate = d.hit_rate, roi = d.roi;
+  var cells = [
+    { v: d.total_slips, k: "SLIPS GIVEN", c: "var(--cyan)" },
+    { v: d.hits, k: "HITS", c: "var(--green)" },
+    { v: d.failed, k: "FAILED", c: "var(--magenta)" },
+    { v: d.pending, k: "PENDING", c: "var(--amber)" },
+    { v: d.voids, k: "VOID", c: "var(--dim)" },
+    { v: pct(hitRate), k: "HIT RATE", c: hitRate == null ? "var(--dim)" : (hitRate >= 0.5 ? "var(--acid)" : "var(--magenta)") },
+    { v: roi == null ? "&mdash;" : (roi * 100).toFixed(1) + "%", k: "ROI", c: roi == null ? "var(--dim)" : (roi >= 0 ? "var(--green)" : "var(--magenta)") }
+  ];
+  $("kpis").innerHTML = cells.map(function (c) {
+    return '<div class="kpi"><div class="v" style="color:' + c.c + '">' + c.v +
+      '</div><div class="k">' + c.k + "</div></div>";
+  }).join("");
+}
+
+function renderSlip(s) {
+  var rows = s.legs.map(function (l) {
+    var score = l.score ? esc(l.score) : "&mdash;";
+    var odds = l.bookmaker_odds ? esc(l.bookmaker_odds) : "&mdash;";
+    return "<tr><td>" + esc(l.leg_no) + "</td><td>" + esc(l.home) + " vs " +
+      esc(l.away) + "<br><span style='color:var(--dim);font-size:10px'>" +
+      esc(l.date) + " &middot; " + esc(l.league) + "</span></td><td>" +
+      esc(l.selection) + "</td><td>" + (l.probability * 100).toFixed(1) +
+      "%</td><td>" + odds + "</td><td>" + score + "</td><td>" +
+      chip(l.leg_result) + "</td></tr>";
+  }).join("");
+
+  var moneyLine = "";
+  if (s.combined_odds) {
+    moneyLine = "<b>Combined odds:</b> " + esc(s.combined_odds) +
+      " &middot; <b>Stake:</b> " + money(s.stake);
+    if (s.result === "HIT" || s.result === "MISS" || s.result === "VOID") {
+      moneyLine += " &middot; <b>Returned:</b> " + money(s.actual_return) +
+        " &middot; <b>Profit:</b> " + money(s.profit);
+    } else {
+      moneyLine += " &middot; <b>Potential:</b> " + money(s.potential_return);
+    }
+  } else {
+    moneyLine = "No combined odds: at least one leg has no recorded price.";
+  }
+
+  return '<div class="slipcard">' +
+    '<div class="sliphead"><span class="id">SLIP ' + esc(s.slip_no) + "</span>" +
+    '<span class="meta">' + esc(s.generated_at.replace("T", " ").replace("Z", " UTC")) + "</span>" +
+    chip(s.result) + "</div>" +
+    "<table><tr><th>LEG</th><th>MATCH</th><th>PICK</th><th>PROB</th><th>ODDS</th><th>SCORE</th><th>RESULT</th></tr>" +
+    rows + "</table>" +
+    '<div class="money">' + moneyLine + "</div></div>";
+}
+
+function render(d) {
+  $("tTag").textContent = d.ok === false ? "ERROR" : "LIVE";
+  renderKpis(d);
+  var settled = d.hits + d.failed;
+  $("sumTag").textContent = settled ? settled + " SETTLED" : "AWAITING RESULTS";
+  $("sumStatus").textContent = d.total_slips
+    ? "The program has given " + d.total_slips + " slip(s): " + d.hits +
+      " hit, " + d.failed + " failed, " + d.pending + " pending, " + d.voids + " void."
+    : "No slips recorded yet. Generate slips from the console first.";
+  $("slipsTag").textContent = d.slips.length + " SLIP(S)";
+  $("slipsList").innerHTML = d.slips.length
+    ? d.slips.map(renderSlip).join("")
+    : '<div class="empty">NO SLIPS YET.<br>OPEN THE CONSOLE AND TAP GENERATE SLIPS.</div>';
+}
+
+function load(refreshing) {
+  $("tStatus").textContent = refreshing
+    ? "Refreshing slip history (runs the slip workflow)&hellip;"
+    : "Loading slips data&hellip;";
+  fetch("/api/slipstracker", { cache: "no-store" })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d.ok === false) {
+        $("tStatus").textContent = "Tracker error: " + (d.error || "unknown");
+        return;
+      }
+      $("tStatus").textContent = "Tracker updated. Hits and failures are graded from actual scores.";
+      render(d);
+    })
+    .catch(function (e) {
+      $("tStatus").textContent = "Could not reach /api/slipstracker: " + e;
+    });
+}
+
+$("btnRefresh").addEventListener("click", function () { load(true); });
+load(false);
+</script>
+</body>
+</html>
