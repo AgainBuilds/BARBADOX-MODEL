@@ -20,7 +20,10 @@ import os
 import subprocess
 import threading
 import time
+from flask import Flask, Response, jsonify, send_from_directory  # add Response
 
+import gh_sync
+import slips_tracker  # add this
 from datetime import datetime, timezone
 from pathlib import Path
 
