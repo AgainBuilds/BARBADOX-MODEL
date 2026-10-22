@@ -61,8 +61,7 @@ def pull(name):
         (BASE / name).unlink(missing_ok=True)
         return False
     if r.status_code in (401, 403):
-        raise SyncError(f"GitHub rejected the token while reading {name} (HTTP 
-{r.status_code})")
+        raise SyncError(f"GitHub rejected the token while reading {name} (HTTP {r.status_code})")
     if not r.ok:
         raise SyncError(f"GitHub HTTP {r.status_code} while reading {name}")
     j = r.json()
