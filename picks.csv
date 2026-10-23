@@ -2436,3 +2436,5 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-10-24,SA,Cagliari Calcio,Bologna FC 1909,3.5,0.7230,0.7230,,,,Core 2 Under 3.5 walk-forward,2026-10-21T17:57:15.547557+00:00,,,,CORE2_UNDER35|UPCOMING
 2026-10-28,SA,Venezia FC,FC Internazionale Milano,1.5,0.8760,0.8760,0.8447,0.9013,,core 87.6 | form 87 | base 81,2026-10-22T11:31:41.960853+00:00,,,,
 2026-10-28,SA,AC Monza,SSC Napoli,1.5,0.8090,0.8090,0.7708,0.8414,,core 80.9 | form 82 | base 68,2026-10-22T11:31:41.960853+00:00,,,,
+2026-10-30,BL1,SV 07 Elversberg,1. FSV Mainz 05,1.5,0.8904,0.8904,0.8612,0.9139,,core 89.0 | form 93 | base 80,2026-10-23T23:50:28.762322+00:00,,,,
+2026-10-30,PD,Villarreal CF,RCD Espanyol de Barcelona,1.5,0.8113,0.8113,0.7733,0.8435,,core 81.1 | form 77 | base 85,2026-10-23T23:50:28.762322+00:00,,,,
