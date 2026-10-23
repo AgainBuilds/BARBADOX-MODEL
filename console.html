@@ -20,9 +20,7 @@
   --green:#3dff9e;
 }
 
-* {
-  box-sizing:border-box;
-}
+* { box-sizing:border-box; }
 
 body {
   margin:0;
@@ -31,17 +29,9 @@ body {
   font:14px system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 
-button,input,select {
-  font:inherit;
-}
-
-button {
-  cursor:pointer;
-}
-
-.mono {
-  font-family:ui-monospace,monospace;
-}
+button,input,select { font:inherit; }
+button { cursor:pointer; }
+.mono { font-family:ui-monospace,monospace; }
 
 #boot {
   min-height:100vh;
@@ -50,11 +40,7 @@ button {
   justify-content:center;
   flex-direction:column;
   gap:16px;
-  background:radial-gradient(
-    ellipse at top,
-    rgba(55,224,255,.12),
-    transparent 55%
-  );
+  background:radial-gradient(ellipse at top,rgba(55,224,255,.12),transparent 55%);
 }
 
 #boot h1 {
@@ -97,9 +83,7 @@ header,.row,.panelhead,.actions {
   flex-wrap:wrap;
 }
 
-header {
-  margin-bottom:22px;
-}
+header { margin-bottom:22px; }
 
 .brand {
   font-size:25px;
@@ -107,13 +91,8 @@ header {
   letter-spacing:.12em;
 }
 
-.brand span {
-  color:var(--acid);
-}
-
-.sub,.muted {
-  color:var(--dim);
-}
+.brand span { color:var(--acid); }
+.sub,.muted { color:var(--dim); }
 
 .sub {
   font-size:10px;
@@ -129,9 +108,7 @@ header {
   overflow:hidden;
 }
 
-.panelhead {
-  margin-bottom:14px;
-}
+.panelhead { margin-bottom:14px; }
 
 .panelhead h2 {
   font-size:13px;
@@ -180,17 +157,9 @@ header {
   margin-top:12px;
 }
 
-.status.ok {
-  color:var(--green);
-}
-
-.status.err {
-  color:var(--pink);
-}
-
-.status.warn {
-  color:var(--amber);
-}
+.status.ok { color:var(--green); }
+.status.err { color:var(--pink); }
+.status.warn { color:var(--amber); }
 
 .cards {
   display:grid;
@@ -301,17 +270,9 @@ header {
   font-weight:800;
 }
 
-.hit {
-  color:var(--green);
-}
-
-.miss {
-  color:var(--pink);
-}
-
-.pending {
-  color:var(--amber);
-}
+.hit { color:var(--green); }
+.miss { color:var(--pink); }
+.pending { color:var(--amber); }
 
 .tracker-controls {
   display:flex;
@@ -432,13 +393,8 @@ header {
   letter-spacing:.08em;
 }
 
-.live-state.finished {
-  color:var(--green);
-}
-
-.live-state.crossed {
-  color:var(--pink);
-}
+.live-state.finished { color:var(--green); }
+.live-state.crossed { color:var(--pink); }
 
 .live-progress {
   color:var(--dim);
@@ -452,13 +408,8 @@ header {
   margin-top:5px;
 }
 
-.live-result.won {
-  color:var(--green);
-}
-
-.live-result.lost {
-  color:var(--pink);
-}
+.live-result.won { color:var(--green); }
+.live-result.lost { color:var(--pink); }
 
 .live-refresh {
   display:block;
@@ -476,21 +427,10 @@ footer {
 }
 
 @media(max-width:600px) {
-  .hrow {
-    grid-template-columns:1fr auto;
-  }
-
-  .hrow .hide-sm {
-    display:none;
-  }
-
-  .panel {
-    padding:14px;
-  }
-
-  .tracker-controls > * {
-    max-width:100%;
-  }
+  .hrow { grid-template-columns:1fr auto; }
+  .hrow .hide-sm { display:none; }
+  .panel { padding:14px; }
+  .tracker-controls > * { max-width:100%; }
 }
 </style>
 </head>
@@ -741,6 +681,58 @@ function sameTeam(a, b) {
     (x.includes(y) || y.includes(x));
 }
 
+/* Format kickoff in Nigeria time.
+   Date-only values do not receive an invented time. */
+function formatKickoff(value) {
+  if (!value) return "Kickoff time unavailable";
+
+  const raw = String(value);
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(raw);
+  const date = new Date(raw);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Kickoff time unavailable";
+  }
+
+  const options = {
+    timeZone:"Africa/Lagos",
+    weekday:"short",
+    day:"2-digit",
+    month:"short",
+    year:"numeric"
+  };
+
+  if (dateOnly) {
+    return new Intl.DateTimeFormat(
+      "en-NG",
+      options
+    ).format(date) + " (time not provided)";
+  }
+
+  return new Intl.DateTimeFormat("en-NG", {
+    ...options,
+    hour:"2-digit",
+    minute:"2-digit",
+    hour12:true
+  }).format(date) + " WAT";
+}
+
+function fixtureKickoffLabel(fixture) {
+  if (!fixture || !fixture.date) {
+    return "Kickoff time unavailable";
+  }
+
+  const status = String(
+    fixture.status || ""
+  ).toUpperCase();
+
+  if (["NS", "TBD"].includes(status)) {
+    return "KICKOFF: " + formatKickoff(fixture.date);
+  }
+
+  return "SCHEDULED: " + formatKickoff(fixture.date);
+}
+
 function legDate(leg) {
   const raw = String(leg.date || "").slice(0, 10);
 
@@ -941,11 +933,18 @@ function renderLiveLeg(leg, index) {
         <div class="live-progress">
           ${esc(leg.market)} · No score assumed.
         </div>
+
+        <div class="live-progress">
+          ${esc(
+            leg.date
+              ? "SCHEDULED: " + formatKickoff(leg.date)
+              : "Kickoff time unavailable"
+          )}
+        </div>
       </div>`;
   }
 
   const scoreAvailable = hasValidScore(fixture);
-
   const state = fixtureState(fixture);
   const result = legResult(leg, fixture);
 
@@ -997,6 +996,10 @@ function renderLiveLeg(leg, index) {
 
       <div class="live-state ${stateClass}">
         ${esc(state)}
+      </div>
+
+      <div class="live-progress">
+        ${esc(fixtureKickoffLabel(fixture))}
       </div>
 
       <div class="live-progress">
@@ -1143,7 +1146,7 @@ async function refreshLiveScores() {
 
         note.textContent =
           liveScoreError +
-          " Check APIFOOTBALL_KEY in Render and the API provider. " +
+          " Check API_FOOTBALL_KEY in Render and the API provider. " +
           "Scores will not be guessed, and slips will not be " +
           "automatically graded without confirmed finished results.";
       } else {
