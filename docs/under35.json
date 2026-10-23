@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-23T10:39:20.784445+00:00",
+ "generated_at": "2026-10-23T20:01:49.238604+00:00",
  "window": {
   "from": "2026-10-23",
   "to": "2026-10-29"
@@ -9,74 +9,9 @@
  "threshold": 0.6,
  "status": "ok",
  "reason": "",
- "scanned": 58,
+ "scanned": 53,
  "leagues_empty": [],
  "fixtures": [
-  {
-   "date": "2026-10-23",
-   "time": "19:30",
-   "league": "BL1",
-   "home": "VfB Stuttgart",
-   "away": "Borussia M\u00f6nchengladbach",
-   "decision": "below-line",
-   "p_raw": 0.485,
-   "p_cal": 0.4882,
-   "p_final": 0.4882,
-   "lambda_total": 3.744,
-   "threshold": 0.6
-  },
-  {
-   "date": "2026-10-23",
-   "time": "19:45",
-   "league": "FL1",
-   "home": "Stade Brestois 29",
-   "away": "OGC Nice",
-   "decision": "qualified",
-   "p_raw": 0.6507,
-   "p_cal": 0.6503,
-   "p_final": 0.6068,
-   "lambda_total": 2.9843,
-   "threshold": 0.6
-  },
-  {
-   "date": "2026-10-23",
-   "time": "19:45",
-   "league": "SA",
-   "home": "Torino FC",
-   "away": "AC Monza",
-   "decision": "below-line",
-   "p_raw": 0.6377,
-   "p_cal": 0.6419,
-   "p_final": 0.5932,
-   "lambda_total": 3.0423,
-   "threshold": 0.6
-  },
-  {
-   "date": "2026-10-23",
-   "time": "20:00",
-   "league": "PL",
-   "home": "Ipswich Town FC",
-   "away": "Nottingham Forest FC",
-   "decision": "qualified",
-   "p_raw": 0.6724,
-   "p_cal": 0.6715,
-   "p_final": 0.6477,
-   "lambda_total": 2.8875,
-   "threshold": 0.6
-  },
-  {
-   "date": "2026-10-23",
-   "time": "20:00",
-   "league": "PD",
-   "home": "Deportivo Alav\u00e9s",
-   "away": "M\u00e1laga CF",
-   "decision": "qualified",
-   "p_raw": 0.6502,
-   "p_cal": 0.6488,
-   "p_final": 0.6204,
-   "lambda_total": 2.9867,
-   "threshold": 0.6
-  },
   {
    "date": "2026-10-24",
    "time": "12:30",
@@ -587,19 +522,6 @@
   {
    "date": "2026-10-25",
    "time": "20:45",
-   "league": "FL1",
-   "home": "Paris Saint-Germain FC",
-   "away": "Olympique Lyonnais",
-   "decision": "below-line",
-   "p_raw": 0.6436,
-   "p_cal": 0.6436,
-   "p_final": 0.5865,
-   "lambda_total": 3.016,
-   "threshold": 0.6
-  },
-  {
-   "date": "2026-10-25",
-   "time": "20:45",
    "league": "SA",
    "home": "Udinese Calcio",
    "away": "AC Milan",
@@ -621,6 +543,19 @@
    "p_cal": 0.555,
    "p_final": 0.546,
    "lambda_total": 3.4397,
+   "threshold": 0.6
+  },
+  {
+   "date": "2026-10-26",
+   "time": "20:30",
+   "league": "FL1",
+   "home": "Paris Saint-Germain FC",
+   "away": "Olympique Lyonnais",
+   "decision": "below-line",
+   "p_raw": 0.6436,
+   "p_cal": 0.6436,
+   "p_final": 0.5865,
+   "lambda_total": 3.016,
    "threshold": 0.6
   },
   {
