@@ -486,7 +486,7 @@ def _api_football_request():
 
     API key remains on the server and is never sent to console.html.
     """
-    key = os.environ.get("APIFOOTBALL_KEY", "").strip()
+    API_KEY = os.getenv("API_FOOTBALL_KEY")
 
     if not key:
         return {
