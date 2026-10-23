@@ -46,7 +46,7 @@ def live_scores():
     The API key remains on the server and is never sent to the browser.
     """
 
-    api_key = os.environ.get("APIFOOTBALL_KEY", "").strip()
+    api_key = os.environ.get("API_FOOTBALL_KEY", "").strip()
 
     if not api_key:
         return jsonify({
