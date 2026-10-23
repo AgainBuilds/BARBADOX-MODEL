@@ -1,12 +1,25 @@
 #!/usr/bin/env python3
 """
-BARBADOX console server.
+BARBADOX Match Intelligence System — Flask server.
 
 Core 1: Over 1.5 goals.
 Core 2: Under 3.5 goals.
 
-Includes live scores for the existing slips tracker.
-Configure API_FOOTBALL_KEY in the Render environment.
+Includes:
+- Core 1 and Core 2 execution.
+- Five-minute review window for new context rows.
+- Existing dashboard API routes.
+- Live fixtures and scores from API-Football.
+- Nigeria-time fixture requests.
+- Cached live-score results.
+- Safe handling of provider errors.
+
+Required Render environment variables:
+    FOOTBALL_DATA_KEY
+    API_FOOTBALL_KEY
+    GITHUB_TOKEN
+    GITHUB_REPO
+    GITHUB_BRANCH
 """
 
 import json
@@ -41,6 +54,7 @@ SCAN_DAYS = 7
 
 LIVE_API_URL = "https://v3.football.api-sports.io/fixtures"
 LIVE_CACHE_SECONDS = 60
+LIVE_TIMEZONE = "Africa/Lagos"
 
 _live_cache = {
     "time": 0,
@@ -49,6 +63,10 @@ _live_cache = {
 
 _live_lock = threading.Lock()
 
+
+# ---------------------------------------------------------
+# GENERAL HELPERS
+# ---------------------------------------------------------
 
 def utc_now():
     return datetime.now(timezone.utc).isoformat()
@@ -60,6 +78,59 @@ def read_json(path):
     except Exception:
         return None
 
+
+def _api_error_text(payload):
+    """Extract a readable error without exposing credentials."""
+    if not isinstance(payload, dict):
+        return "The provider returned an invalid response."
+
+    errors = payload.get("errors")
+
+    if not errors:
+        return None
+
+    if isinstance(errors, dict):
+        parts = [
+            f"{name}: {value}"
+            for name, value in errors.items()
+            if value not in (None, "", [], {})
+        ]
+        return "; ".join(parts) or "Unspecified API-Football error."
+
+    if isinstance(errors, list):
+        parts = [str(value) for value in errors if value]
+        return "; ".join(parts) or "Unspecified API-Football error."
+
+    return str(errors)
+
+
+def _is_date_parameter_error(message):
+    """
+    Detect the provider error shown in the Render logs.
+
+    If the range request is rejected because of its date parameters,
+    the live-score code can retry using individual dates.
+    """
+    if not message:
+        return False
+
+    value = message.lower()
+
+    date_fields = (
+        "from:",
+        "to:",
+        "timezone:",
+        "the from field",
+        "the to field",
+        "the timezone field",
+    )
+
+    return any(field in value for field in date_fields)
+
+
+# ---------------------------------------------------------
+# MODEL RUNNER
+# ---------------------------------------------------------
 
 _state = {
     "running": False,
@@ -508,11 +579,159 @@ _startup_restore()
 # LIVE SCORES
 # ---------------------------------------------------------
 
+def _request_api_football(key, params):
+    """Make one API-Football request and validate its JSON response."""
+    response = requests.get(
+        LIVE_API_URL,
+        headers={"x-apisports-key": key},
+        params=params,
+        timeout=20,
+    )
+
+    response.raise_for_status()
+    payload = response.json()
+
+    if not isinstance(payload, dict):
+        raise ValueError("API-Football response was not a JSON object.")
+
+    return payload
+
+
+def _normalise_fixtures(payload):
+    """Convert API-Football fixtures to the console's expected format."""
+    fixtures = []
+
+    for item in payload.get("response", []):
+        if not isinstance(item, dict):
+            continue
+
+        fixture = item.get("fixture") or {}
+        teams = item.get("teams") or {}
+        goals = item.get("goals") or {}
+        status = fixture.get("status") or {}
+
+        home = teams.get("home") or {}
+        away = teams.get("away") or {}
+
+        short_status = status.get("short")
+
+        fixtures.append({
+            "id": fixture.get("id"),
+            "date": fixture.get("date"),
+            "timestamp": fixture.get("timestamp"),
+            "home": home.get("name"),
+            "away": away.get("name"),
+            "home_goals": goals.get("home"),
+            "away_goals": goals.get("away"),
+            "status": short_status,
+            "status_long": status.get("long"),
+            "elapsed": status.get("elapsed"),
+            "finished": short_status in ("FT", "AET", "PEN"),
+        })
+
+    return fixtures
+
+
+def _fetch_fixtures_by_date(key, start_date, end_date):
+    """
+    Fallback method: query one calendar date at a time.
+
+    This is used only if the provider rejects the date-range request
+    with the parameter error seen in the Render logs.
+
+    The primary request is still preferred because it uses fewer API
+    requests. The fallback merges results by fixture ID to avoid
+    duplicate fixtures.
+    """
+    merged = {}
+    errors = []
+
+    current_date = start_date
+
+    while current_date <= end_date:
+        params = {
+            "date": current_date.isoformat(),
+            "timezone": LIVE_TIMEZONE,
+        }
+
+        try:
+            payload = _request_api_football(key, params)
+            provider_error = _api_error_text(payload)
+
+            if provider_error:
+                # If the provider also rejects timezone, retry without it.
+                if "timezone" in provider_error.lower():
+                    payload = _request_api_football(
+                        key,
+                        {"date": current_date.isoformat()},
+                    )
+                    provider_error = _api_error_text(payload)
+
+            if provider_error:
+                errors.append(
+                    current_date.isoformat() + ": " + provider_error
+                )
+            else:
+                for item in _normalise_fixtures(payload):
+                    fixture_id = item.get("id")
+
+                    if fixture_id is not None:
+                        merged[str(fixture_id)] = item
+
+        except requests.RequestException as exc:
+            errors.append(
+                current_date.isoformat()
+                + ": request failed ("
+                + type(exc).__name__
+                + ")"
+            )
+
+        except (ValueError, TypeError, AttributeError) as exc:
+            errors.append(
+                current_date.isoformat()
+                + ": invalid response ("
+                + type(exc).__name__
+                + ")"
+            )
+
+        current_date += timedelta(days=1)
+
+    if errors and not merged:
+        return {
+            "ok": False,
+            "configured": True,
+            "error": (
+                "API-Football date-by-date fallback failed. "
+                + " | ".join(errors[:3])
+            ),
+            "fixtures": [],
+            "updated_at": utc_now(),
+        }
+
+    return {
+        "ok": True,
+        "configured": True,
+        "error": None,
+        "fixtures": sorted(
+            merged.values(),
+            key=lambda item: (
+                item.get("timestamp")
+                if isinstance(item.get("timestamp"), (int, float))
+                else 0
+            ),
+        ),
+        "updated_at": utc_now(),
+        "fallback_used": True,
+        "fallback_warnings": errors[:5],
+    }
+
+
 def _api_football_request():
     """
-    Fetch fixtures from API-Football.
+    Fetch upcoming, live, and recently finished fixtures.
 
-    The API key remains server-side and is never sent to console.html.
+    The API key stays on the server. If the normal range query is
+    rejected for date-parameter validation, retry by calendar date.
     """
     key = os.getenv("API_FOOTBALL_KEY", "").strip()
 
@@ -520,7 +739,10 @@ def _api_football_request():
         return {
             "ok": False,
             "configured": False,
-            "error": "API_FOOTBALL_KEY is not configured in Render.",
+            "error": (
+                "API_FOOTBALL_KEY is not configured in Render. "
+                "Add the environment variable and redeploy."
+            ),
             "fixtures": [],
             "updated_at": utc_now(),
         }
@@ -529,95 +751,44 @@ def _api_football_request():
     start_date = today - timedelta(days=2)
     end_date = today + timedelta(days=SCAN_DAYS)
 
-    headers = {
-        "x-apisports-key": key,
-    }
-
     params = {
         "from": start_date.isoformat(),
         "to": end_date.isoformat(),
-        "timezone": "Africa/Lagos",
+        "timezone": LIVE_TIMEZONE,
     }
 
     try:
-        response = requests.get(
-            LIVE_API_URL,
-            headers=headers,
-            params=params,
-            timeout=20,
-        )
+        payload = _request_api_football(key, params)
+        provider_error = _api_error_text(payload)
 
-        response.raise_for_status()
-        payload = response.json()
-
-        if not isinstance(payload, dict):
-            raise ValueError("API response was not a JSON object.")
-
-        if payload.get("errors"):
-            # API-Football can return HTTP 200 with a provider error.
-            raw_errors = payload.get("errors")
-
-            if isinstance(raw_errors, dict):
-                detail = "; ".join(
-                    f"{name}: {value}"
-                    for name, value in raw_errors.items()
-                    if value not in (None, "", [], {})
-                )
-            elif isinstance(raw_errors, list):
-                detail = "; ".join(
-                    str(value) for value in raw_errors if value
-                )
-            else:
-                detail = str(raw_errors)
-
-            detail = (
-                detail or
-                "The provider returned an unspecified error."
+        if provider_error:
+            print(
+                "API-Football provider error:",
+                provider_error[:1000],
             )
 
-            # Never expose the API key or request headers to the browser.
-            print("API-Football provider error:", detail[:1000])
+            if _is_date_parameter_error(provider_error):
+                print(
+                    "Retrying API-Football by date because "
+                    "the date-range parameters were rejected."
+                )
+
+                return _fetch_fixtures_by_date(
+                    key,
+                    start_date,
+                    end_date,
+                )
 
             return {
                 "ok": False,
                 "configured": True,
-                "error": "API-Football error: " + detail[:350],
-                "provider_error": detail[:1000],
+                "error": "API-Football error: " + provider_error[:350],
+                "provider_error": provider_error[:1000],
                 "fixtures": [],
                 "updated_at": utc_now(),
             }
 
-        fixtures = []
-
-        for item in payload.get("response", []):
-            if not isinstance(item, dict):
-                continue
-
-            fixture = item.get("fixture") or {}
-            teams = item.get("teams") or {}
-            goals = item.get("goals") or {}
-            status = fixture.get("status") or {}
-
-            home = teams.get("home") or {}
-            away = teams.get("away") or {}
-
-            home_goals = goals.get("home")
-            away_goals = goals.get("away")
-            short_status = status.get("short")
-
-            fixtures.append({
-                "id": fixture.get("id"),
-                "date": fixture.get("date"),
-                "timestamp": fixture.get("timestamp"),
-                "home": home.get("name"),
-                "away": away.get("name"),
-                "home_goals": home_goals,
-                "away_goals": away_goals,
-                "status": short_status,
-                "status_long": status.get("long"),
-                "elapsed": status.get("elapsed"),
-                "finished": short_status in ("FT", "AET", "PEN"),
-            })
+        fixtures = _normalise_fixtures(payload)
 
         return {
             "ok": True,
@@ -627,25 +798,22 @@ def _api_football_request():
             "updated_at": utc_now(),
         }
 
-    except requests.RequestException as exc:
-        # Never return the API key or request headers to the client.
+    except requests.HTTPError as exc:
         response = getattr(exc, "response", None)
-        status_code = getattr(response, "status_code", None)
+        status_code = (
+            getattr(response, "status_code", None)
+            if response is not None
+            else None
+        )
 
+        # HTTP 4xx/5xx errors are not silently presented as valid scores.
         detail = (
-            f"HTTP {status_code}: provider rejected the request."
+            f"API-Football returned HTTP {status_code}."
             if status_code
-            else (
-                "Network timeout or connection error "
-                "while contacting API-Football."
-            )
+            else "API-Football rejected the request."
         )
 
-        print(
-            "Live-score request failed:",
-            detail,
-            str(exc)[:500],
-        )
+        print("Live-score HTTP error:", detail)
 
         return {
             "ok": False,
@@ -655,8 +823,30 @@ def _api_football_request():
             "updated_at": utc_now(),
         }
 
+    except requests.RequestException as exc:
+        print(
+            "Live-score network failure:",
+            type(exc).__name__,
+            str(exc)[:500],
+        )
+
+        return {
+            "ok": False,
+            "configured": True,
+            "error": (
+                "Network timeout or connection error "
+                "while contacting API-Football."
+            ),
+            "fixtures": [],
+            "updated_at": utc_now(),
+        }
+
     except (ValueError, TypeError, AttributeError) as exc:
-        print("Invalid live-score response:", str(exc)[:500])
+        print(
+            "Invalid live-score response:",
+            type(exc).__name__,
+            str(exc)[:500],
+        )
 
         return {
             "ok": False,
@@ -671,7 +861,8 @@ def _api_football_request():
 def live_scores():
     """
     Cached live-score endpoint.
-    Refreshes provider data at most once per 60 seconds.
+
+    Refreshes the provider data at most once per 60 seconds.
     """
     now = time.time()
 
@@ -682,14 +873,17 @@ def live_scores():
             cached is not None
             and now - _live_cache["time"] < LIVE_CACHE_SECONDS
         ):
-            return jsonify(cached)
+            # Use a real HTTP error status when the provider failed.
+            status_code = 200 if cached.get("ok") else 502
+            return jsonify(cached), status_code
 
         data = _api_football_request()
 
         _live_cache["time"] = time.time()
         _live_cache["data"] = data
 
-        return jsonify(data)
+        status_code = 200 if data.get("ok") else 502
+        return jsonify(data), status_code
 
 
 # ---------------------------------------------------------
