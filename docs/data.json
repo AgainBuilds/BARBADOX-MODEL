@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-23T10:39:15.589957+00:00",
+ "generated_at": "2026-10-23T20:01:43.543879+00:00",
  "window": {
   "from": "2026-10-23",
   "to": "2026-10-29"
@@ -16,170 +16,6 @@
   "SAUDI": "Saudi League"
  },
  "fixtures": [
-  {
-   "date": "2026-10-23",
-   "time": "19:30",
-   "league": "BL1",
-   "home": "VfB Stuttgart",
-   "away": "Borussia M\u00f6nchengladbach",
-   "checked": true,
-   "decision": "logged",
-   "lam_h": 2.1406,
-   "lam_a": 0.9152,
-   "core": 0.809,
-   "p_form": 0.876,
-   "p_base": 0.748,
-   "point": 0.809,
-   "low": 0.7708,
-   "high": 0.8414,
-   "upper": 0.8829,
-   "factors": "core 80.9 | form 88 | base 75",
-   "notes": [
-    "checks 1 and 2 disagree by 13 pts",
-    "low/high are a rough xG sensitivity band, not a confidence interval"
-   ],
-   "sheet": [
-    "1 form since season start: 87.6% | games 6/6",
-    "2 historical baseline:     74.8% | games 34/34",
-    "  core (blended):          80.9%",
-    "3 formation effect: home +0 | away +0",
-    "4 home absences: none | goals -0% / opp +0% | rotation 0",
-    "  away absences: none | goals -0% / opp +0% | rotation 0",
-    "5 derby: no",
-    "  field temperature: 11C (logged only)"
-   ]
-  },
-  {
-   "date": "2026-10-23",
-   "time": "19:45",
-   "league": "FL1",
-   "home": "Stade Brestois 29",
-   "away": "OGC Nice",
-   "checked": true,
-   "decision": "below-line",
-   "lam_h": 1.9,
-   "lam_a": 1.0461,
-   "core": 0.7926,
-   "p_form": 0.775,
-   "p_base": 0.801,
-   "point": 0.7926,
-   "low": 0.7532,
-   "high": 0.8264,
-   "upper": 0.87,
-   "factors": "core 79.3 | form 77 | base 80",
-   "notes": [
-    "low/high are a rough xG sensitivity band, not a confidence interval"
-   ],
-   "sheet": [
-    "1 form since season start: 77.5% | games 7/7",
-    "2 historical baseline:     80.1% | games 34/34",
-    "  core (blended):          79.3%",
-    "3 formation effect: home +0 | away +0",
-    "4 home absences: none | goals -0% / opp +0% | rotation 0",
-    "  away absences: none | goals -0% / opp +0% | rotation 0",
-    "5 derby: no",
-    "  field temperature: 13C (logged only)"
-   ]
-  },
-  {
-   "date": "2026-10-23",
-   "time": "19:45",
-   "league": "SA",
-   "home": "Torino FC",
-   "away": "AC Monza",
-   "checked": true,
-   "decision": "logged",
-   "lam_h": 1.9472,
-   "lam_a": 1.6219,
-   "core": 0.8712,
-   "p_form": 0.854,
-   "p_base": 0.778,
-   "point": 0.8712,
-   "low": 0.8394,
-   "high": 0.8972,
-   "upper": 0.9287,
-   "factors": "core 87.1 | form 85 | base 78",
-   "notes": [
-    "partial: only 38/0 baseline games",
-    "low/high are a rough xG sensitivity band, not a confidence interval"
-   ],
-   "sheet": [
-    "1 form since season start: 85.4% | games 7/7",
-    "2 historical baseline:     77.8% | games 38/0",
-    "  core (blended):          87.1%",
-    "3 formation effect: home +0 | away +0",
-    "4 home absences: none | goals -0% / opp +0% | rotation 0",
-    "  away absences: none | goals -0% / opp +0% | rotation 0",
-    "5 derby: no",
-    "  field temperature: 14C (logged only)"
-   ]
-  },
-  {
-   "date": "2026-10-23",
-   "time": "20:00",
-   "league": "PL",
-   "home": "Ipswich Town FC",
-   "away": "Nottingham Forest FC",
-   "checked": true,
-   "decision": "logged",
-   "lam_h": 1.5687,
-   "lam_a": 1.4829,
-   "core": 0.8084,
-   "p_form": 0.798,
-   "p_base": 0.776,
-   "point": 0.8084,
-   "low": 0.7702,
-   "high": 0.8409,
-   "upper": 0.8824,
-   "factors": "core 80.8 | form 80 | base 78",
-   "notes": [
-    "partial: only 0/38 baseline games",
-    "low/high are a rough xG sensitivity band, not a confidence interval"
-   ],
-   "sheet": [
-    "1 form since season start: 79.8% | games 7/7",
-    "2 historical baseline:     77.6% | games 0/38",
-    "  core (blended):          80.8%",
-    "3 formation effect: home +0 | away +0",
-    "4 home absences: none | goals -0% / opp +0% | rotation 0",
-    "  away absences: none | goals -0% / opp +0% | rotation 0",
-    "5 derby: no",
-    "  field temperature: 12C (logged only)"
-   ]
-  },
-  {
-   "date": "2026-10-23",
-   "time": "20:00",
-   "league": "PD",
-   "home": "Deportivo Alav\u00e9s",
-   "away": "M\u00e1laga CF",
-   "checked": true,
-   "decision": "below-line",
-   "lam_h": 1.8642,
-   "lam_a": 0.733,
-   "core": 0.7321,
-   "p_form": 0.761,
-   "p_base": 0.739,
-   "point": 0.7321,
-   "low": 0.6893,
-   "high": 0.7698,
-   "upper": 0.8203,
-   "factors": "core 73.2 | form 76 | base 74",
-   "notes": [
-    "partial: only 38/0 baseline games",
-    "low/high are a rough xG sensitivity band, not a confidence interval"
-   ],
-   "sheet": [
-    "1 form since season start: 76.1% | games 9/9",
-    "2 historical baseline:     73.9% | games 38/0",
-    "  core (blended):          73.2%",
-    "3 formation effect: home +0 | away +0",
-    "4 home absences: none | goals -0% / opp +0% | rotation 0",
-    "  away absences: none | goals -0% / opp +0% | rotation 0",
-    "5 derby: no",
-    "  field temperature: 14C (logged only)"
-   ]
-  },
   {
    "date": "2026-10-24",
    "time": "12:30",
@@ -1462,38 +1298,6 @@
   {
    "date": "2026-10-25",
    "time": "20:45",
-   "league": "FL1",
-   "home": "Paris Saint-Germain FC",
-   "away": "Olympique Lyonnais",
-   "checked": true,
-   "decision": "below-line",
-   "lam_h": 1.7114,
-   "lam_a": 1.0225,
-   "core": 0.7574,
-   "p_form": 0.75,
-   "p_base": 0.764,
-   "point": 0.7574,
-   "low": 0.7158,
-   "high": 0.7937,
-   "upper": 0.8415,
-   "factors": "core 75.7 | form 75 | base 76",
-   "notes": [
-    "low/high are a rough xG sensitivity band, not a confidence interval"
-   ],
-   "sheet": [
-    "1 form since season start: 75.0% | games 7/7",
-    "2 historical baseline:     76.4% | games 34/34",
-    "  core (blended):          75.7%",
-    "3 formation effect: home +0 | away +0",
-    "4 home absences: none | goals -0% / opp +0% | rotation 0",
-    "  away absences: none | goals -0% / opp +0% | rotation 0",
-    "5 derby: no",
-    "  field temperature: 14C (logged only)"
-   ]
-  },
-  {
-   "date": "2026-10-25",
-   "time": "20:45",
    "league": "SA",
    "home": "Udinese Calcio",
    "away": "AC Milan",
@@ -1556,6 +1360,38 @@
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: YES, range widened",
     "  field temperature: 18C (logged only)"
+   ]
+  },
+  {
+   "date": "2026-10-26",
+   "time": "20:30",
+   "league": "FL1",
+   "home": "Paris Saint-Germain FC",
+   "away": "Olympique Lyonnais",
+   "checked": false,
+   "decision": "below-line",
+   "lam_h": 1.7114,
+   "lam_a": 1.0225,
+   "core": 0.7574,
+   "p_form": 0.75,
+   "p_base": 0.764,
+   "point": 0.7574,
+   "low": 0.7158,
+   "high": 0.7937,
+   "upper": 0.8415,
+   "factors": "core 75.7 | form 75 | base 76",
+   "notes": [
+    "low/high are a rough xG sensitivity band, not a confidence interval"
+   ],
+   "sheet": [
+    "1 form since season start: 75.0% | games 7/7",
+    "2 historical baseline:     76.4% | games 34/34",
+    "  core (blended):          75.7%",
+    "3 formation effect: home +0 | away +0",
+    "4 home absences: none | goals -0% / opp +0% | rotation 0",
+    "  away absences: none | goals -0% / opp +0% | rotation 0",
+    "5 derby: no",
+    "  field temperature: not entered (logged only)"
    ]
   },
   {
@@ -45789,7 +45625,7 @@
   }
  ],
  "context_added": 0,
- "scanned": 58,
+ "scanned": 53,
  "leagues_empty": [
   "SAUDI"
  ],
