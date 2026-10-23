@@ -1,150 +1,58 @@
 date,league,home,away,checked,derby,field_temp_c,home_absences,home_rotation,home_formation_effect,home_leads_taken,home_leads_extended,home_trailing,home_responded,away_absences,away_rotation,away_formation_effect,away_leads_taken,away_leads_extended,away_trailing,away_responded
-2026-10-09,PD,Málaga CF,RCD Espanyol de Barcelona,1,0,22,4,0,0,0,0,1,0,2,0,0,1,0,0,0
-2026-10-09,FL1,Racing Club de Lens,Olympique Lyonnais,1,0,15,3,0,0,1,0,0,0,2,0,0,0,0,1,0
-2026-10-09,BL1,Borussia Dortmund,SV Werder Bremen,1,0,14,4,0,0,0,0,0,0,8,0,0,0,0,0,0
-2026-10-10,PL,Arsenal FC,Leeds United FC,1,0,13,3,0,0,0,0,0,0,3,0,0,0,0,0,0
-2026-10-10,PL,Sunderland AFC,Brighton & Hove Albion FC,1,0,12,2,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-10,PL,Chelsea FC,AFC Bournemouth,1,0,14,3,0,0,0,0,0,0,7,0,0,0,0,0,0
-2026-10-10,PL,Ipswich Town FC,Fulham FC,1,0,13,1,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-10,PL,Aston Villa FC,Brentford FC,1,0,13,6,0,0,0,0,0,0,3,0,0,0,0,0,0
-2026-10-10,PL,Manchester United FC,Tottenham Hotspur FC,1,0,13,3,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-10,PD,Rayo Vallecano de Madrid,Athletic Club,1,0,18,2,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-10,PD,Deportivo Alavés,Club Atlético de Madrid,1,0,16,1,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-10,PD,FC Barcelona,Getafe CF,1,0,19,2,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-10,PD,Real Madrid CF,Villarreal CF,1,0,18,1,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-10,FL1,Lille OSC,Le Havre AC,1,0,14,2,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-10,FL1,Stade Brestois 29,Angers SCO,1,0,13,1,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-10,FL1,FC Lorient,Paris FC,1,0,14,2,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-10,FL1,Paris Saint-Germain FC,Le Mans FC,1,0,15,1,0,0,0,0,0,0,3,0,0,0,0,0,0
-2026-10-10,FL1,AS Monaco FC,Toulouse FC,1,0,18,1,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-10,BL1,1. FSV Mainz 05,Bayer 04 Leverkusen,1,0,13,2,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-10,BL1,SC Paderborn 07,VfB Stuttgart,1,0,12,1,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-10,BL1,1. FC Union Berlin,SV 07 Elversberg,1,0,12,1,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-10,BL1,TSG 1899 Hoffenheim,Hamburger SV,1,0,13,0,0,0,0,0,0,0,3,0,0,0,0,0,0
-2026-10-10,BL1,FC Augsburg,FC Bayern München,1,0,13,2,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-10,BL1,RB Leipzig,Eintracht Frankfurt,1,0,12,1,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-10,SA,Genoa CFC,ACF Fiorentina,1,0,18,2,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-10,SA,FC Internazionale Milano,Parma Calcio 1913,1,0,17,1,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-10,SA,SSC Napoli,Frosinone Calcio,1,0,19,1,0,0,0,0,0,0,3,0,0,0,0,0,0
-2026-10-11,PL,Hull City AFC,Everton FC,1,0,12,2,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-11,PL,Crystal Palace FC,Nottingham Forest FC,1,0,13,1,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-11,PL,Liverpool FC,Manchester City FC,1,0,13,4,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-11,PD,Elche CF,RC Celta de Vigo,1,0,20,1,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-11,PD,Real Sociedad de Fútbol,RC Deportivo La Coruña,1,0,16,1,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-11,PD,Real Betis Balompié,CA Osasuna,1,0,19,1,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-11,PD,Real Racing Club de Santander,Valencia CF,1,0,15,2,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-11,FL1,OGC Nice,RC Strasbourg Alsace,1,0,17,1,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-11,FL1,Stade Rennais FC 1901,AJ Auxerre,1,0,14,1,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-11,FL1,ES Troyes AC,Olympique de Marseille,1,0,13,2,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-11,BL1,1. FC Köln,Borussia Mönchengladbach,1,1,12,1,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-11,BL1,SC Freiburg,FC Schalke 04,1,0,12,1,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-11,SA,Como 1907,AS Roma,1,0,16,1,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-11,SA,US Lecce,Bologna FC 1909,1,0,18,2,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-11,SA,SS Lazio,AC Monza,1,0,17,1,0,0,0,0,0,0,2,0,0,0,0,0,0
-2026-10-11,SA,US Sassuolo Calcio,AC Milan,1,0,16,1,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-11,SA,Cagliari Calcio,Juventus FC,1,0,19,2,0,0,0,0,0,0,1,0,0,0,0,0,0
-2026-10-12,PL,Coventry City FC,Newcastle United FC,1,0,12,2,0,0,1,1,0,0,3,0,0,0,0,1,1
-2026-10-12,PD,Levante UD,Sevilla FC,1,0,18,2,0,0,0,0,1,1,2,0,0,1,1,0,1
-2026-10-12,SA,Atalanta BC,Venezia FC,1,0,15,1,0,0,1,1,0,0,2,0,0,0,0,1,0
-2026-10-12,SA,Torino FC,Udinese Calcio,1,0,14,1,0,0,1,0,0,1,2,0,0,0,0,1,1
-2026-10-13,CL,Club Atlético de Madrid,Manchester United FC,1,0,16,1,0,0,1,1,0,0,3,0,0,0,0,1,0
-2026-10-13,CL,Arsenal FC,Lille OSC,1,0,13,3,0,0,1,1,0,0,2,0,0,0,0,1,0
-2026-10-13,CL,Villarreal CF,SSC Napoli,1,0,18,1,0,0,0,1,1,1,2,0,0,1,0,0,0
-2026-10-14,CL,AS Roma,Real Madrid CF,1,0,16,2,0,0,,,,,4,0,0,,,,
-2026-10-14,CL,Manchester City FC,Paris Saint-Germain FC,1,0,12,0,0,0,,,,,1,0,0,,,,
-2026-10-16,PD,RC Deportivo La Coruña,Levante UD,1,0,15,4,0,0,,,,,3,0,0,,,,
-2026-10-16,FL1,Le Mans FC,Toulouse FC,1,0,14,3,0,0,,,,,1,0,0,,,,
-2026-10-16,BL1,Eintracht Frankfurt,1. FC Köln,1,0,12,1,0,0,,,,,5,0,0,,,,
-2026-10-16,SA,Frosinone Calcio,US Sassuolo Calcio,1,0,17,2,0,0,,,,,5,0,0,,,,
-2026-10-17,PL,Everton FC,Chelsea FC,1,0,13,1,0,0,,,,,3,0,0,,,,
-2026-10-17,PL,Fulham FC,Hull City AFC,1,0,13,2,0,0,,,,,2,0,0,,,,
-2026-10-17,PL,Manchester City FC,Ipswich Town FC,1,0,13,1,0,0,,,,,0,0,0,,,,
-2026-10-17,PL,Brentford FC,Liverpool FC,1,0,13,4,0,0,,,,,5,0,0,,,,
-2026-10-17,PL,Newcastle United FC,Aston Villa FC,1,0,13,4,0,0,,,,,4,0,0,,,,
-2026-10-17,PD,RCD Espanyol de Barcelona,Club Atlético de Madrid,1,0,18,3,0,0,,,,,1,0,0,,,,
-2026-10-17,PD,Villarreal CF,Elche CF,1,0,19,2,0,0,,,,,2,0,0,,,,
-2026-10-17,PD,Real Betis Balompié,FC Barcelona,1,0,19,2,0,0,,,,,3,0,0,,,,
-2026-10-17,PD,Valencia CF,Athletic Club,1,0,18,2,0,0,,,,,2,0,0,,,,
-2026-10-17,FL1,RC Strasbourg Alsace,Paris Saint-Germain FC,1,0,14,4,0,0,,,,,2,0,0,,,,
-2026-10-17,FL1,ES Troyes AC,Racing Club de Lens,1,0,13,3,0,0,,,,,3,0,0,,,,
-2026-10-17,FL1,Lille OSC,Stade Brestois 29,1,0,14,2,0,0,,,,,1,0,0,,,,
-2026-10-17,BL1,1. FC Union Berlin,Borussia Dortmund,1,0,12,3,0,0,,,,,3,0,0,,,,
-2026-10-17,BL1,Hamburger SV,VfB Stuttgart,1,0,12,4,0,0,,,,,4,0,0,,,,
-2026-10-17,BL1,SV Werder Bremen,SC Paderborn 07,1,0,12,7,0,0,,,,,3,0,0,,,,
-2026-10-17,BL1,SV 07 Elversberg,FC Augsburg,1,0,12,3,0,0,,,,,4,0,0,,,,
-2026-10-17,BL1,FC Schalke 04,1. FSV Mainz 05,1,0,12,3,0,0,,,,,3,0,0,,,,
-2026-10-17,BL1,FC Bayern München,RB Leipzig,1,0,12,1,0,0,,,,,2,0,0,,,,
-2026-10-17,SA,Venezia FC,SSC Napoli,1,0,16,4,0,0,,,,,4,0,0,,,,
-2026-10-17,SA,Bologna FC 1909,FC Internazionale Milano,1,0,16,2,0,0,,,,,4,0,0,,,,
-2026-10-17,SA,AS Roma,Genoa CFC,1,0,17,4,0,0,,,,,4,0,0,,,,
-2026-10-18,PL,AFC Bournemouth,Sunderland AFC,1,0,13,4,0,0,,,,,2,0,0,,,,
-2026-10-18,PL,Leeds United FC,Manchester United FC,1,0,13,3,0,0,,,,,4,0,0,,,,
-2026-10-18,PL,Brighton & Hove Albion FC,Crystal Palace FC,1,0,13,5,0,0,,,,,2,0,0,,,,
-2026-10-18,PD,CA Osasuna,Real Racing Club de Santander,1,0,15,1,0,0,,,,,2,0,0,,,,
-2026-10-18,PD,RC Celta de Vigo,Deportivo Alavés,1,0,16,2,0,0,,,,,1,0,0,,,,
-2026-10-18,PD,Málaga CF,Real Sociedad de Fútbol,1,0,20,4,0,0,,,,,1,0,0,,,,
-2026-10-18,PD,Real Madrid CF,Sevilla FC,1,0,18,1,0,0,,,,,2,0,0,,,,
-2026-10-18,FL1,FC Lorient,AS Monaco FC,1,0,15,2,0,0,,,,,2,0,0,,,,
-2026-10-18,FL1,Paris FC,Stade Rennais FC 1901,1,0,15,1,0,0,,,,,1,0,0,,,,
-2026-10-18,FL1,Olympique Lyonnais,OGC Nice,1,0,15,1,0,0,,,,,1,0,0,,,,
-2026-10-18,BL1,Bayer 04 Leverkusen,SC Freiburg,1,0,13,3,0,0,,,,,1,0,0,,,,
-2026-10-18,BL1,Borussia Mönchengladbach,TSG 1899 Hoffenheim,1,0,13,2,0,0,,,,,0,0,0,,,,
-2026-10-18,SA,ACF Fiorentina,Como 1907,1,0,16,1,0,0,,,,,1,0,0,,,,
-2026-10-19,SA,AC Monza,Cagliari Calcio,1,0,16,1,0,0,,,,,2,0,0,,,,
-2026-10-20,CL,VfB Stuttgart,Club Atlético de Madrid,0,,,,,,,,,,,,,,,,
-2026-10-20,CL,Liverpool FC,Villarreal CF,0,,,,,,,,,,,,,,,,
-2026-10-20,CL,Paris Saint-Germain FC,FC Barcelona,0,,,,,,,,,,,,,,,,
-2026-10-23,PL,Ipswich Town FC,Nottingham Forest FC,0,,,,,,,,,,,,,,,,
-2026-10-24,PL,Aston Villa FC,Manchester City FC,0,,,,,,,,,,,,,,,,
-2026-10-24,PL,Coventry City FC,Fulham FC,0,,,,,,,,,,,,,,,,
-2026-10-24,PL,Chelsea FC,Tottenham Hotspur FC,0,,,,,,,,,,,,,,,,
-2026-10-25,PL,Liverpool FC,Brighton & Hove Albion FC,0,,,,,,,,,,,,,,,,
-2026-10-25,PL,Crystal Palace FC,Newcastle United FC,0,,,,,,,,,,,,,,,,
-2026-10-25,PL,Manchester United FC,AFC Bournemouth,0,,,,,,,,,,,,,,,,
-2026-10-25,PL,Hull City AFC,Brentford FC,0,,,,,,,,,,,,,,,,
-2026-10-21,PD,Levante UD,Athletic Club,0,,,,,,,,,,,,,,,,
-2026-10-23,PD,Deportivo Alavés,Málaga CF,0,,,,,,,,,,,,,,,,
-2026-10-24,PD,Rayo Vallecano de Madrid,Elche CF,0,,,,,,,,,,,,,,,,
-2026-10-24,PD,Real Racing Club de Santander,RCD Espanyol de Barcelona,0,,,,,,,,,,,,,,,,
-2026-10-24,PD,Valencia CF,Villarreal CF,0,,,,,,,,,,,,,,,,
-2026-10-24,PD,Club Atlético de Madrid,RC Deportivo La Coruña,0,,,,,,,,,,,,,,,,
-2026-10-25,PD,RC Celta de Vigo,Real Betis Balompié,0,,,,,,,,,,,,,,,,
-2026-10-25,PD,Real Sociedad de Fútbol,Levante UD,0,,,,,,,,,,,,,,,,
-2026-10-25,PD,FC Barcelona,Real Madrid CF,0,,,,,,,,,,,,,,,,
-2026-10-23,FL1,Stade Brestois 29,OGC Nice,0,,,,,,,,,,,,,,,,
-2026-10-24,FL1,Toulouse FC,ES Troyes AC,0,,,,,,,,,,,,,,,,
-2026-10-24,FL1,Racing Club de Lens,Paris FC,0,,,,,,,,,,,,,,,,
-2026-10-25,FL1,AS Monaco FC,Lille OSC,0,,,,,,,,,,,,,,,,
-2026-10-25,FL1,Olympique de Marseille,Le Havre AC,0,,,,,,,,,,,,,,,,
-2026-10-25,FL1,Stade Rennais FC 1901,RC Strasbourg Alsace,0,,,,,,,,,,,,,,,,
-2026-10-25,FL1,AJ Auxerre,Le Mans FC,0,,,,,,,,,,,,,,,,
-2026-10-25,FL1,Paris Saint-Germain FC,Olympique Lyonnais,0,,,,,,,,,,,,,,,,
-2026-10-23,BL1,VfB Stuttgart,Borussia Mönchengladbach,0,,,,,,,,,,,,,,,,
-2026-10-24,BL1,1. FSV Mainz 05,SV Werder Bremen,0,,,,,,,,,,,,,,,,
-2026-10-24,BL1,1. FC Köln,FC Schalke 04,0,,,,,,,,,,,,,,,,
-2026-10-24,BL1,RB Leipzig,SV 07 Elversberg,0,,,,,,,,,,,,,,,,
-2026-10-24,BL1,SC Paderborn 07,Hamburger SV,0,,,,,,,,,,,,,,,,
-2026-10-24,BL1,FC Augsburg,1. FC Union Berlin,0,,,,,,,,,,,,,,,,
-2026-10-24,BL1,Borussia Dortmund,Eintracht Frankfurt,0,,,,,,,,,,,,,,,,
-2026-10-25,BL1,TSG 1899 Hoffenheim,Bayer 04 Leverkusen,0,,,,,,,,,,,,,,,,
-2026-10-25,BL1,SC Freiburg,FC Bayern München,0,,,,,,,,,,,,,,,,
-2026-10-23,SA,Torino FC,AC Monza,0,,,,,,,,,,,,,,,,
-2026-10-24,SA,Como 1907,US Sassuolo Calcio,0,,,,,,,,,,,,,,,,
-2026-10-25,SA,FC Internazionale Milano,ACF Fiorentina,0,,,,,,,,,,,,,,,,
-2026-10-25,SA,Atalanta BC,Frosinone Calcio,0,,,,,,,,,,,,,,,,
-2026-10-25,SA,Genoa CFC,Venezia FC,0,,,,,,,,,,,,,,,,
-2026-10-21,CL,Como 1907,Manchester United FC,0,,,,,,,,,,,,,,,,
-2026-10-21,CL,Real Madrid CF,RB Leipzig,0,,,,,,,,,,,,,,,,
-2026-10-21,CL,FC Bayern München,Arsenal FC,0,,,,,,,,,,,,,,,,
-2026-10-26,PD,Sevilla FC,CA Osasuna,0,,,,,,,,,,,,,,,,
-2026-10-24,SA,SSC Napoli,AS Roma,0,,,,,,,,,,,,,,,,
-2026-10-27,SA,AS Roma,Cagliari Calcio,0,,,,,,,,,,,,,,,,
-2026-10-27,SA,Torino FC,Como 1907,0,,,,,,,,,,,,,,,,
-2026-10-25,FL1,Toulouse FC,ES Troyes AC,0,,,,,,,,,,,,,,,,
-2026-10-28,SA,AC Milan,Bologna FC 1909,0,,,,,,,,,,,,,,,,
-2026-10-28,SA,Venezia FC,FC Internazionale Milano,0,,,,,,,,,,,,,,,,
-2026-10-28,SA,Parma Calcio 1913,Udinese Calcio,0,,,,,,,,,,,,,,,,
-2026-10-28,SA,Genoa CFC,Juventus FC,0,,,,,,,,,,,,,,,,
-2026-10-28,SA,AC Monza,SSC Napoli,0,,,,,,,,,,,,,,,,
-2026-10-29,SA,Frosinone Calcio,US Lecce,0,,,,,,,,,,,,,,,,
-2026-10-29,SA,ACF Fiorentina,Atalanta BC,0,,,,,,,,,,,,,,,,
+2026-10-20,CL,VfB Stuttgart,Club Atlético de Madrid,1,0,12,5,0,0,,,,,2,0,0,,,,
+2026-10-20,CL,Liverpool FC,Villarreal CF,1,0,12,5,0,0,,,,,2,0,0,,,,
+2026-10-20,CL,Paris Saint-Germain FC,FC Barcelona,1,0,14,2,0,0,,,,,4,0,0,,,,
+2026-10-21,CL,Como 1907,Manchester United FC,1,0,15,3,0,0,,,,,8,0,0,,,,
+2026-10-21,CL,Real Madrid CF,RB Leipzig,1,0,17,3,0,0,,,,,2,0,0,,,,
+2026-10-21,CL,FC Bayern München,Arsenal FC,1,0,12,3,0,0,,,,,3,0,0,,,,
+2026-10-23,PL,Ipswich Town FC,Nottingham Forest FC,1,0,12,0,0,0,,,,,3,0,0,,,,
+2026-10-24,PL,Aston Villa FC,Manchester City FC,1,0,12,4,0,0,,,,,2,0,0,,,,
+2026-10-24,PL,Coventry City FC,Fulham FC,1,0,12,3,0,0,,,,,1,0,0,,,,
+2026-10-24,PL,Chelsea FC,Tottenham Hotspur FC,1,1,13,4,0,0,,,,,6,0,0,,,,
+2026-10-25,PL,Liverpool FC,Brighton & Hove Albion FC,1,0,12,5,0,0,,,,,5,0,0,,,,
+2026-10-25,PL,Crystal Palace FC,Newcastle United FC,1,0,12,2,0,0,,,,,4,0,0,,,,
+2026-10-25,PL,Manchester United FC,AFC Bournemouth,1,0,12,7,0,0,,,,,4,0,0,,,,
+2026-10-25,PL,Hull City AFC,Brentford FC,1,0,12,4,0,0,,,,,3,0,0,,,,
+2026-10-21,PD,Levante UD,Athletic Club,1,0,18,3,0,0,,,,,2,0,0,,,,
+2026-10-23,PD,Deportivo Alavés,Málaga CF,1,0,14,1,0,0,,,,,4,0,0,,,,
+2026-10-24,PD,Rayo Vallecano de Madrid,Elche CF,1,0,16,1,0,0,,,,,2,0,0,,,,
+2026-10-24,PD,Real Racing Club de Santander,RCD Espanyol de Barcelona,1,0,14,2,0,0,,,,,3,0,0,,,,
+2026-10-24,PD,Valencia CF,Villarreal CF,1,0,17,2,0,0,,,,,2,0,0,,,,
+2026-10-24,PD,Club Atlético de Madrid,RC Deportivo La Coruña,1,0,16,2,0,0,,,,,3,0,0,,,,
+2026-10-25,PD,RC Celta de Vigo,Real Betis Balompié,1,0,15,1,0,0,,,,,2,0,0,,,,
+2026-10-25,PD,Real Sociedad de Fútbol,Levante UD,1,0,14,1,0,0,,,,,3,0,0,,,,
+2026-10-25,PD,FC Barcelona,Real Madrid CF,1,1,18,4,0,0,,,,,3,0,0,,,,
+2026-10-23,FL1,Stade Brestois 29,OGC Nice,1,0,13,1,0,0,,,,,1,0,0,,,,
+2026-10-24,FL1,Toulouse FC,ES Troyes AC,1,0,14,1,0,0,,,,,2,0,0,,,,
+2026-10-24,FL1,Racing Club de Lens,Paris FC,1,0,13,3,0,0,,,,,1,0,0,,,,
+2026-10-25,FL1,AS Monaco FC,Lille OSC,1,0,16,2,0,0,,,,,2,0,0,,,,
+2026-10-25,FL1,Olympique de Marseille,Le Havre AC,1,0,16,1,0,0,,,,,1,0,0,,,,
+2026-10-25,FL1,Stade Rennais FC 1901,RC Strasbourg Alsace,1,0,13,1,0,0,,,,,3,0,0,,,,
+2026-10-25,FL1,AJ Auxerre,Le Mans FC,1,0,13,2,0,0,,,,,2,0,0,,,,
+2026-10-25,FL1,Paris Saint-Germain FC,Olympique Lyonnais,1,0,14,4,0,0,,,,,1,0,0,,,,
+2026-10-23,BL1,VfB Stuttgart,Borussia Mönchengladbach,1,0,11,5,0,0,,,,,5,0,0,,,,
+2026-10-24,BL1,1. FSV Mainz 05,SV Werder Bremen,1,0,11,3,0,0,,,,,6,0,0,,,,
+2026-10-24,BL1,1. FC Köln,FC Schalke 04,1,1,11,4,0,0,,,,,3,0,0,,,,
+2026-10-24,BL1,RB Leipzig,SV 07 Elversberg,1,0,11,2,0,0,,,,,2,0,0,,,,
+2026-10-24,BL1,SC Paderborn 07,Hamburger SV,1,0,11,2,0,0,,,,,3,0,0,,,,
+2026-10-24,BL1,FC Augsburg,1. FC Union Berlin,1,0,11,3,0,0,,,,,2,0,0,,,,
+2026-10-24,BL1,Borussia Dortmund,Eintracht Frankfurt,1,0,11,3,0,0,,,,,2,0,0,,,,
+2026-10-25,BL1,TSG 1899 Hoffenheim,Bayer 04 Leverkusen,1,0,11,2,0,0,,,,,4,0,0,,,,
+2026-10-25,BL1,SC Freiburg,FC Bayern München,1,0,11,1,0,0,,,,,3,0,0,,,,
+2026-10-23,SA,Torino FC,AC Monza,1,0,14,1,0,0,,,,,1,0,0,,,,
+2026-10-24,SA,Como 1907,US Sassuolo Calcio,1,0,14,2,0,0,,,,,4,0,0,,,,
+2026-10-24,SA,SSC Napoli,AS Roma,1,0,17,3,0,0,,,,,4,0,0,,,,
+2026-10-25,SA,FC Internazionale Milano,ACF Fiorentina,1,0,15,4,0,0,,,,,1,0,0,,,,
+2026-10-25,SA,Atalanta BC,Frosinone Calcio,1,0,14,2,0,0,,,,,2,0,0,,,,
+2026-10-25,SA,Genoa CFC,Venezia FC,1,0,15,3,0,0,,,,,3,0,0,,,,
+2026-10-26,PD,Sevilla FC,CA Osasuna,1,0,18,2,0,0,,,,,1,0,0,,,,
+2026-10-27,SA,AS Roma,Cagliari Calcio,1,0,16,4,0,0,,,,,2,0,0,,,,
+2026-10-27,SA,Torino FC,Como 1907,1,0,14,1,0,0,,,,,2,0,0,,,,
+2026-10-25,FL1,Toulouse FC,ES Troyes AC,1,0,14,1,0,0,,,,,2,0,0,,,,
+2026-10-28,SA,AC Milan,Bologna FC 1909,1,0,15,2,0,0,,,,,2,0,0,,,,
+2026-10-28,SA,Venezia FC,FC Internazionale Milano,1,0,14,3,0,0,,,,,4,0,0,,,,
+2026-10-28,SA,Parma Calcio 1913,Udinese Calcio,1,0,14,2,0,0,,,,,1,0,0,,,,
+2026-10-28,SA,Genoa CFC,Juventus FC,1,0,15,3,0,0,,,,,2,0,0,,,,
+2026-10-28,SA,AC Monza,SSC Napoli,1,0,14,1,0,0,,,,,3,0,0,,,,
+2026-10-29,SA,Frosinone Calcio,US Lecce,1,0,15,2,0,0,,,,,1,0,0,,,,
+2026-10-29,SA,ACF Fiorentina,Atalanta BC,1,0,14,1,0,0,,,,,2,0,0,,,,
