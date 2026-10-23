@@ -2,725 +2,719 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BARBADOX - Match Intelligence System</title>
 <style>
-:root {
-  --bg:#0B1020;--panel:#131A2E;--panel2:#1A2340;--line:#2A3558;
-  --ink:#F2F5FF;--dim:#8B96B8;--acid:#B8FF3C;--cyan:#37E0FF;
-  --magenta:#FF3D71;--amber:#FFB13D;--green:#3DFF9E;
-}
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;overflow-x:hidden}
-.mono{font-family:ui-monospace,"Cascadia Code",Menlo,monospace}
-button{font-family:inherit}
-#boot{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden}
-#boot .glow{position:absolute;inset:0;opacity:.08;background:radial-gradient(circle at 50% 0%,var(--cyan),transparent 60%)}
-.wordmark{font-size:clamp(34px,7vw,68px);font-weight:800;letter-spacing:.18em;animation:wordIn 1.1s ease-out both}
-@keyframes wordIn{from{letter-spacing:.9em;opacity:0}}
-.subtitle{color:var(--dim);letter-spacing:.45em;font-size:12px;margin:6px 0 56px;animation:fadeIn .8s .5s both}
-.ring{width:54px;height:54px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--acid);animation:spin 1.1s linear infinite;margin-bottom:32px}
+:root{--bg:#0b1020;--panel:#131a2e;--panel2:#1a2340;--line:#2a3558;--ink:#f2f5ff;--dim:#8b96b8;--acid:#b8ff3c;--cyan:#37e0ff;--pink:#ff3d71;--amber:#ffb13d;--green:#3dff9e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.mono{font-family:ui-monospace,monospace}
+#boot{min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:radial-gradient(ellipse at top,rgba(55,224,255,.12),transparent 55%)}
+#boot h1{font-size:clamp(32px,8vw,64px);letter-spacing:.18em;margin:0}
+#boot p{color:var(--dim);letter-spacing:.3em;font-size:11px}
+.spinner{width:42px;height:42px;border:3px solid var(--line);border-top-color:var(--acid);border-radius:50%;animation:spin 1s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.scanning{font-size:13px;color:var(--cyan);letter-spacing:.25em;animation:fadeIn .6s .3s both}
-#bar{font-size:clamp(14px,3vw,22px);letter-spacing:4px;color:var(--acid);margin:18px 0 10px;white-space:pre}
-#bar .off{color:var(--line)}
-.fadeout{animation:bootOut .5s ease both}
-@keyframes bootOut{to{opacity:0;transform:scale(1.04)}}
-@keyframes fadeIn{from{opacity:0}}
-#dash{display:none;max-width:1080px;margin:0 auto;padding:26px 20px 60px;animation:fadeIn .5s both}
-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-bottom:24px}
-.bran
-d{font-size:26px;font-weight:800;letter-spacing:.12em}
-.brand i{color:var(--acid);font-style:normal}
-.brand-sub{font-size:10px;color:var(--dim);letter-spacing:.35em;margin-top:2px}
-.hstats{display:flex;gap:18px;align-items:center}
-.hstat{text-align:right}
-.hstat .k{font-size:10px;color:var(--dim);letter-spacing:.2em}
-.hstat .v{font-size:12px;color:var(--green);letter-spacing:.1em;display:flex;align-items:center;gap:7px;justify-content:flex-end}
-.hstat .big{font-size:15px;font-weight:700;color:var(--cyan)}
-.dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 1.6s infinite}
-.dot.err{background:var(--magenta);box-shadow:0 0 10px var(--magenta)}
-.dot.warn{background:var(--amber);box-shadow:0 0 10px var(--amber)}
-@keyframes pulse{50%{opacity:.3}}
-.vdiv{border-left:1px solid var(--line);padding-left:18px}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:22px;position:relative;overflow:hidden;margin-bottom:16px;animation:rise .5s ease-out both}
-@keyframes rise{from{opacity:0;transform:translateY(18px)}}
-.panel::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;opacity:.5}
-.p-acid::before{background:linear-gradient(90deg,var(--acid),transparent 70%)}
-.p-cyan::before{background:linear-gradient(90deg,var(--cyan),transparent 70%)}
-.p-green::before{background:linear-gradient(90deg,var(--green),transparent 70%)}
-.p-magenta::before{background:linear-gradient(90deg,var(--magenta),transparent 70%)}
-.phead{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px}
-.phead h2{font-size:13px;letter-spacing:.2em;font-weight:700}
-.tag{font-size:10px;letter-spacing:.15em;padding:3px 10px;border-radius:99px;background:rgba(255,255,255,.04)}
-.t-acid{color:var(--acid);border:1px solid rgba(184,255,60,.35)}
-.t-cyan{color:var(--cyan);border:1px solid rgba(55,224,255,.35)}
-.t-green{color:var(--green);border:1px solid rgba(61,255,15
-8,.35)}
-.t-magenta{color:var(--magenta);border:1px solid rgba(255,61,113,.35)}
-.t-amber{color:var(--amber);border:1px solid rgba(255,177,61,.35)}
-.run-row{display:flex;gap:10px}
-.runbtn{flex:1;background:var(--cyan);border:none;color:var(--bg);font-weight:800;letter-spacing:.12em;font-size:13px;padding:15px;border-radius:14px;cursor:pointer;transition:transform .15s,box-shadow .2s}
-.runbtn:hover{transform:translateY(-2px);box-shadow:0 0 18px rgba(55,224,255,.35)}
-.runbtn:disabled{background:var(--panel2);color:var(--dim);cursor:wait;transform:none;box-shadow:none}
-.runbtn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
-.runbtn.ghost:hover{border-color:var(--acid);box-shadow:0 0 14px rgba(184,255,60,.2)}
-.run-status{font-size:12px;color:var(--dim);line-height:1.7;margin-top:12px}
-.run-status.ok{color:var(--green)}
-.run-status.err{color:var(--magenta)}
-.run-status.warn{color:var(--amber)}
-.loadwrap{display:none;margin-top:16px}
-.loadwrap.on{display:block}
-.loadstep{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dim);letter-spacing:.08em;padding:6px 0;animation:fadeIn .3s both}
-.loadstep.done{color:var(--green)}
-.loadstep.live{color:var(--cyan)}
-.loadstep .ic{width:16px;text-align:center}
-.loadbar{height:6px;background:var(--bg);border-radius:99px;overflow:hidden;margin-top:12px}
-.loadbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--acid));border-radius:99px;transition:width .5s ease}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
-.mcard{background:var(--panel2);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s;animation:cardIn .5s ease-out both}
-.mcard:hover{transform:translateY(-3px);border-color:rgba(184,255,60,.4)}
-@keyframes cardIn{from{opacity:0;transform:translateY(16px) scale(.98)}}
-.mcard .lg{font-size:9px;letter-spacing:.2em;color:var
-(--dim);margin-bottom:10px;display:flex;justify-content:space-between;gap:8px}
-.mc-teams{font-size:15px;font-weight:800;line-height:1.4;margin-bottom:4px}
-.mc-teams span{color:var(--dim);font-weight:400;font-size:12px}
-.mc-meta{font-size:10px;color:var(--dim);letter-spacing:.1em;margin-bottom:14px}
-.mc-market{display:flex;justify-content:space-between;align-items:flex-end;gap:8px}
-.mc-call{font-size:12px;font-weight:800;letter-spacing:.1em;color:var(--acid)}
-.mc-pct{font-size:30px;font-weight:800;color:var(--cyan);line-height:1;white-space:nowrap}
-.mc-pct small{font-size:9px;display:block;color:var(--dim);letter-spacing:.18em;font-weight:700;margin-top:4px}
-.mc-ring{position:absolute;top:-30px;right:-30px;width:90px;height:90px;border-radius:50%;border:1px solid rgba(55,224,255,.25)}
-.mc-soon{margin-top:12px;font-size:9px;letter-spacing:.18em;color:var(--dim);border-top:1px solid var(--line);padding-top:10px}
-.mc-state{font-size:9px;font-weight:800;letter-spacing:.12em}
-.st-in{color:var(--acid)}
-.st-near{color:var(--amber)}
-.st-skip{color:var(--dim)}
-.empty{color:var(--dim);font-size:12px;text-align:center;padding:34px 10px;letter-spacing:.08em;line-height:2}
-.wait-box{display:none;margin-top:16px;border:2px solid var(--amber);border-radius:14px;padding:14px 16px;background:rgba(255,177,61,.08)}
-.wait-box.on{display:block}
-.wait-big{font-size:13px;font-weight:800;letter-spacing:.08em;line-height:1.7;color:var(--amber)}
-.wait-big b{color:var(--ink)}
-.wait-count{font-size:26px;font-weight:800;color:var(--ink);margin:6px 0 2px;letter-spacing:.05em}
-.wait-rope{height:22px;margin:10px 0 2px;position:relative;overflow:hidden}
-.wait-rope:before{content:"";position:absolute;left:0;right:0;top:10px;height:2px;background:var(--line)}
-.wait-rope i{position:absolute;top:6px;left:0;width:55%;height:10px;border-radius:10px;background:repeating-linear-gradient(90deg,var(--cyan) 0 8px,rgba(55,224,255,.35) 8px 14px);box-shadow:0 0 12px rgba(55,224,255,.45);animation:ropeSwing 1.6s e
-ase-in-out infinite alternate}
-@keyframes ropeSwing{from{transform:translateX(0)}to{transform:translateX(82%)}}
-.notice{margin-top:16px;font-size:11px;letter-spacing:.1em;line-height:1.8;color:var(--amber);background:rgba(255,177,61,.06);border:1px solid rgba(255,177,61,.25);border-radius:14px;padding:12px 16px}
-.notice b{color:var(--ink)}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:16px}
-.kpi{background:var(--panel2);border-radius:12px;padding:14px;text-align:center}
-.kpi .v{font-size:22px;font-weight:800}
-.kpi .k{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-top:4px}
-.perf-bars{display:flex;align-items:flex-end;gap:5px;height:90px}
-.perf-bars i{flex:1;border-radius:4px 4px 0 0;animation:grow .6s ease-out both}
-@keyframes grow{from{height:0}}
-.perf-sub{font-size:9px;color:var(--dim);letter-spacing:.15em;margin-top:8px}
-.hist{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto}
-.h-row{display:grid;grid-template-columns:52px 1fr auto auto auto;gap:10px;align-items:center;font-size:12px;padding:8px 12px;border-radius:10px}
-.h-row:nth-child(odd){background:var(--panel2)}
-.h-date{color:var(--dim);font-size:10px}
-.h-call{color:var(--cyan);font-size:11px;letter-spacing:.08em}
-.h-prob{color:var(--dim);font-family:ui-monospace,monospace;font-size:11px}
-.chip{font-size:10px;font-weight:800;letter-spacing:.15em;padding:2px 10px;border-radius:99px}
-.chip.hit{background:rgba(61,255,158,.1);color:var(--green)}
-.chip.miss{background:rgba(255,61,113,.1);color:var(--magenta)}
-.chip.pending{background:rgba(255,177,61,.1);color:var(--amber)}
-#slip{display:none;position:fixed;inset:0;background:var(--bg);z-index:50;overflow-y:auto;animation:fadeIn .4s both}
-#slip.on{display:block}
-.slip-wrap{max-width:860px;margin:0 auto;padding:30px 20px 60px}
-.slip-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
-.slip-back{background:transparent;border:1px solid var(--lin
-e);color:var(--dim);border-radius:99px;padding:7px 16px;font-size:10px;letter-spacing:.15em;cursor:pointer}
-.slip-back:hover{border-color:var(--magenta);color:var(--magenta)}
-.slip-sub{color:var(--dim);letter-spacing:.35em;font-size:11px;margin-bottom:26px}
-.slip-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
-.slip-group{grid-column:1/-1;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}
-.slip-group-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px;color:var(--acid);font-size:12px;letter-spacing:.15em;font-weight:800}
-.slip-group-head span{color:var(--dim);font-size:10px;font-weight:500}
-.slip-group-bets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-@media(max-width:700px){.slip-group-bets{grid-template-columns:1fr}}
-.slip-foot{margin-top:26px;text-align:center;font-size:11px;color:var(--dim);letter-spacing:.1em;line-height:2}
-footer{margin-top:30px;text-align:center}
-.about{background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:26px;max-width:760px;margin:0 auto 22px}
-.about h3{font-size:12px;letter-spacing:.25em;margin-bottom:12px;color:var(--acid)}
-.about p{font-size:12px;color:var(--dim);line-height:2;letter-spacing:.04em}
-.about b{color:var(--ink)}
-.about em{color:var(--cyan);font-style:normal}
-.foot-line{font-size:10px;color:var(--dim);letter-spacing:.2em;line-height:2.2}
-.foot-credit{font-size:10px;color:var(--dim);letter-spacing:.12em;font-family:ui-monospace,monospace;padding:14px 0 30px}
-.foot-credit b{color:var(--acid)}
-@media(max-width:640px){
-  header{flex-direction:column;align-items:flex-start}
-  .hstats{width:100%;justify-content:space-between}
-  .hstat{text-align:left}
-  .vdiv{border-left:none;padding-left:0}
-  .cards{grid-template-columns:1fr}
-  .h-row{grid-template-columns:44px 1fr auto}
-  .h-prob,.h-call{display:none}
-}
+#dash{display:none;max-width:1120px;margin:auto;padding:22px 16px 50px}
+header,.row,.panelhead,.actions{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+header{margin-bottom:22px}
+.brand{font-size:25px;font-weight:850;letter-spacing:.12em}
+.brand span{color:var(--acid)}
+.sub,.muted{color:var(--dim)}
+.sub{font-size:10px;letter-spacing:.25em}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px;margin:14px 0;overflow:hidden}
+.panelhead{margin-bottom:14px}
+.panelhead h2{font-size:13px;letter-spacing:.14em;margin:0}
+.tag{font-size:10px;color:var(--cyan);border:1px solid #31526b;border-radius:30px;padding:5px 9px}
+.btn{background:var(--cyan);color:var(--bg);font-weight:800;border:0;border-radius:10px;padding:11px 14px}
+.btn.secondary{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:rgba(255,61,113,.15);color:var(--pink);border:1px solid rgba(255,61,113,.4)}
+.btn:disabled{opacity:.45;cursor:wait}
+.status{font-size:12px;line-height:1.6;color:var(--dim);margin-top:12px}
+.status.ok{color:var(--green)}
+.status.err{color:var(--pink)}
+.status.warn{color:var(--amber)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:15px}
+.league{font-size:10px;color:var(--dim);letter-spacing:.13em;margin-bottom:9px}
+.teams{font-weight:800;font-size:15px;margin-bottom:7px}
+.meta{font-size:11px;color:var(--dim);margin-bottom:13px}
+.pick{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--acid);font-weight:800}
+.prob{font-size:26px;color:var(--cyan);white-space:nowrap}
+.prob small{display:block;font-size:9px;color:var(--dim);text-align:right}
+.empty{color:var(--dim);padding:24px 8px;text-align:center;line-height:1.8;font-size:12px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--panel2);padding:13px;border-radius:12px;text-align:center}
+.kpi strong{font-size:22px;display:block}
+.kpi span{font-size:9px;letter-spacing:.12em;color:var(--dim)}
+.hist{display:flex;flex-direction:column;gap:6px}
+.hrow{display:grid;grid-template-columns:90px 1fr auto auto;gap:10px;align-items:center;padding:10px;border-radius:8px;background:var(--panel2);font-size:12px}
+.chip{font-size:10px;font-weight:800}
+.hit{color:var(--green)}
+.miss{color:var(--pink)}
+.pending{color:var(--amber)}
+.tracker-controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tracker-controls select,.tracker-controls input{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:9px}
+.tracker-list{display:flex;flex-direction:column;gap:10px}
+.sliprow{border:1px solid var(--line);background:var(--panel2);border-radius:12px;padding:13px}
+.sliprowhead{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.legs{color:var(--dim);font-size:12px;line-height:1.7}
+.slip-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.smallbtn{font-size:10px;padding:6px 9px;border-radius:7px;border:1px solid var(--line);background:transparent;color:var(--ink)}
+.smallbtn.win{color:var(--green);border-color:var(--green)}
+.smallbtn.loss{color:var(--pink);border-color:var(--pink)}
+.smallbtn.pending{color:var(--amber);border-color:var(--amber)}
+footer{text-align:center;color:var(--dim);font-size:10px;letter-spacing:.13em;padding:22px 0}
+@media(max-width:600px){.hrow{grid-template-columns:1fr auto}.hrow .hide-sm{display:none}.panel{padding:14px}}
 </style>
 </head>
 <body>
 
 <div id="boot">
-  <div class="glow"><
-/div>
-  <div class="wordmark">BARBADOX</div>
-  <div class="subtitle">MATCH INTELLIGENCE SYSTEM</div>
-  <div class="ring"></div>
-  <div class="scanning">PREPARING TODAY'S ANALYSIS</div>
-  <div id="bar" class="mono"><span class="off">██████████████████</span></div>
+  <h1>BARBADOX</h1>
+  <p>MATCH INTELLIGENCE SYSTEM</p>
+  <div class="spinner"></div>
+  <span class="muted">CONNECTING TO MODEL…</span>
 </div>
 
-<div id="dash">
-  <header>
-    <div>
-      <div class="brand">BARBADOX<i>·</i></div>
-      <div class="brand-sub">MATCH INTELLIGENCE SYSTEM</div>
-    </div>
-    <div class="hstats">
-      <div class="hstat">
-        <div class="k">LIVE STATUS</div>
-        <div class="v"><span class="dot" id="sysDot"></span><span id="sysStatus">CONNECTING…</span></div>
-      </div>
-      <div class="hstat vdiv">
-        <div class="k">LAST ANALYSIS</div>
-        <div class="big mono" id="snapTime">—</div>
-      </div>
-    </div>
-  </header>
+<main id="dash">
+<header>
+  <div>
+    <div class="brand">BARBADOX<span>·</span></div>
+    <div class="sub">MATCH INTELLIGENCE SYSTEM</div>
+  </div>
+  <div class="row">
+    <span id="sysDot" class="tag">CONNECTING…</span>
+    <span id="snapTime" class="muted mono">—</span>
+  </div>
+</header>
 
-  <section class="panel p-cyan" id="runPanel">
-    <div class="phead"><h2>MODEL CONTROL</h2><span class="tag t-cyan" id="thTag">—</span></div>
-    <div class="run-row">
-      <button class="runbtn" id="btnRun">▶ RUN MODEL</button>
-      <button class="runbtn ghost" id="btnSlip">GENERATE SLIPS</button>
-    </div>
-    <div class="run-status" id="runStatus">Tap RUN to analyse today's fixtures. The model only runs when you tap — no schedules, no noise.</div>
-    <div class="wait-box" id="waitBox" role="alert">
-      <div class="wait-big" id="waitText"><b>⚠ FIVE-MINUTE REVIEW WINDOW.</b> New fixtures were added to context.csv. Review any available context now. Blank fields are neutral; checked=1 is for finished matches, not upcoming-pick approval. The model will re-export after the timer.</div>
-      <div class="wait-count" id="waitCount">5:00</div>
-      <div class="wait-rope" aria-label="Five-minute context review window"><i></i></div>
-    </div>
-    <div class="loadwrap" id="loadWrap">
-      <div id="loadSteps"></div>
-      <div class="loadbar"><i id="loadFill"></i></div>
-    </div>
-  </section>
+<section class="panel">
+  <div class="panelhead">
+    <h2>MODEL CONTROL</h2>
+    <span id="thTag" class="tag">ENTRY BAR —</span>
+  </div>
+  <div class="actions">
+    <button id="btnRun" class="btn">▶ RUN MODEL</button>
+    <button id="btnSlip" class="btn secondary">GENERATE SLIPS</button>
+  </div>
+  <div id="runStatus" class="status">Loading model data…</div>
+</section>
 
-  <section class="panel p-acid" id="resultsPanel">
-    <div class="phead"><h2>CORE 1 
-· OVER 1.5 GOALS</h2><span class="tag t-acid" id="resTag">—</span></div>
-    <div class="cards" id="resCards"></div>
-    <div id="fiveMin"></div>
-    <div class="notice" id="contextReady" role="status">Run the model to analyse upcoming fixtures.</div>
-  </section>
+<section class="panel">
+  <div class="panelhead">
+    <h2>CORE 1 · OVER 1.5 GOALS</h2>
+    <span id="resTag" class="tag">—</span>
+  </div>
+  <div id="resCards" class="cards"></div>
+  <div id="contextReady" class="status"></div>
+</section>
 
-  <!-- CORE 2: INDEPENDENT UNDER 3.5 DISPLAY -->
-  <section class="panel p-magenta" id="under35Panel">
-    <div class="phead">
-      <h2>CORE 2 · UNDER 3.5 GOALS</h2>
-      <span class="tag t-magenta" id="under35Tag">LOADING…</span>
+<section class="panel">
+  <div class="panelhead">
+    <h2>CORE 2 · UNDER 3.5 GOALS</h2>
+    <span id="under35Tag" class="tag">LOADING</span>
+  </div>
+  <div id="under35Kpis" class="kpis"></div>
+  <div id="under35Status" class="status"></div>
+  <div id="under35Cards" class="cards"></div>
+  <div id="under35Foot" class="muted"></div>
+</section>
+
+<section class="panel">
+  <div class="panelhead">
+    <h2>SLIPS TRACKER</h2>
+    <span class="tag">LOCAL SAVED RECORD</span>
+  </div>
+  <div class="kpis" id="trackerKpis"></div>
+  <div class="tracker-controls">
+    <select id="trackerFilter" aria-label="Filter slips">
+      <option value="ALL">ALL SLIPS</option>
+      <option value="PENDING">PENDING</option>
+      <option value="WON">HIT / WON</option>
+      <option value="LOST">FAILED / LOST</option>
+    </select>
+    <button id="exportTracker" class="btn secondary">EXPORT CSV</button>
+    <button id="clearTracker" class="btn danger">CLEAR TRACKER</button>
+  </div>
+  <div id="trackerList" class="tracker-list"></div>
+  <div class="status">
+    Each generated slip is recorded here. Mark a slip HIT/WON or FAILED/LOST after all four match results are final. Records are stored in this browser using localStorage; they are not synced to the server.
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panelhead">
+    <h2>CORE 1 PERFORMANCE</h2>
+    <span id="perfTag" class="tag">—</span>
+  </div>
+  <div id="perfKpis" class="kpis"></div>
+</section>
+
+<section class="panel">
+  <div class="panelhead">
+    <h2>ANALYSIS HISTORY</h2>
+    <span id="histTag" class="tag">—</span>
+  </div>
+  <div id="histList" class="hist"></div>
+</section>
+
+<footer id="footData">BUILT BY AGAINBUILDS · BARBADOX</footer>
+</main>
+
+<div id="slipModal" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:10;overflow:auto;padding:20px">
+  <div style="max-width:900px;margin:auto">
+    <div class="panelhead">
+      <h2>GENERATED SLIPS · 3 OVER 1.5 + 1 UNDER 3.5</h2>
+      <button id="closeSlip" class="btn secondary">CLOSE</button>
     </div>
-    <div class="kpis" id="under35Kpis"></div>
-    <div class="run-status" id="under35Status">Loading Core 2 data…</div>
-    <div class="cards" id="under35Cards"></div>
-    <div class="perf-sub" id="under35Foot"></div>
-  </section>
-
-  <section class="panel p-green">
-    <div class="phead"><h2>MODEL PERFORMANCE</h2><span class="tag t-green" id="perfTag">—</span></div>
-    <div class="kpis" id="perfKpis"></div>
-    <div class="perf-bars" id="perfBars"></div>
-    <div class="perf-sub" id="perfSub"></div>
-  </section>
-
-  <section class="panel p-cyan">
-    <div class="phead"><h2>ANALYSIS HISTORY</h2><span class="tag t-cyan" id="histTag">—</span></div>
-    <div class="hist" id="histList"></div>
-  </section>
-
-  <footer>
-    <div class="about">
-      <h3>ABOUT BARBADOX</h3>
-      <p>
-        Football intelligence. No unnecessary noise.<br>
-        <b>Built by AgainBuilds.</b><br>
-        Started with an idea, a model, and a damn football journey.<br>
-        Here to test the numbers, learn from the results, and see how far the system goes.<br>
-        <em>If it works, maybe it's worth $2 a month. If it doesn't? At least we ran the experiment.</em><br>
-        <b>THE MODEL MAKES THE CALL. TIME WILL JUDGE THE RESULTS.</b>
-      </p>
-    </div>
-    <div class="foot-line" id="footData">BARBADOX · MATCH INTELLIGENCE SYSTEM</div>
-    <div class="foot-credit">BUILT BY <b>AGAINBUILDS</b> · AN EXPERIMENT IN FOOTBALL INTELLIGENCE</div>
-  </footer>
-</div>
-
-<div id="slip">
-  <div class=
-"slip-wrap">
-    <div class="slip-head">
-      <div class="brand" style="font-size:22px">BARBADOX<i>·</i></div>
-      <button class="slip-back" onclick="closeSlip()">← BACK TO CONSOLE</button>
-    </div>
-    <div class="slip-sub">3 OVER 1.5 + 1 UNDER 3.5 PER SLIP · ONE SLIP AT A TIME</div>
-    <div class="run-status" id="slipStatus" style="margin:0 0 16px"></div>
-    <div class="slip-cards" id="slipCards"></div>
-    <div class="slip-foot" id="slipFoot"></div>
+    <div id="slipStatus" class="status"></div>
+    <div id="slipCards" class="cards"></div>
   </div>
 </div>
 
 <script>
-const Barbadox = (() => {
-  const LG_NAMES = {
-    PL:"PREMIER LEAGUE",PD:"LA LIGA",FL1:"LIGUE 1",BL1:"BUNDESLIGA",
-    SA:"SERIE A",CL:"CHAMPIONS LEAGUE",SAUDI:"SAUDI LEAGUE"
-  };
-  async function getData() {
-    const r = await fetch("/api/data",{cache:"no-store"});
-    if (!r.ok) return null;
-    return await r.json();
-  }
-  async function startRun() {
-    const r = await fetch("/api/run",{method:"POST"});
-    return await r.json();
-  }
-  async function getStatus() {
-    const r = await fetch("/api/status",{cache:"no-store"});
-    return await r.json();
-  }
-  async function getUnder35() {
-    const r = await fetch("/api/under35",{cache:"no-store"});
-    if (!r.ok) return null;
-    return await r.json();
-  }
-  return {LG_NAMES,getData,startRun,getStatus,getUnder35};
-})();
+"use strict";
 
 const $ = id => document.getElementById(id);
-const pct1 = x => {
-  const n = Number(x);
-  return Number.isFinite(n) ? (n*100).toFixed(1)+"%" : "—";
+
+const LG = {
+  PL:"PREMIER LEAGUE",
+  PD:"LA LIGA",
+  FL1:"LIGUE 1",
+  BL1:"BUNDESLIGA",
+  SA:"SERIE A",
+  CL:"CHAMPIONS LEAGUE",
+  SAUDI:"SAUDI LEAGUE"
 };
-const esc = s => String(s == null ? "" : s)
-  .replace(/&/g,"&amp;").replace(/</g,"&lt;")
-  .replace(/>/g,"&gt;").replace(/"/g,"&quot;")
-  .replace(/'/g,"&#39;");
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
+}[c]));
+
+const pct = x =>
+  Number.isFinite(Number(x))
+    ? (Number(x) * 100).toFixed(1) + "%"
+    : "—";
+
+const api = async (path, opts = {}) => {
+  const r = await fetch(path, {cache:"no-store", ...opts});
+  if (!r.ok) throw Error(path + " returned HTTP " + r.status);
+  return r.json();
+};
 
 let snap = null;
 let underSnap = null;
 let pollTimer = null;
-let THRESHOLD = 0.80;
+let THRESHOLD = .79;
 let MARKET = 1.5;
-const FIVE_MIN = 5*60*1000;
+let slipList = [];
 
-/* BOOT */
-let bootProg = 0;
-const bootTimer = setInterval(() => {
-  bootProg = Math.min(100,bootProg+2);
-  const filled = Math.round(bootProg/100*18);
-  $("bar").innerHTML = "█".repeat(filled) +
-    '<span class="off">'+"░".repeat(18-filled)+"</span>";
-  if (bootProg >= 100) {
+const TRACK_KEY = "barbadox.slips.tracker.v1";
 
-    clearInterval(bootTimer);
-    setTimeout(enterDash,400);
+function readTracker() {
+  try {
+    const v = JSON.parse(localStorage.getItem(TRACK_KEY) || "[]");
+    return Array.isArray(v) ? v : [];
+  } catch {
+    return [];
   }
-},40);
-
-function enterDash() {
-  $("boot").classList.add("fadeout");
-  setTimeout(() => {
-    $("boot").style.display = "none";
-    $("dash").style.display = "block";
-  },500);
 }
 
-function setRunNote(msg,cls) {
-  const el = $("runStatus");
-  el.textContent = msg;
-  el.className = "run-status "+(cls||"");
+function saveTracker(rows) {
+  localStorage.setItem(TRACK_KEY, JSON.stringify(rows));
+  renderTracker();
 }
 
-/* LOADING */
-const STEPS = [
-  "CONNECTING TO THE FIXTURE FEED",
-  "PREPARING TODAY'S MATCHES",
-  "ANALYSING FIXTURES",
-  "FINALISING THE RESULTS"
-];
-let liveStep = 0;
-let stepTimer = null;
-
-function showLoading() {
-  $("loadWrap").classList.add("on");
-  liveStep = 0;
-  renderSteps();
-  stepTimer = setInterval(() => {
-    liveStep = Math.min(STEPS.length-1,liveStep+1);
-    renderSteps();
-    if (liveStep === STEPS.length-1) {
-      clearInterval(stepTimer);
-      stepTimer = null;
-    }
-  },3500);
+function fixtureKey(f) {
+  return [f.date, f.home, f.away]
+    .map(x => String(x || "").trim().toLowerCase())
+    .join("|");
 }
 
-function renderSteps(doneUpto) {
-  const upto = doneUpto != null ? doneUpto : liveStep;
-  $("loadSteps").innerHTML = STEPS.map((s,i) => {
-    const cls = i<upto ? "done" : i===upto ? "live" : "";
-    const ic = i<upto ? "✓" : i===upto ? "▸" : "·";
-    return '<div class="loadstep '+cls+'"><span class="ic">'+ic+
-      "</span>"+s+"</div>";
-  }).join("");
-  $("loadFill").style.width =
-    Math.round((upto+1)/STEPS.length*90)+"%";
+function card(f, market, prob, reason = "") {
+  return `
+    <article class="card">
+      <div class="league">${esc(LG[f.league] || f.league || "FOOTBALL")}</div>
+      <div class="teams">${esc(f.home)} <span class="muted">vs</span> ${esc(f.away)}</div>
+      <div class="meta">${esc(f.date || "Date TBC")}${f.time ? " · " + esc(f.time) : ""}</div>
+      <div class="pick">
+        <span>${esc(market)}</span>
+        <span class="prob">${pct(prob)}<small>CONFIDENCE</small></span>
+      </div>
+      ${reason ? `<div class="meta" style="margin:10px 0 0">${esc(reason)}</div>` : ""}
+    </article>`;
 }
 
-function hideLoading(ok) {
-  if (stepTimer) {
-    clearInterval(stepTimer);
-    stepTimer = null;
-  }
-  renderSteps(ok ? STEPS.length : liveStep);
-  $("loadFill").style.width = ok ? "100%" : $("loadFill").style.width;
-  setTimeout(() => $("loadWrap").classList.remove("on"),ok ? 1400 : 2500);
+function setStatus(msg, cls = "") {
+  $("runStatus").textContent = msg;
+  $("runStatus").className = "status " + cls;
 }
 
-/* SNAPSHOT AGE */
-function snapAgeMs() {
-  if (!snap || !snap.generated_at) return null;
-  const t = Date.parse(snap.generated_at);
-  return isNaN(t) ? null : Date.now()-t;
-}
+function renderCore1() {
+  const fs = snap && Array.isArray(snap.fixtures) ? snap.fixtures : [];
 
-/* CORE 1 RESULT CARDS */
-function fixtureCards(fxs) {
-  return fxs.map((f,i) =>
-    '<div class="mcard" style="animation-delay:'+(i*.08)+'s">'+
-      '<div class="mc-ring"></div>'+
-      '<div class="lg"><span>
-'+
-        esc(Barbadox.LG_NAMES[f.league]||f.league)+'</span>'+
-        '<span class="mc-state '+
-        (f.decision==="logged"?"st-in":
-        (f.decision==="near-line"||f.decision==="review-window")?
-        "st-near":"st-skip")+'">'+
-        (f.decision==="logged"?"✓ QUALIFIED":
-        f.decision==="review-window"?
-        "⏳ REVIEW WINDOW":
-        f.decision==="near-line"?"▲ NEAR":"○ BELOW LINE")+
-        "</span></div>"+
-      '<div class="mc-teams">'+esc(f.home)+
-        ' <span>vs</span> '+esc(f.away)+"</div>"+
-      '<div class="mc-meta">'+esc(f.date)+
-        (f.time?" · "+esc(f.time):"")+"</div>"+
-      '<div class="mc-market"><span class="mc-call">OVER '+
-        esc(MARKET)+' GOALS</span>'+
-        '<span class="mc-pct">'+pct1(f.core)+
-        "<small>CORE 1 CONFIDENCE</small></span></div>"+
-      '<div class="mc-soon">CORE 1 · OVER 1.5 GOALS</div>'+
-    "</div>"
-  ).join("");
-}
-
-function renderResults() {
-  const fxs = snap ? snap.fixtures||[] : [];
   if (snap) {
-    if (Number.isFinite(Number(snap.threshold))) THRESHOLD = Number(snap.threshold);
-    if (Number.isFinite(Number(snap.market))) MARKET = Number(snap.market);
+    if (Number.isFinite(Number(snap.threshold))) {
+      THRESHOLD = Number(snap.threshold);
+    }
+    if (Number.isFinite(Number(snap.market))) {
+      MARKET = Number(snap.market);
+    }
   }
 
-  $("thTag").textContent = Math.round(THRESHOLD*100)+"% ENTRY BAR";
-
-  const logged = fxs.filter(f => f.decision==="logged");
-  const waitingFx = fxs.filter(f => f.decision==="review-window");
+  $("thTag").textContent = `ENTRY BAR ${Math.round(THRESHOLD * 100)}%`;
 
   $("resTag").textContent =
-    logged.length+" QUALIFIED · "+waitingFx.length+
-    " IN REVIEW WINDOW · "+fxs.length+" SCANNED";
+    `${fs.filter(f => f.decision === "logged").length} QUALIFIED · ${fs.length} SCANNED`;
 
-  if (logged.length || waitingFx.length) {
-    $("resCards").innerHTML = fixtureCards(logged.concat(waitingFx));
-  } else {
-    $("resCards").innerHTML = '<div class="empty">'+
-      (fxs.length
-        ?"NO FIXTURE CLEARED THE MODEL'S ENTRY BAR TODAY.<br>NO SELECTIONS WERE MANUFACTURED TO FILL THE PAGE."
-        :"NO ANALYSIS YET.<br>TAP RUN MODEL TO SCAN TODAY'S FIXTURES.")+
-      "</div>";
-  }
+  const picks = fs.filter(f =>
+    ["logged", "review-window", "near-line"].includes(f.decision)
+  );
 
-  const pend0 = snap ? (snap.owner_pending||0) : 0;
-  const ghOff = !!snap && snap.github==="off";
-  const ghNot
-e = ghOff
-    ? '<div class="notice"><b>⚠ GITHUB SYNC IS OFF.</b> Context edits made in GitHub will not sync to this service until GitHub sync is configured.</div>'
-    :"";
+  $("resCards").innerHTML = picks.length
+    ? picks.map(f => card(
+        f,
+        `OVER ${MARKET} GOALS`,
+        f.core,
+        f.decision === "logged"
+          ? "QUALIFIED"
+          : f.decision === "review-window"
+            ? "REVIEW WINDOW"
+            : "NEAR ENTRY BAR"
+      )).join("")
+    : `<div class="empty">${
+        snap
+          ? "No Core 1 fixtures to display. No selections were manufactured."
+          : "Core 1 data unavailable. Run the model or check service logs."
+      }</div>`;
 
-  $("fiveMin").innerHTML = ghNote+(!snap
-    ? '<div class="notice">Tap RUN MODEL to generate the first analysis of the day.</div>'
-    : pend0>0
-      ? '<div class="notice"><b>FIVE-MINUTE REVIEW WINDOW.</b> '+pend0+
-        ' fixture(s) are temporarily held while the context file can be reviewed. checked=1 is not required for upcoming fixtures.</div>'
-      :"");
-
-  const review = fxs.some(f => f.decision==="review-window");
-  const noScan = !!snap && fxs.length===0;
-  const ready = !!snap && !review && !noScan;
-
-  $("contextReady").innerHTML = noScan
-    ? "<b>NO MATCHES SCANNED.</b> The last run found nothing to analyse."
-    : review
-      ? "<b>FIVE-MINUTE REVIEW WINDOW:</b> new fixture rows were added. Review any available context before the final export. Blank fields are neutral; checked=1 is reserved for finished matches."
-      : ready
-        ? "<b>✔ ANALYSIS COMPLETE:</b> context values are applied when present. Blank fields are neutral. Only picks meeting the entry threshold are logged."
-        : "<b>READY WHEN YOU ARE:</b> run the model to analyse upcoming fixtures. checked=1 is not required for upcoming picks.";
-
-  $("contextReady").style.borderColor =
-    ready?"rgba(61,255,158,.6)":"rgba(255,177,61,.6)";
-  $("contextReady").style.color = ready?"var(--green)":"var(--amber)";
+  $("contextReady").textContent = snap
+    ? "Only picks meeting the model's entry bar are logged. Blank context fields remain neutral."
+    : "Waiting for Core 1 data.";
 }
 
-/* CORE 2: UNDER 3.5
-   This panel reads the separate /api/under35 endpoint.
-   It does not use Core 1 picks or context.csv to decide qualification. */
-function renderUnder35() {
-  const data = underSnap;
-  const fixtures = data && Array.isArray(data.fixtures) ? data.fixtures : [];
-  const qualified = fixtures.filter(f => f.decision==="qualified");
-  const threshold = data && Number.isFinite(Number(data.threshold))
-    ? Number(data.threshold) : 0.60;
-  const scanned = data && Number.isFinite(Number(data
-.scanned))
-    ? Number(data.scanned) : fixtures.length;
+function renderCore2() {
+  const d = underSnap;
+  const fs = d && Array.isArray(d.fixtures) ? d.fixtures : [];
+  const q = fs.filter(f => f.decision === "qualified");
+  const t = d && Number.isFinite(Number(d.threshold))
+    ? Number(d.threshold)
+    : .75;
 
-  $("under35Tag").textContent = data
-    ? (data.status==="ok" ? "CORE 2 · "+Math.round(threshold*100)+"% BAR"
-      : "CORE 2 · "+String(data.status||"STATUS UNKNOWN").toUpperCase())
-    : "CORE 2 · UNAVAILABLE";
+  $("under35Tag").textContent = d
+    ? (d.status === "ok"
+        ? `CORE 2 · ${Math.round(t * 100)}% BAR`
+        : `STATUS ${String(d.status || "UNKNOWN").toUpperCase()}`)
+    : "UNAVAILABLE";
 
-  $("under35Kpis").innerHTML =
-    '<div class="kpi"><div class="v" style="color:var(--cyan)">'+
-      scanned+'</div><div class="k">SCANNED</div></div>'+
-    '<div class="kpi"><div class="v" style="color:var(--green)">'+
-      qualified.length+'</div><div class="k">QUALIFIED ≥ '+Math.round(threshold*100)+'%</div></div>'+
-    '<div class="kpi"><div class="v" style="color:var(--amber)">'+
-      Math.max(0,fixtures.length-qualified.length)+
-      '</div><div class="k">NOT QUALIFIED / SKIPPED</div></div>';
+  $("under35Kpis").innerHTML = `
+    <div class="kpi"><strong>${d ? (d.scanned ?? fs.length) : "—"}</strong><span>SCANNED</span></div>
+    <div class="kpi"><strong>${q.length}</strong><span>QUALIFIED</span></div>
+    <div class="kpi"><strong>${Math.max(0, fs.length - q.length)}</strong><span>NOT QUALIFIED</span></div>`;
 
-  if (!data) {
-    $("under35Status").textContent =
-      "Core 2 data could not be retrieved from /api/under35. This does not establish whether the model ran successfully.";
-    $("under35Status").className = "run-status warn";
-    $("under35Cards").innerHTML =
-      '<div class="empty">CORE 2 DATA IS CURRENTLY UNAVAILABLE.<br>CHECK THE SERVICE ENDPOINT AND CORE 2 RUN STATUS.</div>';
-    $("under35Foot").textContent = "No Core 2 timestamp available.";
-    return;
-  }
+  $("under35Status").textContent = d
+    ? (d.status === "ok"
+        ? `Under 3.5 results loaded at ${Math.round(t * 100)}% threshold.`
+        : `Core 2 reports ${d.status}. Do not treat this as a successful run.`)
+    : "Could not retrieve /api/under35.";
 
-  const status = String(data.status||"unknown").toLowerCase();
-  const reason = data.reason ? String(data.reason) : "";
+  $("under35Status").className =
+    "status " + (d && d.status === "ok" ? "ok" : "warn");
 
-  if (status==="ok") {
-    $("under35Status").textContent =
-      "Core 2 data loaded. Under 3.5 qualification is evaluated independently at the "+Math.round(threshold*100)+"% threshold."+
-      (reason?" "+reason:"");
-    $("under35Status").className = "run-status ok";
-  } else {
-    $("under35Status").textContent =
-      "Core 2 reports status: "+status.toUpperCase()+
-      (reason?" — "+reason:"")+
-      ". Do not treat this status as a successful model run.";
-    $("under35Status").className = "run-status warn";
-  }
+  $("under35Cards").innerHTML = q.length
+    ? [...q]
+        .sort((a, b) => (Number(b.p_final) || 0) - (Number(a.p_final) || 0))
+        .map(f => card(
+          f,
+          "UNDER 3.5 GOALS",
+          f.p_final,
+          f.reason || "Qualified by Core 2"
+        ))
+        .join("")
+    : `<div class="empty">${
+        d && d.status === "ok"
+          ? "No fixture cleared Core 2's threshold."
+          : "Core 2 is unavailable or has not reported success."
+      }</div>`;
 
-  if (qualified.length) {
-    const sorted = [...qualified].sort(
-      (a,b)=>(Number(b.p_fina
-l)||0)-(Number(a.p_final)||0)
+  $("under35Foot").textContent = d && d.generated_at
+    ? `Generated: ${d.generated_at} · Threshold ${Math.round(t * 100)}%`
+    : "";
+}
+
+function renderPerformance() {
+  const ps = snap && Array.isArray(snap.picks) ? snap.picks : [];
+  const g = ps.filter(p => p.result === "HIT" || p.result === "MISS");
+  const hits = g.filter(p => p.result === "HIT").length;
+  const pending = ps.length - g.length;
+
+  $("perfTag").textContent = `${g.length} GRADED`;
+
+  $("perfKpis").innerHTML = `
+    <div class="kpi"><strong>${hits}/${g.length}</strong><span>HITS / GRADED</span></div>
+    <div class="kpi"><strong>${g.length ? pct(hits / g.length) : "—"}</strong><span>HIT RATE</span></div>
+    <div class="kpi"><strong>${pending}</strong><span>PENDING</span></div>`;
+}
+
+function renderHistory() {
+  const ps = snap && Array.isArray(snap.picks) ? [...snap.picks] : [];
+
+  ps.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+
+  $("histTag").textContent = `${ps.length} LOGGED`;
+
+  $("histList").innerHTML = ps.slice(0, 30).map(p => `
+    <div class="hrow">
+      <span class="muted">${esc(p.date)}</span>
+      <span>${esc(p.home)} vs ${esc(p.away)}
+        <span class="muted">(${esc(p.hg ?? "—")}-${esc(p.ag ?? "—")})</span>
+      </span>
+      <span class="hide-sm">${pct(parseFloat(p.probability))}</span>
+      <span class="chip ${
+        p.result === "HIT" ? "hit" :
+        p.result === "MISS" ? "miss" : "pending"
+      }">${esc(p.result || "PENDING")}</span>
+    </div>`).join("") || '<div class="empty">No logged calls yet.</div>';
+}
+
+function renderTracker() {
+  const all = readTracker();
+  const filter = $("trackerFilter").value;
+  const rows = all.filter(s => filter === "ALL" || s.status === filter);
+
+  const won = all.filter(s => s.status === "WON").length;
+  const lost = all.filter(s => s.status === "LOST").length;
+  const pend = all.filter(s => s.status === "PENDING").length;
+  const graded = won + lost;
+
+  $("trackerKpis").innerHTML = `
+    <div class="kpi"><strong>${all.length}</strong><span>SLIPS GENERATED</span></div>
+    <div class="kpi"><strong>${won}</strong><span>HIT / WON</span></div>
+    <div class="kpi"><strong>${lost}</strong><span>FAILED / LOST</span></div>
+    <div class="kpi"><strong>${pend}</strong><span>PENDING</span></div>
+    <div class="kpi"><strong>${graded ? pct(won / graded) : "—"}</strong><span>GRADED HIT RATE</span></div>`;
+
+  $("trackerList").innerHTML = rows.map(s => `
+    <article class="sliprow">
+      <div class="sliprowhead">
+        <strong>SLIP #${s.number} · ${esc(s.createdAt)}</strong>
+        <span class="chip ${
+          s.status === "WON" ? "hit" :
+          s.status === "LOST" ? "miss" : "pending"
+        }">${
+          s.status === "WON" ? "HIT / WON" :
+          s.status === "LOST" ? "FAILED / LOST" : "PENDING"
+        }</span>
+      </div>
+      <div class="legs">
+        ${s.legs.map((l, i) =>
+          `${i + 1}. ${esc(l.home)} vs ${esc(l.away)} — ${esc(l.market)} (${pct(l.probability)})`
+        ).join("<br>")}
+      </div>
+      <div class="slip-actions">
+        <button class="smallbtn win" data-grade="${s.id}" data-status="WON">MARK HIT / WON</button>
+        <button class="smallbtn loss" data-grade="${s.id}" data-status="LOST">MARK FAILED / LOST</button>
+        <button class="smallbtn pending" data-grade="${s.id}" data-status="PENDING">RESET PENDING</button>
+      </div>
+    </article>`).join("") ||
+    '<div class="empty">No slips recorded yet. Tap GENERATE SLIPS to create and save slips here.</div>';
+}
+
+$("trackerList").addEventListener("click", e => {
+  const b = e.target.closest("[data-grade]");
+  if (!b) return;
+
+  const rows = readTracker();
+  const s = rows.find(x => x.id === b.dataset.grade);
+  if (!s) return;
+
+  s.status = b.dataset.status;
+  s.gradedAt = s.status === "PENDING" ? null : new Date().toISOString();
+
+  saveTracker(rows);
+});
+
+$("trackerFilter").addEventListener("change", renderTracker);
+
+$("clearTracker").addEventListener("click", () => {
+  if (!confirm("Delete every locally saved slip record? This cannot be undone.")) return;
+  saveTracker([]);
+});
+
+$("exportTracker").addEventListener("click", () => {
+  const rows = readTracker();
+  const head = ["number", "createdAt", "status", "legs"];
+
+  const csv = [
+    head.join(","),
+    ...rows.map(s => [
+      s.number,
+      s.createdAt,
+      s.status,
+      s.legs.map(l => `${l.home} vs ${l.away} (${l.market})`).join(" | ")
+    ].map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","))
+  ].join("\r\n");
+
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(
+    new Blob([csv], {type:"text/csv;charset=utf-8"})
+  );
+  a.download = "barbadox-slips-tracker.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+function buildSlips() {
+  const over = snap && Array.isArray(snap.fixtures)
+    ? snap.fixtures.filter(f => f.decision === "logged")
+    : [];
+
+  const u = underSnap;
+
+  const unders = u && Array.isArray(u.fixtures)
+    ? u.fixtures
+        .filter(f => f.decision === "qualified")
+        .sort((a, b) => (Number(b.p_final) || 0) - (Number(a.p_final) || 0))
+    : [];
+
+  const used = new Set();
+  const list = [];
+
+  for (let i = 0; i + 2 < over.length; i += 3) {
+    const trio = over.slice(i, i + 3);
+    const keys = new Set(trio.map(fixtureKey));
+
+    const under = unders.find(f =>
+      !used.has(fixtureKey(f)) &&
+      !keys.has(fixtureKey(f))
     );
 
-    $("under35Cards").innerHTML = sorted.map((f,i) =>
-      '<div class="mcard" style="animation-delay:'+(i*.06)+'s">'+
-        '<div class="mc-ring"></div>'+
-        '<div class="lg"><span>'+
-          esc(Barbadox.LG_NAMES[f.league]||f.league)+'</span>'+
-          '<span class="mc-state st-in">✓ QUALIFIED · CORE 2</span></div>'+
-        '<div class="mc-teams">'+esc(f.home)+
-          ' <span>vs</span> '+esc(f.away)+'</div>'+
-        '<div class="mc-meta">'+esc(f.date)+
-          (f.time?" · "+esc(f.time):"")+'</div>'+
-        '<div class="mc-market"><span class="mc-call">UNDER 3.5 GOALS</span>'+
-          '<span class="mc-pct">'+pct1(f.p_final)+
-          '<small>CORE 2 CONFIDENCE</small></span></div>'+
-        '<div class="mc-soon">ENTRY BAR: '+Math.round(threshold*100)+
-          '% · '+esc(f.reason||"Qualified by Core 2")+'</div>'+
-      '</div>'
-    ).join("");
-  } else {
-    $("under35Cards").innerHTML =
-      '<div class="empty">'+
-      (status!=="ok"
-        ?"CORE 2 HAS NOT REPORTED A SUCCESSFUL RESULT.<br>CHECK ITS STATUS BEFORE DRAWING CONCLUSIONS."
-        :"NO FIXTURE CLEARED CORE 2'S UNDER 3.5 ENTRY BAR.<br>NO SELECTIONS WERE MANUFACTURED TO FILL THE PAGE.")+
-      "</div>";
+    if (!under) continue;
+
+    used.add(fixtureKey(under));
+    list.push({over:trio, under});
   }
 
-  const generated = data.generated_at
-    ? String(data.generated_at).replace("T"," ").replace("Z"," UTC")
-    : "timestamp not supplied";
-
-  $("under35Foot").textContent =
-    "CORE 2 DATA GENERATED: "+generated+
-    " · THRESHOLD: "+Math.round(threshold*100)+"%"+
-    " · QUALIFIED: "+qualified.length;
-}
-
-/* PERFORMANCE: CORE 1 */
-function renderPerformance() {
-  const all = snap ? snap.picks||[] : [];
-  const graded = all.filter(p=>p.result==="HIT"||p.result==="MISS");
-  const hits = graded.filter(p=>p.result==="HIT").length;
-  const pending = all.filter(p=>!p.result).length;
-  const hitRate = graded.length ? hits/graded.length : null;
-
-  $("perfTag").textContent = graded.length
-    ? graded.length+" GRADED" : "AWAITING RESULTS";
-
-  $(
-"perfKpis").innerHTML =
-    '<div class="kpi"><div class="v" style="color:var(--green)">'+
-      hits+"/"+graded.length+'</div><div class="k">HITS / GRADED</div></div>'+
-    '<div class="kpi"><div class="v" style="color:'+
-      (hitRate===null?"var(--dim)":hitRate>=THRESHOLD?"var(--acid)":"var(--magenta)")+'">'+
-      (hitRate===null?"—":pct1(hitRate))+
-      '</div><div class="k">HIT RATE</div></div>'+
-    '<div class="kpi"><div class="v" style="color:var(--amber)">'+
-      pending+'</div><div class="k">PENDING</div></div>';
-
-  if (!graded.length) {
-    $("perfBars").innerHTML = "";
-    $("perfSub").textContent =
-      "NO GRADED PICKS YET — RESULTS ARE GRADED AFTER KICKOFF";
-    return;
-  }
-
-  const sorted = [...graded].sort(
-    (a,b)=>(a.logged_at||"").localeCompare(b.logged_at||"")
-  );
-  const recent = sorted.slice(-Math.min(14,sorted.length));
-
-  $("perfBars").innerHTML = recent.map((p,i) => {
-    const h = Math.max(0,Math.min(100,
-      Math.round((parseFloat(p.probability)||0)*100)));
-    const col = p.result==="HIT"?"var(--green)":"var(--magenta)";
-    return '<i style="height:'+h+"%;background:linear-gradient(180deg,"+
-      col+","+col+"22);animation-delay:"+(0.2+i*.05)+'s"></i>';
-  }).join("");
-
-  $("perfSub").textContent =
-    "LAST "+recent.length+" GRADED PICKS · BAR HEIGHT = CORE 1 CONFIDENCE";
-}
-
-/* HISTORY: CORE 1 */
-function renderHistory() {
-  const rows = [...(snap?snap.picks||[]:[])].sort((a,b)=>
-    (b.date+"|"+(b.logged_at||"")).localeCompare(
-      a.date+"|"+(a.logged_at||"")
-    )
-  );
-
-  $("histTag").textContent = rows.length+" LOGGED CALLS";
-  $("histList").innerHTML = rows.slice(0,30).map((p,i) => {
-    const res = p.result||"PENDING";
-    const cls = res==="HIT"?"hit":res==="MISS"?"miss":"pending";
-    const score = p.hg!==""&&p.hg!=null
-      ? esc(p.hg)+"–"+esc(p.ag) : "—";
-
-    return '<div class="h-row" style="animation:fadeIn .35s '+
-      (i*.04)+'s both">'+
-      '<span class="h-date">'+esc(p.date)+'</span>'+
-      '<span>'+es
-c(p.home)+' <span style="color:var(--dim)">vs</span> '+
-      esc(p.away)+' · '+score+'</span>'+
-      '<span class="h-call">O'+esc(p.market)+'</span>'+
-      '<span class="h-prob">'+pct1(parseFloat(p.probability))+'</span>'+
-      '<span class="chip '+cls+'">'+esc(res)+'</span></div>';
-  }).join("")||'<div class="empty">NOTHING LOGGED YET — TAP RUN MODEL.</div>';
-}
-
-/* SLIP GENERATOR */
-let slipList = [];
-let slipIdx = 0;
-
-function underCard(f) {
-  return '<div class="mcard" style="grid-column:1/-1">'+
-    '<div class="mc-ring"></div>'+
-    '<div class="lg"><span>'+
-      esc(Barbadox.LG_NAMES[f.league]||f.league)+'</span>'+
-      '<span class="mc-state st-in">✓ QUALIFIED · CORE 2</span></div>'+
-    '<div class="mc-teams">'+esc(f.home)+
-      ' <span>vs</span> '+esc(f.away)+'</div>'+
-    '<div class="mc-meta">'+esc(f.date)+
-      (f.time?" · "+esc(f.time):"")+'</div>'+
-    '<div class="mc-market"><span class="mc-call">UNDER 3.5 GOALS</span>'+
-      '<span class="mc-pct">'+pct1(f.p_final)+
-      '<small>CORE 2 CONFIDENCE</small></span></div>'+
-  '</div>';
-}
-
-function renderSlip() {
-  const total = slipList.length;
-  const bets = slipList[slipIdx];
-  const arrow =
-    'background:transparent;border:1px solid var(--line);color:var(--dim);border-radius:99px;width:34px;height:34px;font-size:14px;cursor:pointer';
-
-  $("slipCards").innerHTML =
-    '<section class="slip-group">'+
-      '<div class="slip-group-head" style="font-size:26px;letter-spacing:.2em;margin-bottom:6px">'+
-        'SLIP '+(slipIdx+1)+
-        '<span style="display:flex;gap:8px;align-items:center">'+
-          '<button type="button" style="'+arrow+'" onclick="slipStep(-1)"'+
-            (slipIdx===0?" disabled":"")+'>←</button>'+
-          '<button type="button" style="'+arrow+'" onclick="slipStep(1)"'+
-            (slipIdx===total-1?" disabled":"")+'>→</button>'+
-        '</span></div>'+
-      '<div style="color:var(--dim);font-size:10px;letter-spacing:.15em;margin-bottom:14px">'+
-        (slipIdx+1)+
-' OF '+total+' · 4 MATCHES · 3 OVER '+MARKET+' + 1 UNDER 3.5</div>'+
-      '<div class="slip-group-bets">'+
-        fixtureCards(bets.over)+underCard(bets.under)+
-      '</div></section>';
-}
-
-function slipStep(d) {
-  const n = slipIdx+d;
-  if (n<0||n>=slipList.length) return;
-  slipIdx = n;
-  renderSlip();
+  return {
+    list,
+    overCount:over.length,
+    underCount:unders.length
+  };
 }
 
 async function generateSlips() {
-  const logged = snap ? (snap.fixtures||[]).filter(
-    f=>f.decision==="logged"
-  ) : [];
+  $("slipModal").style.display = "block";
+  $("slipCards").innerHTML = '<div class="empty">Building slips…</div>';
+  $("slipStatus").textContent = "";
 
-  slipList = [];
-  slipIdx = 0;
-  $("slipCards").innerHTML = "";
-  $("slipFoot").textContent = "";
-  $("slipStatus").textContent = "Building slips…";
-
-  let u = underSnap;
-  if (!u) {
-    try { u = await Barbadox.getUnder35(); }
-    catch(e) { u = null; }
+  if (!underSnap) {
+    try {
+      underSnap = await api("/api/under35");
+    } catch {}
   }
 
-  const unders = (u&&Array.isArray(u.fixtures)?u.fixtur
+  const {list, overCount, underCount} = buildSlips();
+  slipList = list;
 
-... [Content truncated]
+  if (!list.length) {
+    $("slipCards").innerHTML = `
+      <div class="empty">
+        No complete slip can be made. Each slip needs three logged Core 1 Over 1.5 picks and one qualified Core 2 Under 3.5 pick, with no duplicated fixture within a slip.
+      </div>`;
+
+    $("slipStatus").textContent =
+      `0 slips generated · ${overCount} qualified Over picks · ${underCount} qualified Under picks.`;
+    return;
+  }
+
+  const saved = readTracker();
+  const now = new Date().toISOString();
+
+  const additions = list.map((s, i) => ({
+    id: `${Date.now()}-${i}-${Math.random().toString(36).slice(2, 8)}`,
+    number: saved.length + i + 1,
+    createdAt: now.slice(0, 16).replace("T", " ") + " UTC",
+    status: "PENDING",
+    gradedAt: null,
+    legs: [
+      ...s.over.map(f => ({
+        home:f.home,
+        away:f.away,
+        date:f.date,
+        league:f.league,
+        market:`OVER ${MARKET}`,
+        probability:f.core
+      })),
+      {
+        home:s.under.home,
+        away:s.under.away,
+        date:s.under.date,
+        league:s.under.league,
+        market:"UNDER 3.5",
+        probability:s.under.p_final
+      }
+    ]
+  }));
+
+  const signature = x =>
+    x.legs.map(l => `${l.date}|${l.home}|${l.away}|${l.market}`).join("::");
+
+  const known = new Set(saved.map(signature));
+  const fresh = additions.filter(s => !known.has(signature(s)));
+
+  saveTracker([...saved, ...fresh]);
+
+  $("slipCards").innerHTML = list.map((s, i) => `
+    <article class="card">
+      <div class="league">SLIP ${i + 1} · 4 MATCHES</div>
+      ${s.over.map(f => `
+        <div class="teams">${esc(f.home)} vs ${esc(f.away)}</div>
+        <div class="meta">OVER ${MARKET} · ${pct(f.core)}</div>
+      `).join("")}
+      <hr style="border:0;border-top:1px solid var(--line);margin:12px 0">
+      <div class="teams">${esc(s.under.home)} vs ${esc(s.under.away)}</div>
+      <div class="meta">UNDER 3.5 · ${pct(s.under.p_final)}</div>
+      <div class="status">Saved to slips tracker</div>
+    </article>`).join("");
+
+  $("slipStatus").textContent =
+    `${list.length} slip(s) generated: 3 Over 1.5 + 1 Under 3.5 each. ${fresh.length} new slip record(s) added to tracker.`;
+}
+
+$("btnSlip").addEventListener("click", generateSlips);
+$("closeSlip").addEventListener("click", () => {
+  $("slipModal").style.display = "none";
+});
+
+async function refreshData() {
+  const [a, b] = await Promise.allSettled([
+    api("/api/data"),
+    api("/api/under35")
+  ]);
+
+  snap = a.status === "fulfilled" ? a.value : null;
+  underSnap = b.status === "fulfilled" ? b.value : null;
+
+  if (snap) {
+    $("sysDot").textContent = "CORE 1 DATA LOADED";
+    $("sysDot").className = "tag";
+
+    $("snapTime").textContent = snap.generated_at
+      ? String(snap.generated_at).slice(0, 16).replace("T", " ") + "Z"
+      : "—";
+
+    setStatus(
+      "Data refreshed. Core 1 and Core 2 are displayed independently.",
+      "ok"
+    );
+  } else {
+    $("sysDot").textContent = "CORE 1 DATA UNAVAILABLE";
+    setStatus(
+      "Core 1 data could not be loaded. Check the service and /api/data endpoint.",
+      "err"
+    );
+  }
+
+  renderCore1();
+  renderCore2();
+  renderPerformance();
+  renderHistory();
+}
+
+async function pollStatus() {
+  try {
+    const s = await api("/api/status");
+
+    if (s.running) {
+      setStatus(
+        s.waiting
+          ? "Model running; review window active."
+          : "Model is running…",
+        "warn"
+      );
+      return;
+    }
+
+    clearInterval(pollTimer);
+    pollTimer = null;
+
+    $("btnRun").disabled = false;
+    $("btnRun").textContent = "▶ RUN MODEL";
+
+    if (s.ok) {
+      await refreshData();
+
+      setStatus(
+        s.ready === false
+          ? "Run ended but final readiness was not confirmed; check service logs."
+          : "Model run completed. Review the exported picks below.",
+        s.ready === false ? "warn" : "ok"
+      );
+    } else {
+      setStatus("Model run failed. Check service logs.", "err");
+    }
+  } catch (e) {
+    setStatus("Status check failed: " + e.message, "warn");
+  }
+}
+
+$("btnRun").addEventListener("click", async () => {
+  $("btnRun").disabled = true;
+  $("btnRun").textContent = "RUNNING…";
+  setStatus("Starting model…");
+
+  try {
+    const r = await api("/api/run", {method:"POST"});
+
+    if (!r.ok) {
+      throw Error(r.message || "Run request was not accepted");
+    }
+
+    if (pollTimer) clearInterval(pollTimer);
+
+    pollTimer = setInterval(pollStatus, 1500);
+    await pollStatus();
+  } catch (e) {
+    $("btnRun").disabled = false;
+    $("btnRun").textContent = "▶ RUN MODEL";
+    setStatus("Run request failed: " + e.message, "err");
+  }
+});
+
+(async function init() {
+  renderTracker();
+
+  $("boot").style.display = "flex";
+  $("dash").style.display = "none";
+
+  await new Promise(r => setTimeout(r, 650));
+
+  $("boot").style.display = "none";
+  $("dash").style.display = "block";
+
+  try {
+    await refreshData();
+
+    const s = await api("/api/status");
+
+    if (s.running) {
+      $("btnRun").disabled = true;
+      $("btnRun").textContent = "RUNNING…";
+      pollTimer = setInterval(pollStatus, 1500);
+    }
+  } catch (e) {
+    $("sysDot").textContent = "SERVICE ERROR";
+    setStatus("Service connection failed: " + e.message, "err");
+    renderCore1();
+    renderCore2();
+  }
+})();
+</script>
+</body>
+</html>
