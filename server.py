@@ -554,12 +554,35 @@ def _api_football_request():
             raise ValueError("API response was not a JSON object.")
 
         if payload.get("errors"):
-            print("API-Football returned an API error.")
+            # API-Football can return HTTP 200 with a provider error.
+            raw_errors = payload.get("errors")
+
+            if isinstance(raw_errors, dict):
+                detail = "; ".join(
+                    f"{name}: {value}"
+                    for name, value in raw_errors.items()
+                    if value not in (None, "", [], {})
+                )
+            elif isinstance(raw_errors, list):
+                detail = "; ".join(
+                    str(value) for value in raw_errors if value
+                )
+            else:
+                detail = str(raw_errors)
+
+            detail = (
+                detail or
+                "The provider returned an unspecified error."
+            )
+
+            # Never expose the API key or request headers to the browser.
+            print("API-Football provider error:", detail[:1000])
 
             return {
                 "ok": False,
                 "configured": True,
-                "error": "API-Football returned an API error.",
+                "error": "API-Football error: " + detail[:350],
+                "provider_error": detail[:1000],
                 "fixtures": [],
                 "updated_at": utc_now(),
             }
@@ -606,18 +629,34 @@ def _api_football_request():
 
     except requests.RequestException as exc:
         # Never return the API key or request headers to the client.
-        print("Live-score request failed:", str(exc))
+        response = getattr(exc, "response", None)
+        status_code = getattr(response, "status_code", None)
+
+        detail = (
+            f"HTTP {status_code}: provider rejected the request."
+            if status_code
+            else (
+                "Network timeout or connection error "
+                "while contacting API-Football."
+            )
+        )
+
+        print(
+            "Live-score request failed:",
+            detail,
+            str(exc)[:500],
+        )
 
         return {
             "ok": False,
             "configured": True,
-            "error": "Could not retrieve live scores from the provider.",
+            "error": detail,
             "fixtures": [],
             "updated_at": utc_now(),
         }
 
     except (ValueError, TypeError, AttributeError) as exc:
-        print("Invalid live-score response:", str(exc))
+        print("Invalid live-score response:", str(exc)[:500])
 
         return {
             "ok": False,
