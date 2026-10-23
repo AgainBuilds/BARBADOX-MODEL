@@ -2,21 +2,11 @@
 """
 BARBADOX console server.
 
-Core 1:
-Over 1.5 goals.
+Core 1: Over 1.5 goals.
+Core 2: Under 3.5 goals.
 
-Core 2:
-Under 3.5 goals.
-
-Both cores scan the next 7 days by default.
-
-New context rows trigger a five-minute review window before
-the final Core 1 export. The checked=1 flag is not an approval
-requirement for upcoming fixtures.
-
-Slips tracker:
-Serves the tracker frontend at /slips and its data at
-/api/slipstracker (backed by slips_tracker.py).
+Includes live scores for the existing slips tracker.
+Configure APIFOOTBALL_KEY in the Render environment.
 """
 
 import json
@@ -24,8 +14,9 @@ import os
 import subprocess
 import threading
 import time
+import requests
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 from flask import Flask, Response, jsonify, send_from_directory
@@ -41,14 +32,22 @@ UNDER35 = BASE / "docs" / "under35.json"
 SLIP = BASE / "slip.md"
 
 app = Flask(__name__)
-
 _lock = threading.Lock()
 
 WAIT_SECONDS = 300
 CORE1_TIMEOUT = 1200
 CORE2_TIMEOUT = 900
-
 SCAN_DAYS = 7
+
+LIVE_API_URL = "https://v3.football.api-sports.io/fixtures"
+LIVE_CACHE_SECONDS = 60
+
+_live_cache = {
+    "time": 0,
+    "data": None,
+}
+
+_live_lock = threading.Lock()
 
 
 def utc_now():
@@ -68,18 +67,15 @@ _state = {
     "wait_seconds": 0,
     "log": "",
     "finished_at": None,
-
     "ok": None,
     "ready": False,
     "owner_pending": 0,
     "context_added": 0,
     "scanned": 0,
     "leagues_empty": [],
-
     "core1_status": "idle",
     "core1_finished_at": None,
     "core1_error": None,
-
     "core2_status": "idle",
     "core2_model_status": None,
     "core2_error": None,
@@ -92,7 +88,6 @@ _state = {
 
 
 def _export(defer_picks=False):
-    """Run the Core 1 exporter over the next seven days."""
     command = [
         "python",
         "export_snapshot.py",
@@ -131,13 +126,11 @@ def _run_under35():
         UNDER35.unlink(missing_ok=True)
     except Exception as exc:
         error = "Could not remove old Core 2 output: " + str(exc)
-
         _state.update(
             core2_status="failed",
             core2_error=error,
             core2_finished_at=utc_now(),
         )
-
         return "\n--- CORE 2 FAILED ---\n" + error + "\n"
 
     try:
@@ -167,39 +160,33 @@ def _run_under35():
                 + str(proc.returncode)
                 + "."
             )
-
             _state.update(
                 core2_status="failed",
                 core2_error=error,
                 core2_finished_at=utc_now(),
             )
-
             return log + "\nCORE 2 ERROR: " + error + "\n"
 
         snapshot = read_json(UNDER35)
 
         if not isinstance(snapshot, dict):
             error = "Core 2 produced no valid JSON output."
-
             _state.update(
                 core2_status="failed",
                 core2_error=error,
                 core2_finished_at=utc_now(),
             )
-
             return log + "\nCORE 2 ERROR: " + error + "\n"
 
         fixtures = snapshot.get("fixtures")
 
         if not isinstance(fixtures, list):
             error = "Core 2 JSON is missing a valid fixtures list."
-
             _state.update(
                 core2_status="failed",
                 core2_error=error,
                 core2_finished_at=utc_now(),
             )
-
             return log + "\nCORE 2 ERROR: " + error + "\n"
 
         model_status = snapshot.get("status")
@@ -209,23 +196,18 @@ def _run_under35():
                 "Core 2 returned an unexpected model status: "
                 + str(model_status)
             )
-
             _state.update(
                 core2_status="failed",
                 core2_model_status=model_status,
                 core2_error=error,
                 core2_finished_at=utc_now(),
             )
-
             return log + "\nCORE 2 ERROR: " + error + "\n"
 
         qualified = [
-            fixture
-            for fixture in fixtures
-            if (
-                isinstance(fixture, dict)
-                and fixture.get("decision") == "qualified"
-            )
+            f for f in fixtures
+            if isinstance(f, dict)
+            and f.get("decision") == "qualified"
         ]
 
         _state.update(
@@ -257,38 +239,28 @@ def _run_under35():
             + str(CORE2_TIMEOUT)
             + " seconds."
         )
-
         _state.update(
             core2_status="failed",
             core2_error=error,
             core2_finished_at=utc_now(),
         )
-
         return "\n--- CORE 2 TIMEOUT ---\n" + error + "\n"
 
     except Exception as exc:
         error = str(exc)
-
         _state.update(
             core2_status="failed",
             core2_error=error,
             core2_finished_at=utc_now(),
         )
-
         return "\n--- CORE 2 FAILED ---\n" + error + "\n"
 
 
 def _do_run():
-    """
-    Run Core 1, then attempt Core 2 independently.
-
-    If the initial export adds context rows, wait five minutes
-    before the final export.
-    """
+    """Run Core 1, then attempt Core 2 independently."""
     log = ""
 
     try:
-        # CORE 1: INITIAL DEFERRED EXPORT
         _state.update(
             core1_status="running",
             core1_error=None,
@@ -312,23 +284,20 @@ def _do_run():
                     "Initial Core 1 export failed with return code "
                     + str(initial.returncode)
                 )
-
                 _state.update(
                     core1_status="failed",
                     core1_error=error,
                     ready=False,
                 )
-
                 log += "\nCORE 1 ERROR: " + error + "\n"
 
             else:
                 snapshot = _read_snapshot() or {}
-
                 added = int(snapshot.get("context_added", 0) or 0)
+
                 _state["context_added"] = added
                 _state["owner_pending"] = 0
 
-                # FIVE-MINUTE REVIEW WINDOW
                 if added > 0:
                     _state.update(
                         waiting=True,
@@ -363,14 +332,12 @@ def _do_run():
                         "\nFive-minute review window complete. "
                         "Starting the final export.\n"
                     )
-
                 else:
                     log += (
                         "\nNo new context rows were added. "
                         "Skipping the five-minute wait.\n"
                     )
 
-                # CORE 1: FINAL EXPORT
                 final = _export(defer_picks=False)
 
                 log += (
@@ -387,18 +354,15 @@ def _do_run():
                         "Final Core 1 export failed with return code "
                         + str(final.returncode)
                     )
-
                     _state.update(
                         core1_status="failed",
                         core1_error=error,
                         ready=False,
                     )
-
                     log += "\nCORE 1 ERROR: " + error + "\n"
 
                 else:
                     snapshot = _read_snapshot() or {}
-
                     scanned = int(
                         snapshot.get(
                             "scanned",
@@ -437,18 +401,13 @@ def _do_run():
                 core1_status="failed",
                 core1_error=str(exc),
             )
-
             log += "\nCORE 1 ERROR: " + str(exc) + "\n"
 
         finally:
             _state["core1_finished_at"] = utc_now()
 
-        # CORE 2: INDEPENDENT UNDER 3.5 MODEL
         log += _run_under35()
 
-        # PERSIST SNAPSHOTS TO GITHUB
-        # Render restarts and redeploys wipe the local disk. Committing
-        # the snapshots keeps the console serving the last good analysis.
         if gh_sync.enabled():
             for name, path in (
                 ("docs/data.json", SNAPSHOT),
@@ -466,8 +425,7 @@ def _do_run():
                 except Exception as exc:
                     log += (
                         "\nSnapshot persistence failed for "
-                        + name
-                        + ": "
+                        + name + ": "
                         + str(exc)
                         + "\n"
                     )
@@ -498,13 +456,6 @@ def _worker():
 
 
 def _startup_restore():
-    """Pull the persisted snapshots from GitHub if the local disk is empty.
-
-    After a Render restart or redeploy the service comes back with no
-    docs/data.json or docs/under35.json. Restoring them keeps the
-    console showing the last completed analysis instead of the empty
-    state.
-    """
     if not gh_sync.enabled():
         return
 
@@ -525,24 +476,151 @@ def _startup_restore():
 _startup_restore()
 
 
+# ---------------------------------------------------------
+# LIVE SCORES
+# ---------------------------------------------------------
+
+def _api_football_request():
+    """
+    Fetch fixtures from API-Football.
+
+    API key remains on the server and is never sent to console.html.
+    """
+    key = os.environ.get("APIFOOTBALL_KEY", "").strip()
+
+    if not key:
+        return {
+            "ok": False,
+            "configured": False,
+            "error": "APIFOOTBALL_KEY is not configured in Render.",
+            "fixtures": [],
+            "updated_at": utc_now(),
+        }
+
+    today = datetime.now(timezone.utc).date()
+    start_date = today - timedelta(days=2)
+    end_date = today + timedelta(days=SCAN_DAYS)
+
+    headers = {"x-apisports-key": key}
+    params = {
+        "from": start_date.isoformat(),
+        "to": end_date.isoformat(),
+        "timezone": "Africa/Lagos",
+    }
+
+    try:
+        response = requests.get(
+            LIVE_API_URL,
+            headers=headers,
+            params=params,
+            timeout=20,
+        )
+        response.raise_for_status()
+        payload = response.json()
+
+        if payload.get("errors"):
+            return {
+                "ok": False,
+                "configured": True,
+                "error": "API-Football returned an API error.",
+                "fixtures": [],
+                "updated_at": utc_now(),
+            }
+
+        fixtures = []
+
+        for item in payload.get("response", []):
+            fixture = item.get("fixture") or {}
+            teams = item.get("teams") or {}
+            goals = item.get("goals") or {}
+            status = fixture.get("status") or {}
+
+            home = teams.get("home") or {}
+            away = teams.get("away") or {}
+
+            # Do not invent a score for an unscored fixture.
+            hg = goals.get("home")
+            ag = goals.get("away")
+
+            fixtures.append({
+                "id": fixture.get("id"),
+                "date": fixture.get("date"),
+                "timestamp": fixture.get("timestamp"),
+                "home": home.get("name"),
+                "away": away.get("name"),
+                "home_goals": hg,
+                "away_goals": ag,
+                "status": status.get("short"),
+                "status_long": status.get("long"),
+                "elapsed": status.get("elapsed"),
+                "finished": status.get("short") in (
+                    "FT", "AET", "PEN"
+                ),
+            })
+
+        return {
+            "ok": True,
+            "configured": True,
+            "error": None,
+            "fixtures": fixtures,
+            "updated_at": utc_now(),
+        }
+
+    except requests.RequestException as exc:
+        # Do not return the API key or request headers to the client.
+        print("Live-score request failed:", str(exc))
+        return {
+            "ok": False,
+            "configured": True,
+            "error": "Could not retrieve live scores from the provider.",
+            "fixtures": [],
+            "updated_at": utc_now(),
+        }
+
+    except (ValueError, TypeError) as exc:
+        print("Invalid live-score response:", str(exc))
+        return {
+            "ok": False,
+            "configured": True,
+            "error": "The live-score provider returned invalid data.",
+            "fixtures": [],
+            "updated_at": utc_now(),
+        }
+
+
+@app.get("/api/live-scores")
+def live_scores():
+    """
+    Cached live-score endpoint.
+    Refreshes provider data at most once per 60 seconds.
+    """
+    now = time.time()
+
+    with _live_lock:
+        cached = _live_cache["data"]
+
+        if (
+            cached is not None
+            and now - _live_cache["time"] < LIVE_CACHE_SECONDS
+        ):
+            return jsonify(cached)
+
+        data = _api_football_request()
+
+        _live_cache["time"] = time.time()
+        _live_cache["data"] = data
+
+        return jsonify(data)
+
+
+# ---------------------------------------------------------
+# EXISTING CONSOLE ROUTES
+# ---------------------------------------------------------
+
 @app.get("/")
 def index():
-    """Serve the console with a SLIPS TRACKER button injected."""
-    try:
-        body = (BASE / "console.html").read_text(encoding="utf-8")
-    except Exception:
-        return send_from_directory(str(BASE), "console.html")
-
-    slip_button = '<button class="runbtn ghost" id="btnSlip">GENERATE SLIPS</button>'
-    tracker_button = (
-        '<button class="runbtn ghost" '
-        'onclick="window.location.href=&quot;/slips&quot;">'
-        "SLIPS TRACKER</button>"
-    )
-    if slip_button in body:
-        body = body.replace(slip_button, slip_button + tracker_button, 1)
-
-    return Response(body, mimetype="text/html")
+    """Serve the main console."""
+    return send_from_directory(str(BASE), "console.html")
 
 
 @app.get("/slips")
@@ -552,7 +630,6 @@ def slips_page():
 
 @app.get("/api/slipstracker")
 def slipstracker():
-    """Refresh slip history, then return the slips tracker summary."""
     if gh_sync.enabled():
         try:
             gh_sync.pull("picks.csv")
