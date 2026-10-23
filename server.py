@@ -6,7 +6,7 @@ Core 1: Over 1.5 goals.
 Core 2: Under 3.5 goals.
 
 Includes live scores for the existing slips tracker.
-Configure APIFOOTBALL_KEY in the Render environment.
+Configure API_FOOTBALL_KEY in the Render environment.
 """
 
 import json
@@ -19,7 +19,7 @@ import requests
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-from flask import Flask, Response, jsonify, send_from_directory
+from flask import Flask, jsonify, send_from_directory
 
 import gh_sync
 import slips_tracker
@@ -126,11 +126,13 @@ def _run_under35():
         UNDER35.unlink(missing_ok=True)
     except Exception as exc:
         error = "Could not remove old Core 2 output: " + str(exc)
+
         _state.update(
             core2_status="failed",
             core2_error=error,
             core2_finished_at=utc_now(),
         )
+
         return "\n--- CORE 2 FAILED ---\n" + error + "\n"
 
     try:
@@ -160,33 +162,39 @@ def _run_under35():
                 + str(proc.returncode)
                 + "."
             )
+
             _state.update(
                 core2_status="failed",
                 core2_error=error,
                 core2_finished_at=utc_now(),
             )
+
             return log + "\nCORE 2 ERROR: " + error + "\n"
 
         snapshot = read_json(UNDER35)
 
         if not isinstance(snapshot, dict):
             error = "Core 2 produced no valid JSON output."
+
             _state.update(
                 core2_status="failed",
                 core2_error=error,
                 core2_finished_at=utc_now(),
             )
+
             return log + "\nCORE 2 ERROR: " + error + "\n"
 
         fixtures = snapshot.get("fixtures")
 
         if not isinstance(fixtures, list):
             error = "Core 2 JSON is missing a valid fixtures list."
+
             _state.update(
                 core2_status="failed",
                 core2_error=error,
                 core2_finished_at=utc_now(),
             )
+
             return log + "\nCORE 2 ERROR: " + error + "\n"
 
         model_status = snapshot.get("status")
@@ -196,18 +204,21 @@ def _run_under35():
                 "Core 2 returned an unexpected model status: "
                 + str(model_status)
             )
+
             _state.update(
                 core2_status="failed",
                 core2_model_status=model_status,
                 core2_error=error,
                 core2_finished_at=utc_now(),
             )
+
             return log + "\nCORE 2 ERROR: " + error + "\n"
 
         qualified = [
-            f for f in fixtures
-            if isinstance(f, dict)
-            and f.get("decision") == "qualified"
+            fixture
+            for fixture in fixtures
+            if isinstance(fixture, dict)
+            and fixture.get("decision") == "qualified"
         ]
 
         _state.update(
@@ -239,20 +250,24 @@ def _run_under35():
             + str(CORE2_TIMEOUT)
             + " seconds."
         )
+
         _state.update(
             core2_status="failed",
             core2_error=error,
             core2_finished_at=utc_now(),
         )
+
         return "\n--- CORE 2 TIMEOUT ---\n" + error + "\n"
 
     except Exception as exc:
         error = str(exc)
+
         _state.update(
             core2_status="failed",
             core2_error=error,
             core2_finished_at=utc_now(),
         )
+
         return "\n--- CORE 2 FAILED ---\n" + error + "\n"
 
 
@@ -284,11 +299,13 @@ def _do_run():
                     "Initial Core 1 export failed with return code "
                     + str(initial.returncode)
                 )
+
                 _state.update(
                     core1_status="failed",
                     core1_error=error,
                     ready=False,
                 )
+
                 log += "\nCORE 1 ERROR: " + error + "\n"
 
             else:
@@ -332,6 +349,7 @@ def _do_run():
                         "\nFive-minute review window complete. "
                         "Starting the final export.\n"
                     )
+
                 else:
                     log += (
                         "\nNo new context rows were added. "
@@ -354,15 +372,18 @@ def _do_run():
                         "Final Core 1 export failed with return code "
                         + str(final.returncode)
                     )
+
                     _state.update(
                         core1_status="failed",
                         core1_error=error,
                         ready=False,
                     )
+
                     log += "\nCORE 1 ERROR: " + error + "\n"
 
                 else:
                     snapshot = _read_snapshot() or {}
+
                     scanned = int(
                         snapshot.get(
                             "scanned",
@@ -385,6 +406,7 @@ def _do_run():
                             "Check API keys, plan limits, league data, "
                             "and the requested date window.\n"
                         )
+
                     else:
                         log += (
                             "\nCORE 1 COMPLETE: "
@@ -401,6 +423,7 @@ def _do_run():
                 core1_status="failed",
                 core1_error=str(exc),
             )
+
             log += "\nCORE 1 ERROR: " + str(exc) + "\n"
 
         finally:
@@ -421,14 +444,18 @@ def _do_run():
                         name,
                         "Barbadox: persist console snapshot",
                     )
+
                     log += "\nSnapshot persisted: " + name + "\n"
+
                 except Exception as exc:
                     log += (
                         "\nSnapshot persistence failed for "
-                        + name + ": "
+                        + name
+                        + ": "
                         + str(exc)
                         + "\n"
                     )
+
         else:
             log += (
                 "\nSnapshot persistence skipped: "
@@ -469,6 +496,7 @@ def _startup_restore():
         try:
             if gh_sync.pull(name):
                 print("Restored " + name + " from GitHub.")
+
         except Exception as exc:
             print("Could not restore " + name + ": " + str(exc))
 
@@ -484,15 +512,15 @@ def _api_football_request():
     """
     Fetch fixtures from API-Football.
 
-    API key remains on the server and is never sent to console.html.
+    The API key remains server-side and is never sent to console.html.
     """
-    API_KEY = os.getenv("API_FOOTBALL_KEY")
+    key = os.getenv("API_FOOTBALL_KEY", "").strip()
 
     if not key:
         return {
             "ok": False,
             "configured": False,
-            "error": "APIFOOTBALL_KEY is not configured in Render.",
+            "error": "API_FOOTBALL_KEY is not configured in Render.",
             "fixtures": [],
             "updated_at": utc_now(),
         }
@@ -501,7 +529,10 @@ def _api_football_request():
     start_date = today - timedelta(days=2)
     end_date = today + timedelta(days=SCAN_DAYS)
 
-    headers = {"x-apisports-key": key}
+    headers = {
+        "x-apisports-key": key,
+    }
+
     params = {
         "from": start_date.isoformat(),
         "to": end_date.isoformat(),
@@ -515,10 +546,16 @@ def _api_football_request():
             params=params,
             timeout=20,
         )
+
         response.raise_for_status()
         payload = response.json()
 
+        if not isinstance(payload, dict):
+            raise ValueError("API response was not a JSON object.")
+
         if payload.get("errors"):
+            print("API-Football returned an API error.")
+
             return {
                 "ok": False,
                 "configured": True,
@@ -530,6 +567,9 @@ def _api_football_request():
         fixtures = []
 
         for item in payload.get("response", []):
+            if not isinstance(item, dict):
+                continue
+
             fixture = item.get("fixture") or {}
             teams = item.get("teams") or {}
             goals = item.get("goals") or {}
@@ -538,9 +578,9 @@ def _api_football_request():
             home = teams.get("home") or {}
             away = teams.get("away") or {}
 
-            # Do not invent a score for an unscored fixture.
-            hg = goals.get("home")
-            ag = goals.get("away")
+            home_goals = goals.get("home")
+            away_goals = goals.get("away")
+            short_status = status.get("short")
 
             fixtures.append({
                 "id": fixture.get("id"),
@@ -548,14 +588,12 @@ def _api_football_request():
                 "timestamp": fixture.get("timestamp"),
                 "home": home.get("name"),
                 "away": away.get("name"),
-                "home_goals": hg,
-                "away_goals": ag,
-                "status": status.get("short"),
+                "home_goals": home_goals,
+                "away_goals": away_goals,
+                "status": short_status,
                 "status_long": status.get("long"),
                 "elapsed": status.get("elapsed"),
-                "finished": status.get("short") in (
-                    "FT", "AET", "PEN"
-                ),
+                "finished": short_status in ("FT", "AET", "PEN"),
             })
 
         return {
@@ -567,8 +605,9 @@ def _api_football_request():
         }
 
     except requests.RequestException as exc:
-        # Do not return the API key or request headers to the client.
+        # Never return the API key or request headers to the client.
         print("Live-score request failed:", str(exc))
+
         return {
             "ok": False,
             "configured": True,
@@ -577,8 +616,9 @@ def _api_football_request():
             "updated_at": utc_now(),
         }
 
-    except (ValueError, TypeError) as exc:
+    except (ValueError, TypeError, AttributeError) as exc:
         print("Invalid live-score response:", str(exc))
+
         return {
             "ok": False,
             "configured": True,
@@ -633,6 +673,7 @@ def slipstracker():
     if gh_sync.enabled():
         try:
             gh_sync.pull("picks.csv")
+
         except Exception as exc:
             return jsonify({
                 "ok": False,
@@ -648,13 +689,17 @@ def slipstracker():
             timeout=300,
             check=False,
         )
+
     except Exception as exc:
         return jsonify({
             "ok": False,
             "error": "Slip tracking refresh failed: " + str(exc),
         }), 500
 
-    return jsonify({"ok": True, **slips_tracker.tracker_data()})
+    return jsonify({
+        "ok": True,
+        **slips_tracker.tracker_data(),
+    })
 
 
 @app.get("/api/data")
@@ -728,12 +773,14 @@ def run():
             target=_worker,
             daemon=True,
         ).start()
+
     except Exception as exc:
         _state.update(
             running=False,
             core1_status="failed",
             core1_error=str(exc),
         )
+
         _lock.release()
 
         return jsonify({
@@ -761,6 +808,7 @@ def slip():
     if gh_sync.enabled():
         try:
             gh_sync.pull("picks.csv")
+
         except Exception as exc:
             return jsonify({
                 "ok": False,
