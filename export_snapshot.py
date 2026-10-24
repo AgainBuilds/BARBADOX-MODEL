@@ -15,6 +15,7 @@ IMPORTANT:
 
 import argparse
 import json
+import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -25,6 +26,10 @@ import gh_sync
 
 BASE_DIR = Path(__file__).resolve().parent
 SNAPSHOT_FILE = BASE_DIR / "docs" / "data.json"
+
+# Fixtures kicking off sooner than this (or already started) are never
+# offered as picks or slip legs.
+KICKOFF_BUFFER_MIN = max(0, int(os.environ.get("KICKOFF_BUFFER_MINUTES", "30")))
 
 
 def _pct_from(sheet_line):
@@ -52,6 +57,23 @@ def _context_key(fixture):
         fixture["hk"],
         fixture["ak"],
     )
+
+
+def _is_core1_pick(pick, market):
+    """
+    True only for a Core 1 Over pick on this market.
+
+    picks.csv also holds Core 2 (Under 3.5) rows for the same fixtures.
+    Matching on date and teams alone made those rows count as "already
+    logged", so a fixture at 66.5% was shown as a qualified Over 1.5 pick.
+    """
+    if str(pick.get("note", "")).upper().startswith("CORE2_UNDER35"):
+        return False
+
+    try:
+        return abs(float(pick.get("market", "")) - float(market)) < 1e-4
+    except (TypeError, ValueError):
+        return False
 
 
 def export(args):
@@ -157,6 +179,7 @@ def export(args):
                 bc.norm(pick["away"]),
             )
             for pick in picks
+            if _is_core1_pick(pick, market)
         }
 
         new_picks = 0
@@ -194,7 +217,17 @@ def export(args):
                 "home": fixture["home"],
                 "away": fixture["away"],
                 "checked": checked,
+                "kickoff_utc": fixture["dt"].isoformat(),
             }
+
+            if fixture["dt"] <= bc.NOW + timedelta(minutes=KICKOFF_BUFFER_MIN):
+                entry.update({
+                    "decision": "started",
+                    "reason": "Kickoff has passed or is inside the buffer.",
+                })
+
+                output_fixtures.append(entry)
+                continue
 
             if result.get("p") is None:
                 entry.update({
