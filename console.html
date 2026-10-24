@@ -521,12 +521,14 @@ footer {
   <div id="trackerList" class="tracker-list"></div>
 
   <div class="status">
-    Each generated slip is recorded here. Live scores refresh approximately
-    every 60 seconds. Automatic grading occurs only when all four fixtures
-    have been uniquely matched, have confirmed numeric scores, and are
-    confirmed finished. Manual grading remains available. Every generated
-    slip is also synchronized with the permanent history archive when the
-    server is reachable. Clearing this tracker does not delete the archive.
+    Each generated slip is recorded here. Live scores refresh on a long
+    interval (about 5–15 minutes, longer after rate-limit errors) so the
+    free API quota is not burned. Automatic grading occurs only when all
+    four fixtures have been uniquely matched, have confirmed numeric scores,
+    and are confirmed finished. Manual grading remains available. Every
+    generated slip is also synchronized with the permanent history archive
+    when the server is reachable. Clearing this tracker does not delete
+    the archive.
   </div>
 </section>
 
@@ -613,6 +615,11 @@ let snap = null;
 let underSnap = null;
 let pollTimer = null;
 let liveRefreshTimer = null;
+// Default client poll; server cache is 15 min. On rate-limit we back off harder.
+let livePollMs = 300000;
+const LIVE_POLL_DEFAULT_MS = 300000;
+const LIVE_POLL_MIN_MS = 120000;
+const LIVE_POLL_MAX_MS = 3600000;
 
 let THRESHOLD = .80;
 let MARKET = 1.5;
@@ -647,13 +654,16 @@ function saveTracker(rows) {
 }
 
 function fixtureKey(f) {
-  return [
-    f.date,
-    f.home,
-    f.away
-  ].map(x =>
-    String(x || "").trim().toLowerCase()
-  ).join("|");
+  // Normalise team names so "FC Internazionale Milano" and
+  // "Internazionale" style variants still collide correctly.
+  const date = String(f && f.date || "").slice(0, 10).trim().toLowerCase();
+  const home = typeof normTeam === "function"
+    ? normTeam(f && f.home)
+    : String(f && f.home || "").trim().toLowerCase();
+  const away = typeof normTeam === "function"
+    ? normTeam(f && f.away)
+    : String(f && f.away || "").trim().toLowerCase();
+  return [date, home, away].join("|");
 }
 
 
@@ -1106,7 +1116,24 @@ function autoGradeCompletedSlips(rows) {
 
 /* -------------------------------------------------------
    LIVE SCORE REFRESH
+   Client polls on a long interval. Server caches for 15 min
+   and holds rate-limit errors for 1 hour so free quotas last.
 ------------------------------------------------------- */
+
+function scheduleLiveRefresh(ms) {
+  if (liveRefreshTimer) {
+    clearInterval(liveRefreshTimer);
+    liveRefreshTimer = null;
+  }
+
+  const interval = Math.max(
+    LIVE_POLL_MIN_MS,
+    Math.min(LIVE_POLL_MAX_MS, Number(ms) || LIVE_POLL_DEFAULT_MS)
+  );
+
+  livePollMs = interval;
+  liveRefreshTimer = setInterval(refreshLiveScores, interval);
+}
 
 async function refreshLiveScores() {
   if (liveRefreshBusy) {
@@ -1127,14 +1154,27 @@ async function refreshLiveScores() {
       data = await r.json();
     } catch {}
 
+    const serverCacheSec = data && Number(data.cacheSeconds);
+    const rateLimited = !!(data && data.rateLimited);
+
     if (!data || data.ok !== true) {
       liveFixtures = [];
 
-      liveScoreError = data && data.error
-        ? data.error + (r.ok ? "" : " (HTTP " + r.status + ")")
+      liveScoreError = data && (data.error || data.message)
+        ? (data.error || data.message) + (r.ok ? "" : " (HTTP " + r.status + ")")
         : "Live scores are currently unavailable (HTTP " + r.status + ").";
 
       liveUpdatedAt = null;
+
+      // Back off: honour server TTL when rate-limited, otherwise double.
+      if (rateLimited || /limit|quota|rate/i.test(String(liveScoreError))) {
+        const backoffMs = Number.isFinite(serverCacheSec)
+          ? serverCacheSec * 1000
+          : Math.min(LIVE_POLL_MAX_MS, livePollMs * 2);
+        scheduleLiveRefresh(backoffMs);
+      } else if (Number.isFinite(serverCacheSec) && serverCacheSec > 0) {
+        scheduleLiveRefresh(serverCacheSec * 1000);
+      }
 
     } else {
       liveFixtures = Array.isArray(data.fixtures)
@@ -1143,6 +1183,12 @@ async function refreshLiveScores() {
 
       liveScoreError = null;
       liveUpdatedAt = data.updated_at || null;
+
+      if (Number.isFinite(serverCacheSec) && serverCacheSec > 0) {
+        scheduleLiveRefresh(Math.max(LIVE_POLL_MIN_MS, serverCacheSec * 1000));
+      } else if (livePollMs !== LIVE_POLL_DEFAULT_MS) {
+        scheduleLiveRefresh(LIVE_POLL_DEFAULT_MS);
+      }
     }
 
     const rows = readTracker();
@@ -1159,7 +1205,8 @@ async function refreshLiveScores() {
           liveScoreError +
           " Check API_FOOTBALL_KEY in Render and the API provider. " +
           "Scores will not be guessed, and slips will not be " +
-          "automatically graded without confirmed finished results.";
+          "automatically graded without confirmed finished results. " +
+          "Next poll in about " + Math.round(livePollMs / 60000) + " min.";
 
       } else {
         note.className = "live-note";
@@ -1169,7 +1216,9 @@ async function refreshLiveScores() {
           esc(liveFixtures.length) +
           " PROVIDER FIXTURES LOADED." +
           "<span class=\"live-refresh\">" +
-          "Refresh interval: approximately 60 seconds." +
+          "Refresh interval: approximately " +
+          Math.round(livePollMs / 60000) +
+          " minutes (server cache respected)." +
           " Updated: " +
           esc(liveUpdatedAt || "—") +
           "</span>";
@@ -1182,6 +1231,8 @@ async function refreshLiveScores() {
     liveScoreError =
       error.message || "Live-score connection failed.";
 
+    scheduleLiveRefresh(Math.min(LIVE_POLL_MAX_MS, livePollMs * 2));
+
     const note = $("liveScoreNote");
 
     if (note) {
@@ -1190,7 +1241,8 @@ async function refreshLiveScores() {
       note.textContent =
         "Live scores could not be refreshed. " +
         "Your saved slips have been preserved. " +
-        "Automatic grading is paused until the score feed is available.";
+        "Automatic grading is paused until the score feed is available. " +
+        "Retrying in about " + Math.round(livePollMs / 60000) + " min.";
     }
 
     renderTracker();
@@ -1274,12 +1326,27 @@ function qualifiedUnder(f, now = Date.now()) {
     isUpcoming(f, now);
 }
 
-/* Fixtures already sitting in a pending slip are never reused. */
+/* Fixtures already sitting in any unsettled slip are never reused.
+   Manual "Mark HIT" without real scores must not free those fixtures
+   for a second slip, or one miss sinks several slips. */
 function pendingFixtureKeys() {
   const keys = new Set();
 
   readTracker().forEach(slip => {
-    if (String(slip.status || "").toUpperCase() !== "PENDING") {
+    const status = String(slip.status || "PENDING").toUpperCase();
+    // Only fully auto-graded (or clearly finished) slips release fixtures.
+    // Manual HIT / WON without autoGraded still blocks reuse.
+    const settled =
+      (status === "HIT" || status === "HIT / WON" || status === "WON") &&
+      slip.autoGraded === true;
+
+    const failed =
+      status === "FAILED" ||
+      status === "FAILED / LOST" ||
+      status === "MISS" ||
+      status === "LOST";
+
+    if (settled || failed) {
       return;
     }
 
@@ -1830,6 +1897,8 @@ $("exportTracker").addEventListener("click", () => {
 function buildSlips() {
   const now = Date.now();
   const taken = pendingFixtureKeys();
+  // Hard cap so a single GENERATE click cannot flood the tracker.
+  const MAX_NEW_SLIPS = 3;
 
   const over = (
     snap && Array.isArray(snap.fixtures)
@@ -1856,20 +1925,33 @@ function buildSlips() {
       (Number(a.p_final) || 0)
     );
 
-  const used = new Set();
+  const used = new Set(taken);
   const list = [];
 
   // Earliest matchday first, so slips settle sooner.
-  const anchors = [...new Set(over.map(kickoffMs))]
-    .sort((a, b) => a - b);
+  // Drop non-finite anchors (date-only / missing time) — those must never
+  // enter a slip because we cannot prove the match has not already started.
+  const anchors = [...new Set(
+    over.map(kickoffMs).filter(Number.isFinite)
+  )].sort((a, b) => a - b);
 
   for (const anchor of anchors) {
+    if (list.length >= MAX_NEW_SLIPS) {
+      break;
+    }
+
     for (;;) {
+      if (list.length >= MAX_NEW_SLIPS) {
+        break;
+      }
+
       const inWindow = f => {
         const t = kickoffMs(f);
 
-        return t >= anchor &&
+        return Number.isFinite(t) &&
+          t >= anchor &&
           t <= anchor + SLIP_WINDOW_MS &&
+          t > now + KICKOFF_BUFFER_MS &&
           !used.has(fixtureKey(f));
       };
 
@@ -1886,7 +1968,7 @@ function buildSlips() {
         !trioKeys.has(fixtureKey(f))
       );
 
-      // No padding: if there is no valid Under, stop.
+      // No padding: if there is no valid Under, stop this anchor.
       if (!under) {
         break;
       }
@@ -2245,18 +2327,9 @@ $("btnRun").addEventListener("click", async () => {
   try {
     await refreshData();
 
-    // Load live scores immediately.
+    // Load live scores immediately; schedule respects server cache / backoff.
     await refreshLiveScores();
-
-    // Refresh live scores once every 60 seconds.
-    if (liveRefreshTimer) {
-      clearInterval(liveRefreshTimer);
-    }
-
-    liveRefreshTimer = setInterval(
-      refreshLiveScores,
-      60000
-    );
+    scheduleLiveRefresh(livePollMs);
 
     const s = await api("/api/status");
 
@@ -2282,16 +2355,7 @@ $("btnRun").addEventListener("click", async () => {
     renderCore2();
 
     // Still try the live-score endpoint if model data fails.
-    refreshLiveScores();
-
-    if (liveRefreshTimer) {
-      clearInterval(liveRefreshTimer);
-    }
-
-    liveRefreshTimer = setInterval(
-      refreshLiveScores,
-      60000
-    );
+    refreshLiveScores().then(() => scheduleLiveRefresh(livePollMs));
   }
 })();
 </script>
