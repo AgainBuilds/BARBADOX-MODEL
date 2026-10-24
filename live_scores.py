@@ -3,7 +3,7 @@ BARBADOX Live-Score API
 Provides football scores to the existing console.html slips tracker.
 
 Required Render environment variable:
-    APIFOOTBALL_KEY
+    API_FOOTBALL_KEY
 """
 
 import json
@@ -53,7 +53,7 @@ def live_scores():
             "ok": False,
             "configured": False,
             "message": (
-                "Add APIFOOTBALL_KEY in Render → Environment."
+                "Add API_FOOTBALL_KEY in Render → Environment."
             ),
             "fixtures": [],
         })
@@ -193,3 +193,4 @@ def live_scores():
             ),
             "fixtures": [],
         }), 502
+
