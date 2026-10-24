@@ -30,6 +30,9 @@ from pathlib import Path
 import barbadox_core as bc
 import barbadox_core2 as c2
 
+# Fixtures kicking off sooner than this (or already started) never qualify.
+KICKOFF_BUFFER_MIN = max(0, int(os.environ.get("KICKOFF_BUFFER_MINUTES", "30")))
+
 
 BASE_DIR = Path(__file__).resolve().parent
 OUT_FILE = BASE_DIR / "docs" / "under35.json"
@@ -167,7 +170,16 @@ def analyse(matches, threshold, d0, d1):
             "league": match["league"],
             "home": match["home"],
             "away": match["away"],
+            "kickoff_utc": match["dt"].isoformat(),
         }
+
+        if match["dt"] <= bc.NOW + timedelta(minutes=KICKOFF_BUFFER_MIN):
+            entry.update({
+                "decision": "started",
+                "reason": "Kickoff has passed or is inside the buffer.",
+            })
+            output.append(entry)
+            continue
 
         state = states.get((
             match["league"],
