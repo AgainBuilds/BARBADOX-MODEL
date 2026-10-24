@@ -13,6 +13,7 @@ Includes:
 - Nigeria-time fixture requests.
 - Cached live-score results.
 - Safe handling of provider errors.
+- Persistent slips history backed by CSV and GitHub.
 
 Required Render environment variables:
     FOOTBALL_DATA_KEY
@@ -27,6 +28,7 @@ import os
 import subprocess
 import threading
 import time
+
 import requests
 
 from datetime import datetime, timezone, timedelta
@@ -36,6 +38,7 @@ from flask import Flask, jsonify, send_from_directory
 
 import gh_sync
 import slips_tracker
+import slips_history
 
 
 BASE = Path(__file__).resolve().parent
@@ -45,6 +48,10 @@ UNDER35 = BASE / "docs" / "under35.json"
 SLIP = BASE / "slip.md"
 
 app = Flask(__name__)
+
+# Persistent slips-history API and frontend JavaScript.
+app.register_blueprint(slips_history.slips_history_bp)
+
 _lock = threading.Lock()
 
 WAIT_SECONDS = 300
@@ -95,10 +102,12 @@ def _api_error_text(payload):
             for name, value in errors.items()
             if value not in (None, "", [], {})
         ]
+
         return "; ".join(parts) or "Unspecified API-Football error."
 
     if isinstance(errors, list):
         parts = [str(value) for value in errors if value]
+
         return "; ".join(parts) or "Unspecified API-Football error."
 
     return str(errors)
@@ -106,9 +115,9 @@ def _api_error_text(payload):
 
 def _is_date_parameter_error(message):
     """
-    Detect the provider error shown in the Render logs.
+    Detect provider date-parameter errors.
 
-    If the range request is rejected because of its date parameters,
+    If a range request is rejected because of its date parameters,
     the live-score code can retry using individual dates.
     """
     if not message:
@@ -195,6 +204,7 @@ def _run_under35():
 
     try:
         UNDER35.unlink(missing_ok=True)
+
     except Exception as exc:
         error = "Could not remove old Core 2 output: " + str(exc)
 
@@ -381,6 +391,7 @@ def _do_run():
 
             else:
                 snapshot = _read_snapshot() or {}
+
                 added = int(snapshot.get("context_added", 0) or 0)
 
                 _state["context_added"] = added
@@ -589,6 +600,7 @@ def _request_api_football(key, params):
     )
 
     response.raise_for_status()
+
     payload = response.json()
 
     if not isinstance(payload, dict):
@@ -637,9 +649,9 @@ def _fetch_fixtures_by_date(key, start_date, end_date):
     Fallback method: query one calendar date at a time.
 
     This is used only if the provider rejects the date-range request
-    with the parameter error seen in the Render logs.
+    with a parameter error.
 
-    The primary request is still preferred because it uses fewer API
+    The primary request is preferred because it uses fewer API
     requests. The fallback merges results by fixture ID to avoid
     duplicate fixtures.
     """
@@ -656,6 +668,7 @@ def _fetch_fixtures_by_date(key, start_date, end_date):
 
         try:
             payload = _request_api_football(key, params)
+
             provider_error = _api_error_text(payload)
 
             if provider_error:
@@ -665,12 +678,14 @@ def _fetch_fixtures_by_date(key, start_date, end_date):
                         key,
                         {"date": current_date.isoformat()},
                     )
+
                     provider_error = _api_error_text(payload)
 
             if provider_error:
                 errors.append(
                     current_date.isoformat() + ": " + provider_error
                 )
+
             else:
                 for item in _normalise_fixtures(payload):
                     fixture_id = item.get("id")
@@ -730,8 +745,8 @@ def _api_football_request():
     """
     Fetch upcoming, live, and recently finished fixtures.
 
-    The API key stays on the server. If the normal range query is
-    rejected for date-parameter validation, retry by calendar date.
+    The API key stays on the server. If the range query is rejected
+    for date-parameter validation, retry by calendar date.
     """
     key = (
         os.getenv("API_FOOTBALL_KEY")
@@ -752,6 +767,7 @@ def _api_football_request():
         }
 
     today = datetime.now(timezone.utc).date()
+
     start_date = today - timedelta(days=2)
     end_date = today + timedelta(days=SCAN_DAYS)
 
@@ -763,6 +779,7 @@ def _api_football_request():
 
     try:
         payload = _request_api_football(key, params)
+
         provider_error = _api_error_text(payload)
 
         if provider_error:
@@ -804,6 +821,7 @@ def _api_football_request():
 
     except requests.HTTPError as exc:
         response = getattr(exc, "response", None)
+
         status_code = (
             getattr(response, "status_code", None)
             if response is not None
@@ -866,7 +884,7 @@ def live_scores():
     """
     Cached live-score endpoint.
 
-    Refreshes the provider data at most once per 60 seconds.
+    Refreshes provider data at most once per 60 seconds.
     """
     now = time.time()
 
@@ -877,7 +895,6 @@ def live_scores():
             cached is not None
             and now - _live_cache["time"] < LIVE_CACHE_SECONDS
         ):
-            # Use a real HTTP error status when the provider failed.
             status_code = 200 if cached.get("ok") else 502
             return jsonify(cached), status_code
 
@@ -887,6 +904,7 @@ def live_scores():
         _live_cache["data"] = data
 
         status_code = 200 if data.get("ok") else 502
+
         return jsonify(data), status_code
 
 
@@ -1092,4 +1110,3 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 5000)),
     )
-
