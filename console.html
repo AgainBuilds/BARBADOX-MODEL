@@ -524,8 +524,9 @@ footer {
     Each generated slip is recorded here. Live scores refresh approximately
     every 60 seconds. Automatic grading occurs only when all four fixtures
     have been uniquely matched, have confirmed numeric scores, and are
-    confirmed finished. Manual grading remains available. Records are
-    stored in this browser using localStorage.
+    confirmed finished. Manual grading remains available. Every generated
+    slip is also synchronized with the permanent history archive when the
+    server is reachable. Clearing this tracker does not delete the archive.
   </div>
 </section>
 
@@ -613,7 +614,7 @@ let underSnap = null;
 let pollTimer = null;
 let liveRefreshTimer = null;
 
-let THRESHOLD = .79;
+let THRESHOLD = .80;
 let MARKET = 1.5;
 let slipList = [];
 
@@ -1115,11 +1116,16 @@ async function refreshLiveScores() {
   liveRefreshBusy = true;
 
   try {
-    const r = await fetch("/api/live-scores", {cache:"no-store"});
+    const r = await fetch(
+      "/api/live-scores",
+      {cache:"no-store"}
+    );
 
     let data = null;
 
-    try { data = await r.json(); } catch {}
+    try {
+      data = await r.json();
+    } catch {}
 
     if (!data || data.ok !== true) {
       liveFixtures = [];
@@ -1129,6 +1135,7 @@ async function refreshLiveScores() {
         : "Live scores are currently unavailable (HTTP " + r.status + ").";
 
       liveUpdatedAt = null;
+
     } else {
       liveFixtures = Array.isArray(data.fixtures)
         ? data.fixtures
@@ -1153,6 +1160,7 @@ async function refreshLiveScores() {
           " Check API_FOOTBALL_KEY in Render and the API provider. " +
           "Scores will not be guessed, and slips will not be " +
           "automatically graded without confirmed finished results.";
+
       } else {
         note.className = "live-note";
 
@@ -1644,7 +1652,7 @@ $("trackerFilter").addEventListener(
 
 $("clearTracker").addEventListener("click", () => {
   if (!confirm(
-    "Delete every locally saved slip record? This cannot be undone."
+    "Clear the active slips tracker? The permanent slips history will remain archived."
   )) {
     return;
   }
@@ -1992,6 +2000,7 @@ async function refreshData() {
       "Data refreshed. Core 1 and Core 2 are displayed independently.",
       "ok"
     );
+
   } else {
     $("sysDot").textContent =
       "CORE 1 DATA UNAVAILABLE";
@@ -2043,6 +2052,7 @@ async function pollStatus() {
           : "Model run completed. Review the exported picks below.",
         s.ready === false ? "warn" : "ok"
       );
+
     } else {
       setStatus(
         "Model run failed. Check service logs.",
@@ -2168,6 +2178,10 @@ $("btnRun").addEventListener("click", async () => {
   }
 })();
 </script>
+
+<!-- Persistent archive: adds SLIPS HISTORY beside GENERATE SLIPS.
+     It synchronizes archived slips with /api/slip-history. -->
+<script src="/slips_history.js"></script>
+
 </body>
 </html>
-
