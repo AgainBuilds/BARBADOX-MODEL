@@ -938,7 +938,7 @@ function renderLiveLeg(leg, index) {
         <div class="live-progress">
           ${esc(
             leg.date
-              ? "SCHEDULED: " + formatKickoff(leg.date)
+              ? "SCHEDULED: " + formatKickoff(leg.kickoff || leg.date)
               : "Kickoff time unavailable"
           )}
         </div>
@@ -1202,6 +1202,95 @@ async function refreshLiveScores() {
 
 
 /* -------------------------------------------------------
+   KICKOFF AND ELIGIBILITY RULES
+   A pick is usable only if it meets its bar AND has not started.
+------------------------------------------------------- */
+
+// Must match BARBADOX_TZ_HOURS on Render (the server default is 1).
+const KICKOFF_TZ_HOURS = 1;
+// Ignore any fixture starting sooner than this.
+const KICKOFF_BUFFER_MS = 30 * 60000;
+// All four legs of a slip must start inside this window.
+const SLIP_WINDOW_MS = 24 * 3600000;
+const UNDER_BAR = .60;
+
+function kickoffMs(f) {
+  if (f && f.kickoff_utc) {
+    const t = Date.parse(f.kickoff_utc);
+
+    if (Number.isFinite(t)) {
+      return t;
+    }
+  }
+
+  if (
+    f &&
+    /^\d{4}-\d{2}-\d{2}$/.test(String(f.date || "")) &&
+    /^\d{2}:\d{2}$/.test(String(f.time || ""))
+  ) {
+    // Older snapshots only carry local date and time.
+    return Date.parse(f.date + "T" + f.time + ":00Z") -
+      KICKOFF_TZ_HOURS * 3600000;
+  }
+
+  return NaN;
+}
+
+function kickoffIso(f) {
+  const t = kickoffMs(f);
+
+  return Number.isFinite(t)
+    ? new Date(t).toISOString()
+    : null;
+}
+
+function isUpcoming(f, now = Date.now()) {
+  const t = kickoffMs(f);
+
+  return Number.isFinite(t) &&
+    t > now + KICKOFF_BUFFER_MS;
+}
+
+function overProb(f) {
+  const p = Number(f.point ?? f.core);
+
+  return Number.isFinite(p) ? p : NaN;
+}
+
+function qualifiedOver(f, now = Date.now()) {
+  return f.decision === "logged" &&
+    overProb(f) >= THRESHOLD &&
+    isUpcoming(f, now);
+}
+
+function qualifiedUnder(f, now = Date.now()) {
+  const bar = underSnap &&
+    Number.isFinite(Number(underSnap.threshold))
+      ? Number(underSnap.threshold)
+      : UNDER_BAR;
+
+  return f.decision === "qualified" &&
+    Number(f.p_final) >= bar &&
+    isUpcoming(f, now);
+}
+
+/* Fixtures already sitting in a pending slip are never reused. */
+function pendingFixtureKeys() {
+  const keys = new Set();
+
+  readTracker().forEach(slip => {
+    if (String(slip.status || "").toUpperCase() !== "PENDING") {
+      return;
+    }
+
+    (slip.legs || []).forEach(leg => keys.add(fixtureKey(leg)));
+  });
+
+  return keys;
+}
+
+
+/* -------------------------------------------------------
    MODEL CARDS
 ------------------------------------------------------- */
 
@@ -1275,14 +1364,15 @@ function renderCore1() {
     "ENTRY BAR " + Math.round(THRESHOLD * 100) + "%";
 
   $("resTag").textContent =
-    fs.filter(f => f.decision === "logged").length +
+    fs.filter(f => qualifiedOver(f)).length +
     " QUALIFIED · " +
     fs.length +
     " SCANNED";
 
   const picks = fs.filter(f =>
-    ["logged", "review-window", "near-line"].includes(
-      f.decision
+    isUpcoming(f) && (
+      qualifiedOver(f) ||
+      ["review-window", "near-line"].includes(f.decision)
     )
   );
 
@@ -1290,7 +1380,7 @@ function renderCore1() {
     ? picks.map(f => card(
         f,
         "OVER " + MARKET + " GOALS",
-        f.core,
+        overProb(f),
         f.decision === "logged"
           ? "QUALIFIED"
           : f.decision === "review-window"
@@ -1316,7 +1406,7 @@ function renderCore2() {
     : [];
 
   const q = fs.filter(
-    f => f.decision === "qualified"
+    f => f.decision === "qualified" && isUpcoming(f)
   );
 
   const t = d &&
@@ -1738,60 +1828,84 @@ $("exportTracker").addEventListener("click", () => {
 ------------------------------------------------------- */
 
 function buildSlips() {
-  const over = snap &&
-    Array.isArray(snap.fixtures)
-      ? snap.fixtures.filter(
-          f => f.decision === "logged"
-        )
-      : [];
+  const now = Date.now();
+  const taken = pendingFixtureKeys();
 
-  const u = underSnap;
+  const over = (
+    snap && Array.isArray(snap.fixtures)
+      ? snap.fixtures
+      : []
+  )
+    .filter(f =>
+      qualifiedOver(f, now) &&
+      !taken.has(fixtureKey(f))
+    )
+    .sort((a, b) => overProb(b) - overProb(a));
 
-  const unders = u &&
-    Array.isArray(u.fixtures)
-      ? u.fixtures
-          .filter(f => f.decision === "qualified")
-          .sort((a, b) =>
-            (Number(b.p_final) || 0) -
-            (Number(a.p_final) || 0)
-          )
-      : [];
+  const unders = (
+    underSnap && Array.isArray(underSnap.fixtures)
+      ? underSnap.fixtures
+      : []
+  )
+    .filter(f =>
+      qualifiedUnder(f, now) &&
+      !taken.has(fixtureKey(f))
+    )
+    .sort((a, b) =>
+      (Number(b.p_final) || 0) -
+      (Number(a.p_final) || 0)
+    );
 
   const used = new Set();
   const list = [];
 
-  for (
-    let i = 0;
-    i + 2 < over.length;
-    i += 3
-  ) {
-    const trio = over.slice(i, i + 3);
+  // Earliest matchday first, so slips settle sooner.
+  const anchors = [...new Set(over.map(kickoffMs))]
+    .sort((a, b) => a - b);
 
-    const keys = new Set(
-      trio.map(fixtureKey)
-    );
+  for (const anchor of anchors) {
+    for (;;) {
+      const inWindow = f => {
+        const t = kickoffMs(f);
 
-    const under = unders.find(f =>
-      !used.has(fixtureKey(f)) &&
-      !keys.has(fixtureKey(f))
-    );
+        return t >= anchor &&
+          t <= anchor + SLIP_WINDOW_MS &&
+          !used.has(fixtureKey(f));
+      };
 
-    if (!under) {
-      continue;
+      const trio = over.filter(inWindow).slice(0, 3);
+
+      if (trio.length < 3) {
+        break;
+      }
+
+      const trioKeys = new Set(trio.map(fixtureKey));
+
+      const under = unders.find(f =>
+        inWindow(f) &&
+        !trioKeys.has(fixtureKey(f))
+      );
+
+      // No padding: if there is no valid Under, stop.
+      if (!under) {
+        break;
+      }
+
+      [...trio, under].forEach(f =>
+        used.add(fixtureKey(f))
+      );
+
+      list.push({
+        over: trio,
+        under
+      });
     }
-
-    used.add(fixtureKey(under));
-
-    list.push({
-      over:trio,
-      under
-    });
   }
 
   return {
     list,
-    overCount:over.length,
-    underCount:unders.length
+    overCount: over.length,
+    underCount: unders.length
   };
 }
 
@@ -1822,8 +1936,9 @@ async function generateSlips() {
       <div class="empty">
         No complete slip can be made.
         Each slip needs three logged Core 1 Over 1.5 picks
-        and one qualified Core 2 Under 3.5 pick,
-        with no duplicated fixture within a slip.
+        and one qualified Core 2 Under 3.5 pick, all upcoming,
+        starting within 24 hours of each other, and none already
+        in a pending slip.
       </div>`;
 
     $("slipStatus").textContent =
@@ -1865,7 +1980,8 @@ async function generateSlips() {
         date:f.date,
         league:f.league,
         market:"OVER " + MARKET,
-        probability:f.core
+        probability:overProb(f),
+        kickoff:kickoffIso(f)
       })),
 
       {
@@ -1874,7 +1990,8 @@ async function generateSlips() {
         date:s.under.date,
         league:s.under.league,
         market:"UNDER 3.5",
-        probability:s.under.p_final
+        probability:s.under.p_final,
+        kickoff:kickoffIso(s.under)
       }
     ]
   }));
@@ -1925,7 +2042,7 @@ async function generateSlips() {
         </div>
 
         <div class="meta">
-          OVER ${MARKET} · ${pct(f.core)}
+          OVER ${MARKET} · ${pct(overProb(f))}
         </div>
       `).join("")}
 
