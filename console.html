@@ -1115,14 +1115,18 @@ async function refreshLiveScores() {
   liveRefreshBusy = true;
 
   try {
-    const data = await api("/api/live-scores");
+    const r = await fetch("/api/live-scores", {cache:"no-store"});
+
+    let data = null;
+
+    try { data = await r.json(); } catch {}
 
     if (!data || data.ok !== true) {
       liveFixtures = [];
 
       liveScoreError = data && data.error
-        ? data.error
-        : "Live scores are currently unavailable.";
+        ? data.error + (r.ok ? "" : " (HTTP " + r.status + ")")
+        : "Live scores are currently unavailable (HTTP " + r.status + ").";
 
       liveUpdatedAt = null;
     } else {
@@ -2166,3 +2170,4 @@ $("btnRun").addEventListener("click", async () => {
 </script>
 </body>
 </html>
+
