@@ -696,7 +696,7 @@
 
                 message =
                     "LIVE SCORES NOT CONFIGURED · "
-                    + "Add APIFOOTBALL_KEY in Render → "
+                    + "Add API_FOOTBALL_KEY in Render → "
                     + "Environment. Manual tracking remains available.";
 
             } else if (
@@ -796,3 +796,4 @@
     );
 
 })();
+
