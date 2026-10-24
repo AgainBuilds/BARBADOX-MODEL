@@ -733,15 +733,19 @@ def _api_football_request():
     The API key stays on the server. If the normal range query is
     rejected for date-parameter validation, retry by calendar date.
     """
-    key = os.getenv("API_FOOTBALL_KEY", "").strip()
+    key = (
+        os.getenv("API_FOOTBALL_KEY")
+        or os.getenv("APIFOOTBALL_KEY")
+        or ""
+    ).strip()
 
     if not key:
         return {
             "ok": False,
             "configured": False,
             "error": (
-                "API_FOOTBALL_KEY is not configured in Render. "
-                "Add the environment variable and redeploy."
+                "API_FOOTBALL_KEY (or APIFOOTBALL_KEY) is not configured "
+                "in Render. Add the environment variable and redeploy."
             ),
             "fixtures": [],
             "updated_at": utc_now(),
@@ -1088,3 +1092,4 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 5000)),
     )
+
