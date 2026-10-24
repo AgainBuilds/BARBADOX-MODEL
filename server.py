@@ -60,12 +60,18 @@ CORE2_TIMEOUT = 900
 SCAN_DAYS = 7
 
 LIVE_API_URL = "https://v3.football.api-sports.io/fixtures"
-LIVE_CACHE_SECONDS = 60
+# Free API-Football tiers are typically ~100 req/day. 15-minute cache
+# keeps upstream calls under ~96/day even with continuous client polling.
+LIVE_CACHE_SECONDS = 900
+# When the provider returns a rate-limit or hard error, hold that result
+# longer so we do not burn the remaining quota on retries.
+LIVE_ERROR_CACHE_SECONDS = 3600
 LIVE_TIMEZONE = "Africa/Lagos"
 
 _live_cache = {
     "time": 0,
     "data": None,
+    "ttl": LIVE_CACHE_SECONDS,
 }
 
 _live_lock = threading.Lock()
@@ -884,24 +890,53 @@ def live_scores():
     """
     Cached live-score endpoint.
 
-    Refreshes provider data at most once per 60 seconds.
+    Successful payloads are refreshed at most once per LIVE_CACHE_SECONDS.
+    Rate-limit and other provider errors are held for LIVE_ERROR_CACHE_SECONDS
+    so the free daily quota is not exhausted by client polls.
     """
     now = time.time()
 
     with _live_lock:
         cached = _live_cache["data"]
+        ttl = _live_cache.get("ttl") or LIVE_CACHE_SECONDS
 
-        if (
-            cached is not None
-            and now - _live_cache["time"] < LIVE_CACHE_SECONDS
-        ):
+        if cached is not None and now - _live_cache["time"] < ttl:
             status_code = 200 if cached.get("ok") else 502
             return jsonify(cached), status_code
 
         data = _api_football_request()
 
+        # Detect rate-limit / quota messages and back off hard.
+        err_text = str(
+            data.get("error")
+            or data.get("provider_error")
+            or data.get("message")
+            or ""
+        ).lower()
+        is_rate_limited = (
+            not data.get("ok")
+            and (
+                "rate" in err_text
+                or "limit" in err_text
+                or "quota" in err_text
+                or "reached the request" in err_text
+            )
+        )
+
         _live_cache["time"] = time.time()
         _live_cache["data"] = data
+        _live_cache["ttl"] = (
+            LIVE_ERROR_CACHE_SECONDS
+            if (not data.get("ok"))
+            else LIVE_CACHE_SECONDS
+        )
+        if is_rate_limited:
+            _live_cache["ttl"] = LIVE_ERROR_CACHE_SECONDS
+
+        # Surface how long the client should wait before asking again.
+        data = dict(data)
+        data["cacheSeconds"] = _live_cache["ttl"]
+        data["rateLimited"] = bool(is_rate_limited)
 
         status_code = 200 if data.get("ok") else 502
 
