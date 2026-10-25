@@ -7,6 +7,9 @@
  * - Displays current scores and match status.
  * - Shows whether each selection is on track.
  * - Matches fixtures by team names and date.
+ * - Captures the FINAL SCORE of every finished leg and saves it
+ *   on the leg itself, so the slips history archive, the CSV
+ *   export and the GitHub record all keep the score forever.
  * - Automatically grades completed four-leg slips
  *   when every result can be confidently determined.
  * - Preserves the existing tracker and manual grading.
@@ -268,6 +271,23 @@
 
 
     /*
+     * Human-readable final score, e.g. "2 - 1".
+     * Empty string when the fixture has no confirmed score.
+     */
+    function formatScore(fixture) {
+        if (
+            !fixture
+            || fixture.homeScore == null
+            || fixture.awayScore == null
+        ) {
+            return "";
+        }
+
+        return `${fixture.homeScore} - ${fixture.awayScore}`;
+    }
+
+
+    /*
      * Convert provider status codes into readable text.
      */
     function getMatchStatus(fixture) {
@@ -449,6 +469,88 @@
 
 
     /*
+     * Capture the final score of every finished leg.
+     *
+     * Runs on EVERY slip (pending, won, lost) so scores are
+     * recorded even when the slip was graded manually before
+     * the live feed confirmed the fixture. The saved scores
+     * flow automatically into the slips history archive,
+     * its CSV export, and the GitHub record.
+     */
+    function captureScores() {
+        if (
+            typeof readTracker !== "function"
+            || typeof saveTracker !== "function"
+        ) {
+            return false;
+        }
+
+        const slips = readTracker();
+
+        if (!Array.isArray(slips)) {
+            return false;
+        }
+
+        let changed = false;
+
+        for (const slip of slips) {
+            if (!Array.isArray(slip.legs)) {
+                continue;
+            }
+
+            for (const leg of slip.legs) {
+                const fixture = matchFixture(leg);
+
+                if (
+                    !fixture
+                    || !FINISHED.has(fixture.status)
+                ) {
+                    continue;
+                }
+
+                const score = formatScore(fixture);
+
+                if (!score) {
+                    continue;
+                }
+
+                if (leg.liveScore !== score) {
+                    leg.liveScore = score;
+                    changed = true;
+                }
+
+                const statusText = getMatchStatus(fixture);
+
+                if (leg.fixtureStatus !== statusText) {
+                    leg.fixtureStatus = statusText;
+                    changed = true;
+                }
+
+                const outcome = getOutcome(leg, fixture);
+
+                const result =
+                    outcome === true
+                        ? "WON"
+                        : outcome === false
+                            ? "LOST"
+                            : (leg.result || "PENDING");
+
+                if (leg.result !== result) {
+                    leg.result = result;
+                    changed = true;
+                }
+            }
+        }
+
+        if (changed) {
+            saveTracker(slips);
+        }
+
+        return changed;
+    }
+
+
+    /*
      * Automatically grade a slip only if:
      *
      * - It is still pending.
@@ -517,6 +619,32 @@
                 continue;
             }
 
+            /* Stamp every leg with its final score before
+               grading, so the archive keeps the scores. */
+            matchedLegs.forEach(item => {
+                const score = formatScore(item.fixture);
+
+                if (score) {
+                    item.leg.liveScore = score;
+                }
+
+                item.leg.fixtureStatus = getMatchStatus(
+                    item.fixture
+                );
+
+                const outcome = getOutcome(
+                    item.leg,
+                    item.fixture
+                );
+
+                item.leg.result =
+                    outcome === true
+                        ? "WON"
+                        : outcome === false
+                            ? "LOST"
+                            : (item.leg.result || "PENDING");
+            });
+
             slip.status = outcomes.every(
                 Boolean
             )
@@ -526,6 +654,8 @@
             slip.gradedAt = new Date().toISOString();
 
             slip.gradingSource = "LIVE_SCORE_API";
+
+            slip.autoGraded = true;
 
             changed = true;
         }
@@ -722,11 +852,20 @@
 
                 message = "";
 
+                /* Capture final scores first so every
+                   archived leg keeps its score. */
+                const scoresChanged = captureScores();
+
                 if (
                     autoGradeSlips()
-                    && typeof renderTracker === "function"
+                    || scoresChanged
                 ) {
-                    renderTracker();
+                    if (
+                        typeof renderTracker
+                            === "function"
+                    ) {
+                        renderTracker();
+                    }
                 }
             }
 
@@ -796,4 +935,3 @@
     );
 
 })();
-
