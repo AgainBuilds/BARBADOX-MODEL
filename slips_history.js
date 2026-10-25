@@ -11,6 +11,11 @@
  * This script is self-contained: it adds the SLIPS HISTORY button,
  * its modal, weekly grouping, stats, CSV export, and the server
  * sync. It never deletes anything.
+ *
+ * NEW: graded slips (WON/LOST) can never regress to PENDING,
+ * even when the live tracker still holds an ungraded copy of
+ * the same slip. Final scores captured by live_scores.js are
+ * displayed and exported automatically.
  */
 
 (() => {
@@ -50,6 +55,52 @@
 
 
     /* -------------------------------------------------------
+       STATUS PRECEDENCE
+    ------------------------------------------------------- */
+
+    /* A graded status (WON/LOST) is never downgraded back to
+       PENDING by an ungraded copy of the same slip. When both
+       copies are graded, the newer grading wins. */
+    function protectGraded(previous, incoming) {
+        const merged = incoming;
+
+        const prevStatus = String(
+            previous.status || "PENDING"
+        ).toUpperCase();
+
+        const incStatus = String(
+            merged.status || "PENDING"
+        ).toUpperCase();
+
+        const prevGraded =
+            prevStatus === "WON" || prevStatus === "LOST";
+        const incGraded =
+            incStatus === "WON" || incStatus === "LOST";
+
+        let keepPrevious = false;
+
+        if (prevGraded && !incGraded) {
+            keepPrevious = true;
+        } else if (prevGraded && incGraded) {
+            const prevAt =
+                Date.parse(previous.gradedAt || "") || 0;
+            const incAt =
+                Date.parse(merged.gradedAt || "") || 0;
+
+            keepPrevious = prevAt > incAt;
+        }
+
+        if (keepPrevious) {
+            merged.status = previous.status;
+            merged.gradedAt = previous.gradedAt;
+            merged.autoGraded = previous.autoGraded;
+        }
+
+        return merged;
+    }
+
+
+    /* -------------------------------------------------------
        LOCAL ARCHIVE
     ------------------------------------------------------- */
 
@@ -74,7 +125,8 @@
     }
 
     /* Merge current tracker rows into the permanent archive.
-       Nothing is ever removed. */
+       Nothing is ever removed, and a graded slip in the archive
+       is never reset to PENDING by the tracker. */
     function localArchive() {
         const byId = new Map(
             readHistory().map(s => [String(s.id), s])
@@ -91,15 +143,18 @@
 
             byId.set(
                 id,
-                Object.assign(
-                    {},
+                protectGraded(
                     previous,
-                    slip,
-                    {
-                        archivedAt:
-                            previous.archivedAt ||
-                            new Date().toISOString()
-                    }
+                    Object.assign(
+                        {},
+                        previous,
+                        slip,
+                        {
+                            archivedAt:
+                                previous.archivedAt ||
+                                new Date().toISOString()
+                        }
+                    )
                 )
             );
         }
@@ -187,12 +242,17 @@
 
                     const normalized = normalizeServer(slip);
 
+                    const previous = byId.get(id) || {};
+
                     byId.set(
                         id,
-                        Object.assign(
-                            {},
-                            byId.get(id) || {},
-                            normalized
+                        protectGraded(
+                            previous,
+                            Object.assign(
+                                {},
+                                previous,
+                                normalized
+                            )
                         )
                     );
                 }
