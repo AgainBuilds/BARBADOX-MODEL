@@ -10,6 +10,15 @@ Storage layers:
 Uses GITHUB_TOKEN via gh_sync when configured; otherwise it keeps
 the local CSV only (still better than browser-only storage).
 
+NEW:
+  - The archive is restored from GitHub at boot, so a Render deploy
+    never starts from an empty slips_browser.csv.
+  - A graded slip (WON/LOST) is never overwritten by an ungraded
+    (PENDING) copy of the same slip. When both copies are graded,
+    the newer grading wins.
+  - Final scores captured by live_scores.js are merged into kept
+    records, so scores survive even when the status is protected.
+
 Blueprint endpoints:
   GET  /api/slip-history   -> {"ok": true, "slips": [...]}
   POST /api/slip-history   -> body {"slips": [...]} upserts by slip id
@@ -85,6 +94,101 @@ def _write_rows(rows):
             writer.writerow(out)
 
 
+def _is_graded(status):
+    return str(status or "").upper() in ("WON", "LOST")
+
+
+def _should_keep(existing, record):
+    """True when the existing CSV record must not be overwritten.
+
+    A graded slip (WON/LOST) never regresses to PENDING, and when
+    both copies are graded the newer grading wins. This stops a
+    browser holding an ungraded copy of a slip from erasing a
+    manual or automatic grading that is already recorded.
+    """
+    if _is_graded(existing.get("status")) and not _is_graded(record["status"]):
+        return True
+
+    if (
+        _is_graded(existing.get("status"))
+        and _is_graded(record["status"])
+        and str(existing.get("graded_at") or "")
+        >= str(record.get("graded_at") or "")
+    ):
+        return True
+
+    return False
+
+
+def _merge_leg_scores(existing, record):
+    """Merge incoming leg scores into a kept record.
+
+    Called when the existing record wins the status comparison:
+    the status stays untouched, but any final scores, fixture
+    statuses, or leg results that arrived with the incoming copy
+    are adopted where the stored legs do not have them yet.
+    """
+    old = existing.get("legs") or []
+    new = record.get("legs") or []
+
+    if not isinstance(old, list) or not isinstance(new, list):
+        return False
+
+    if not new:
+        return False
+
+    if len(old) != len(new):
+        return False
+
+    merged = []
+    changed = False
+
+    for o, n in zip(old, new):
+        if not isinstance(o, dict) or not isinstance(n, dict):
+            merged.append(o)
+            continue
+
+        leg = dict(o)
+
+        for key in ("liveScore", "fixtureStatus"):
+            if n.get(key) and not o.get(key):
+                leg[key] = n[key]
+                changed = True
+
+        if (
+            n.get("result")
+            and str(n["result"]).upper() != "PENDING"
+            and str(o.get("result") or "").upper() in ("", "PENDING")
+        ):
+            leg["result"] = n["result"]
+            changed = True
+
+        merged.append(leg)
+
+    if changed:
+        existing["legs"] = merged
+
+    return changed
+
+
+def _startup_restore():
+    """Pull the permanent archive from GitHub at boot.
+
+    The Render filesystem is wiped on every deploy, so without
+    this restore the server would start from an empty CSV and
+    blindly trust whatever the first browser pushes.
+    """
+    if not gh_sync.enabled():
+        return
+
+    try:
+        if gh_sync.pull(REMOTE_NAME):
+            print("Restored slips history from GitHub.")
+
+    except Exception as exc:
+        print("Could not restore slips history: " + str(exc))
+
+
 def _normalize(slip):
     """Convert a browser slip object into a CSV record."""
     auto = slip.get("autoGraded")
@@ -148,6 +252,9 @@ def _push_to_github():
         pass
 
 
+_startup_restore()
+
+
 @slips_history_bp.get("/slips_history.js")
 def slips_history_script():
     return send_from_directory(
@@ -199,7 +306,17 @@ def save_history():
             if not record["id"]:
                 continue
 
-            if by_id.get(record["id"]) != record:
+            existing = by_id.get(record["id"])
+
+            if existing is not None and _should_keep(existing, record):
+                # Keep the graded record, but still adopt any
+                # final scores that arrived with the new copy.
+                if _merge_leg_scores(existing, record):
+                    changed = True
+
+                continue
+
+            if existing != record:
                 by_id[record["id"]] = record
                 changed = True
 
