@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-25T00:07:56.290215+00:00",
+ "generated_at": "2026-10-25T10:04:13.646820+00:00",
  "window": {
   "from": "2026-10-25",
   "to": "2026-10-31"
@@ -20,10 +20,10 @@
    "away": "ACF Fiorentina",
    "kickoff_utc": "2026-10-25T11:30:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.5998,
-   "p_cal": 0.6039,
-   "p_final": 0.6,
-   "lambda_total": 3.212,
+   "p_raw": 0.5973,
+   "p_cal": 0.6014,
+   "p_final": 0.6014,
+   "lambda_total": 3.2234,
    "threshold": 0.6
   },
   {
@@ -34,10 +34,10 @@
    "away": "Getafe CF",
    "kickoff_utc": "2026-10-25T13:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6916,
-   "p_cal": 0.6893,
-   "p_final": 0.6136,
-   "lambda_total": 2.8016,
+   "p_raw": 0.6957,
+   "p_cal": 0.6938,
+   "p_final": 0.6408,
+   "lambda_total": 2.7829,
    "threshold": 0.6
   },
   {
@@ -48,10 +48,10 @@
    "away": "Brighton & Hove Albion FC",
    "kickoff_utc": "2026-10-25T14:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6642,
-   "p_cal": 0.664,
-   "p_final": 0.634,
-   "lambda_total": 2.9244,
+   "p_raw": 0.6723,
+   "p_cal": 0.6724,
+   "p_final": 0.6477,
+   "lambda_total": 2.8881,
    "threshold": 0.6
   },
   {
@@ -61,11 +61,11 @@
    "home": "Crystal Palace FC",
    "away": "Newcastle United FC",
    "kickoff_utc": "2026-10-25T14:00:00+00:00",
-   "decision": "below-line",
-   "p_raw": 0.6421,
-   "p_cal": 0.643,
-   "p_final": 0.5797,
-   "lambda_total": 3.0227,
+   "decision": "qualified",
+   "p_raw": 0.6504,
+   "p_cal": 0.6514,
+   "p_final": 0.6272,
+   "lambda_total": 2.9858,
    "threshold": 0.6
   },
   {
@@ -76,10 +76,10 @@
    "away": "AFC Bournemouth",
    "kickoff_utc": "2026-10-25T14:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6657,
-   "p_cal": 0.6655,
-   "p_final": 0.6477,
-   "lambda_total": 2.9175,
+   "p_raw": 0.6741,
+   "p_cal": 0.6741,
+   "p_final": 0.6741,
+   "lambda_total": 2.8799,
    "threshold": 0.6
   },
   {
@@ -90,10 +90,10 @@
    "away": "Brentford FC",
    "kickoff_utc": "2026-10-25T14:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6888,
-   "p_cal": 0.6877,
-   "p_final": 0.6272,
-   "lambda_total": 2.8141,
+   "p_raw": 0.6971,
+   "p_cal": 0.6962,
+   "p_final": 0.6477,
+   "lambda_total": 2.7768,
    "threshold": 0.6
   },
   {
@@ -104,10 +104,10 @@
    "away": "Lille OSC",
    "kickoff_utc": "2026-10-25T14:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6757,
-   "p_cal": 0.6745,
-   "p_final": 0.6745,
-   "lambda_total": 2.8729,
+   "p_raw": 0.6758,
+   "p_cal": 0.6749,
+   "p_final": 0.6682,
+   "lambda_total": 2.8723,
    "threshold": 0.6
   },
   {
@@ -118,10 +118,10 @@
    "away": "Frosinone Calcio",
    "kickoff_utc": "2026-10-25T14:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6473,
-   "p_cal": 0.6492,
-   "p_final": 0.6272,
-   "lambda_total": 2.9999,
+   "p_raw": 0.6448,
+   "p_cal": 0.6468,
+   "p_final": 0.6408,
+   "lambda_total": 3.0109,
    "threshold": 0.6
   },
   {
@@ -132,10 +132,10 @@
    "away": "Venezia FC",
    "kickoff_utc": "2026-10-25T14:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6575,
-   "p_cal": 0.6589,
-   "p_final": 0.6204,
-   "lambda_total": 2.9543,
+   "p_raw": 0.655,
+   "p_cal": 0.6566,
+   "p_final": 0.6272,
+   "lambda_total": 2.9655,
    "threshold": 0.6
   },
   {
@@ -146,10 +146,10 @@
    "away": "Bayer 04 Leverkusen",
    "kickoff_utc": "2026-10-25T14:30:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.4818,
-   "p_cal": 0.4837,
-   "p_final": 0.4837,
-   "lambda_total": 3.7595,
+   "p_raw": 0.508,
+   "p_cal": 0.5091,
+   "p_final": 0.5091,
+   "lambda_total": 3.6342,
    "threshold": 0.6
   },
   {
@@ -160,10 +160,10 @@
    "away": "Real Betis Balompi\u00e9",
    "kickoff_utc": "2026-10-25T15:15:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6591,
-   "p_cal": 0.6581,
-   "p_final": 0.6204,
-   "lambda_total": 2.9472,
+   "p_raw": 0.663,
+   "p_cal": 0.6623,
+   "p_final": 0.634,
+   "lambda_total": 2.9296,
    "threshold": 0.6
   },
   {
@@ -173,10 +173,10 @@
    "home": "Olympique de Marseille",
    "away": "Le Havre AC",
    "kickoff_utc": "2026-10-25T16:15:00+00:00",
-   "decision": "below-line",
+   "decision": "qualified",
    "p_raw": 0.6432,
-   "p_cal": 0.6434,
-   "p_final": 0.5865,
+   "p_cal": 0.6435,
+   "p_final": 0.6,
    "lambda_total": 3.0179,
    "threshold": 0.6
   },
@@ -188,10 +188,10 @@
    "away": "RC Strasbourg Alsace",
    "kickoff_utc": "2026-10-25T16:15:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.5906,
-   "p_cal": 0.5931,
+   "p_raw": 0.5907,
+   "p_cal": 0.5932,
    "p_final": 0.5797,
-   "lambda_total": 3.2536,
+   "lambda_total": 3.2532,
    "threshold": 0.6
   },
   {
@@ -202,10 +202,10 @@
    "away": "FC Lorient",
    "kickoff_utc": "2026-10-25T16:15:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6574,
-   "p_cal": 0.657,
-   "p_final": 0.634,
-   "lambda_total": 2.9545,
+   "p_raw": 0.6576,
+   "p_cal": 0.6574,
+   "p_final": 0.6272,
+   "lambda_total": 2.9535,
    "threshold": 0.6
   },
   {
@@ -216,10 +216,10 @@
    "away": "ES Troyes AC",
    "kickoff_utc": "2026-10-25T16:15:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.6294,
-   "p_cal": 0.6301,
-   "p_final": 0.5192,
-   "lambda_total": 3.0797,
+   "p_raw": 0.6293,
+   "p_cal": 0.6302,
+   "p_final": 0.5393,
+   "lambda_total": 3.0799,
    "threshold": 0.6
   },
   {
@@ -230,10 +230,10 @@
    "away": "Le Mans FC",
    "kickoff_utc": "2026-10-25T16:15:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6025,
-   "p_cal": 0.6045,
+   "p_raw": 0.6027,
+   "p_cal": 0.6047,
    "p_final": 0.6,
-   "lambda_total": 3.1999,
+   "lambda_total": 3.1993,
    "threshold": 0.6
   },
   {
@@ -244,10 +244,10 @@
    "away": "Leeds United FC",
    "kickoff_utc": "2026-10-25T16:30:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6941,
-   "p_cal": 0.6928,
-   "p_final": 0.6204,
-   "lambda_total": 2.7903,
+   "p_raw": 0.7023,
+   "p_cal": 0.7012,
+   "p_final": 0.6545,
+   "lambda_total": 2.7534,
    "threshold": 0.6
   },
   {
@@ -258,10 +258,10 @@
    "away": "FC Bayern M\u00fcnchen",
    "kickoff_utc": "2026-10-25T16:30:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.4888,
-   "p_cal": 0.4904,
-   "p_final": 0.4904,
-   "lambda_total": 3.7257,
+   "p_raw": 0.5152,
+   "p_cal": 0.516,
+   "p_final": 0.516,
+   "lambda_total": 3.6002,
    "threshold": 0.6
   },
   {
@@ -272,10 +272,10 @@
    "away": "Juventus FC",
    "kickoff_utc": "2026-10-25T17:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6638,
-   "p_cal": 0.665,
-   "p_final": 0.6545,
-   "lambda_total": 2.926,
+   "p_raw": 0.6613,
+   "p_cal": 0.6627,
+   "p_final": 0.634,
+   "lambda_total": 2.9371,
    "threshold": 0.6
   },
   {
@@ -285,11 +285,11 @@
    "home": "Real Sociedad de F\u00fatbol",
    "away": "Levante UD",
    "kickoff_utc": "2026-10-25T17:30:00+00:00",
-   "decision": "below-line",
-   "p_raw": 0.5962,
-   "p_cal": 0.5979,
-   "p_final": 0.5979,
-   "lambda_total": 3.2283,
+   "decision": "qualified",
+   "p_raw": 0.6001,
+   "p_cal": 0.6019,
+   "p_final": 0.6,
+   "lambda_total": 3.2108,
    "threshold": 0.6
   },
   {
@@ -300,10 +300,10 @@
    "away": "AC Milan",
    "kickoff_utc": "2026-10-25T19:45:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.6382,
-   "p_cal": 0.6405,
-   "p_final": 0.5729,
-   "lambda_total": 3.0403,
+   "p_raw": 0.6358,
+   "p_cal": 0.6382,
+   "p_final": 0.5595,
+   "lambda_total": 3.0511,
    "threshold": 0.6
   },
   {
@@ -314,10 +314,10 @@
    "away": "Real Madrid CF",
    "kickoff_utc": "2026-10-25T20:00:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.5517,
-   "p_cal": 0.5553,
-   "p_final": 0.546,
-   "lambda_total": 3.4307,
+   "p_raw": 0.556,
+   "p_cal": 0.5597,
+   "p_final": 0.5527,
+   "lambda_total": 3.4106,
    "threshold": 0.6
   },
   {
@@ -328,10 +328,10 @@
    "away": "Olympique Lyonnais",
    "kickoff_utc": "2026-10-26T19:30:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6437,
-   "p_cal": 0.6439,
-   "p_final": 0.6,
-   "lambda_total": 3.0157,
+   "p_raw": 0.6439,
+   "p_cal": 0.6442,
+   "p_final": 0.6136,
+   "lambda_total": 3.0149,
    "threshold": 0.6
   },
   {
@@ -342,10 +342,10 @@
    "away": "CA Osasuna",
    "kickoff_utc": "2026-10-26T20:00:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.6211,
-   "p_cal": 0.6217,
-   "p_final": 0.5393,
-   "lambda_total": 3.1167,
+   "p_raw": 0.6252,
+   "p_cal": 0.626,
+   "p_final": 0.5527,
+   "lambda_total": 3.0983,
    "threshold": 0.6
   },
   {
@@ -356,10 +356,10 @@
    "away": "SS Lazio",
    "kickoff_utc": "2026-10-27T17:30:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6453,
-   "p_cal": 0.6473,
-   "p_final": 0.6204,
-   "lambda_total": 3.0088,
+   "p_raw": 0.6463,
+   "p_cal": 0.6483,
+   "p_final": 0.634,
+   "lambda_total": 3.0041,
    "threshold": 0.6
   },
   {
@@ -370,10 +370,10 @@
    "away": "Cagliari Calcio",
    "kickoff_utc": "2026-10-27T19:45:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6801,
-   "p_cal": 0.6806,
-   "p_final": 0.6682,
-   "lambda_total": 2.8531,
+   "p_raw": 0.6702,
+   "p_cal": 0.6711,
+   "p_final": 0.6545,
+   "lambda_total": 2.8976,
    "threshold": 0.6
   },
   {
@@ -384,10 +384,10 @@
    "away": "Como 1907",
    "kickoff_utc": "2026-10-27T19:45:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6571,
-   "p_cal": 0.6586,
-   "p_final": 0.6204,
-   "lambda_total": 2.9559,
+   "p_raw": 0.6583,
+   "p_cal": 0.6598,
+   "p_final": 0.6477,
+   "lambda_total": 2.9506,
    "threshold": 0.6
   },
   {
@@ -398,10 +398,10 @@
    "away": "Bologna FC 1909",
    "kickoff_utc": "2026-10-28T17:30:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6639,
-   "p_cal": 0.6651,
-   "p_final": 0.6545,
-   "lambda_total": 2.9254,
+   "p_raw": 0.6651,
+   "p_cal": 0.6663,
+   "p_final": 0.6408,
+   "lambda_total": 2.9203,
    "threshold": 0.6
   },
   {
@@ -412,10 +412,10 @@
    "away": "FC Internazionale Milano",
    "kickoff_utc": "2026-10-28T17:30:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.6184,
-   "p_cal": 0.6216,
+   "p_raw": 0.616,
+   "p_cal": 0.6193,
    "p_final": 0.5393,
-   "lambda_total": 3.1288,
+   "lambda_total": 3.1394,
    "threshold": 0.6
   },
   {
@@ -426,10 +426,10 @@
    "away": "Udinese Calcio",
    "kickoff_utc": "2026-10-28T17:30:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6515,
-   "p_cal": 0.6532,
-   "p_final": 0.6204,
-   "lambda_total": 2.981,
+   "p_raw": 0.6491,
+   "p_cal": 0.6509,
+   "p_final": 0.6272,
+   "lambda_total": 2.9918,
    "threshold": 0.6
   },
   {
@@ -440,10 +440,10 @@
    "away": "Juventus FC",
    "kickoff_utc": "2026-10-28T19:45:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6745,
-   "p_cal": 0.6752,
-   "p_final": 0.6682,
-   "lambda_total": 2.8784,
+   "p_raw": 0.672,
+   "p_cal": 0.6729,
+   "p_final": 0.6477,
+   "lambda_total": 2.8894,
    "threshold": 0.6
   },
   {
@@ -454,10 +454,10 @@
    "away": "SSC Napoli",
    "kickoff_utc": "2026-10-28T19:45:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.635,
-   "p_cal": 0.6375,
-   "p_final": 0.5662,
-   "lambda_total": 3.0546,
+   "p_raw": 0.6221,
+   "p_cal": 0.6251,
+   "p_final": 0.5527,
+   "lambda_total": 3.1124,
    "threshold": 0.6
   },
   {
@@ -468,10 +468,10 @@
    "away": "US Lecce",
    "kickoff_utc": "2026-10-29T17:30:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6449,
-   "p_cal": 0.6469,
-   "p_final": 0.6204,
-   "lambda_total": 3.0106,
+   "p_raw": 0.6423,
+   "p_cal": 0.6445,
+   "p_final": 0.6136,
+   "lambda_total": 3.0219,
    "threshold": 0.6
   },
   {
@@ -482,10 +482,10 @@
    "away": "Atalanta BC",
    "kickoff_utc": "2026-10-29T19:45:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.638,
-   "p_cal": 0.6403,
-   "p_final": 0.5729,
-   "lambda_total": 3.0412,
+   "p_raw": 0.6355,
+   "p_cal": 0.638,
+   "p_final": 0.5662,
+   "lambda_total": 3.0522,
    "threshold": 0.6
   },
   {
@@ -496,10 +496,10 @@
    "away": "Paris Saint-Germain FC",
    "kickoff_utc": "2026-10-30T18:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.651,
-   "p_cal": 0.6509,
-   "p_final": 0.6136,
-   "lambda_total": 2.983,
+   "p_raw": 0.6513,
+   "p_cal": 0.6513,
+   "p_final": 0.6272,
+   "lambda_total": 2.9818,
    "threshold": 0.6
   },
   {
@@ -510,10 +510,10 @@
    "away": "1. FSV Mainz 05",
    "kickoff_utc": "2026-10-30T19:30:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.4866,
-   "p_cal": 0.4883,
-   "p_final": 0.4883,
-   "lambda_total": 3.7364,
+   "p_raw": 0.5089,
+   "p_cal": 0.5101,
+   "p_final": 0.5101,
+   "lambda_total": 3.6296,
    "threshold": 0.6
   },
   {
@@ -524,10 +524,10 @@
    "away": "RCD Espanyol de Barcelona",
    "kickoff_utc": "2026-10-30T20:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6516,
-   "p_cal": 0.6509,
-   "p_final": 0.6136,
-   "lambda_total": 2.9803,
+   "p_raw": 0.6552,
+   "p_cal": 0.6548,
+   "p_final": 0.6272,
+   "lambda_total": 2.9643,
    "threshold": 0.6
   },
   {
@@ -538,10 +538,10 @@
    "away": "Racing Club de Lens",
    "kickoff_utc": "2026-10-30T20:05:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6458,
-   "p_cal": 0.6458,
-   "p_final": 0.6204,
-   "lambda_total": 3.0066,
+   "p_raw": 0.6465,
+   "p_cal": 0.6467,
+   "p_final": 0.6408,
+   "lambda_total": 3.0034,
    "threshold": 0.6
   },
   {
@@ -551,11 +551,11 @@
    "home": "Chelsea FC",
    "away": "Manchester United FC",
    "kickoff_utc": "2026-10-31T12:30:00+00:00",
-   "decision": "below-line",
-   "p_raw": 0.639,
-   "p_cal": 0.64,
-   "p_final": 0.5595,
-   "lambda_total": 3.0368,
+   "decision": "qualified",
+   "p_raw": 0.6514,
+   "p_cal": 0.6523,
+   "p_final": 0.6204,
+   "lambda_total": 2.9815,
    "threshold": 0.6
   },
   {
@@ -566,10 +566,10 @@
    "away": "Club Atl\u00e9tico de Madrid",
    "kickoff_utc": "2026-10-31T13:00:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.6252,
-   "p_cal": 0.6256,
-   "p_final": 0.546,
-   "lambda_total": 3.0985,
+   "p_raw": 0.6354,
+   "p_cal": 0.6357,
+   "p_final": 0.5595,
+   "lambda_total": 3.0529,
    "threshold": 0.6
   },
   {
@@ -580,10 +580,10 @@
    "away": "AC Monza",
    "kickoff_utc": "2026-10-31T14:00:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.6379,
-   "p_cal": 0.6403,
+   "p_raw": 0.6382,
+   "p_cal": 0.6405,
    "p_final": 0.5729,
-   "lambda_total": 3.0415,
+   "lambda_total": 3.0405,
    "threshold": 0.6
   },
   {
@@ -594,10 +594,10 @@
    "away": "SC Paderborn 07",
    "kickoff_utc": "2026-10-31T14:30:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.5023,
-   "p_cal": 0.5034,
-   "p_final": 0.5034,
-   "lambda_total": 3.6611,
+   "p_raw": 0.5372,
+   "p_cal": 0.5372,
+   "p_final": 0.5192,
+   "lambda_total": 3.4973,
    "threshold": 0.6
   },
   {
@@ -608,10 +608,10 @@
    "away": "RB Leipzig",
    "kickoff_utc": "2026-10-31T14:30:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.5192,
-   "p_cal": 0.5195,
-   "p_final": 0.5125,
-   "lambda_total": 3.5813,
+   "p_raw": 0.5591,
+   "p_cal": 0.5582,
+   "p_final": 0.5527,
+   "lambda_total": 3.3968,
    "threshold": 0.6
   },
   {
@@ -622,10 +622,10 @@
    "away": "SC Freiburg",
    "kickoff_utc": "2026-10-31T14:30:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.4824,
-   "p_cal": 0.4843,
-   "p_final": 0.4843,
-   "lambda_total": 3.7566,
+   "p_raw": 0.5137,
+   "p_cal": 0.5146,
+   "p_final": 0.5146,
+   "lambda_total": 3.6071,
    "threshold": 0.6
   },
   {
@@ -636,10 +636,10 @@
    "away": "TSG 1899 Hoffenheim",
    "kickoff_utc": "2026-10-31T14:30:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.476,
-   "p_cal": 0.4782,
-   "p_final": 0.4782,
-   "lambda_total": 3.7878,
+   "p_raw": 0.4963,
+   "p_cal": 0.498,
+   "p_final": 0.498,
+   "lambda_total": 3.6895,
    "threshold": 0.6
   },
   {
@@ -650,10 +650,10 @@
    "away": "VfB Stuttgart",
    "kickoff_utc": "2026-10-31T14:30:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.4856,
-   "p_cal": 0.4874,
-   "p_final": 0.4874,
-   "lambda_total": 3.7411,
+   "p_raw": 0.5108,
+   "p_cal": 0.5119,
+   "p_final": 0.5119,
+   "lambda_total": 3.6207,
    "threshold": 0.6
   },
   {
@@ -664,10 +664,10 @@
    "away": "Brighton & Hove Albion FC",
    "kickoff_utc": "2026-10-31T15:00:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.6323,
-   "p_cal": 0.6336,
-   "p_final": 0.5527,
-   "lambda_total": 3.0666,
+   "p_raw": 0.6404,
+   "p_cal": 0.6418,
+   "p_final": 0.5865,
+   "lambda_total": 3.0304,
    "threshold": 0.6
   },
   {
@@ -678,10 +678,10 @@
    "away": "Leeds United FC",
    "kickoff_utc": "2026-10-31T15:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6864,
-   "p_cal": 0.6854,
+   "p_raw": 0.6947,
+   "p_cal": 0.6939,
    "p_final": 0.6408,
-   "lambda_total": 2.8249,
+   "lambda_total": 2.7878,
    "threshold": 0.6
   },
   {
@@ -692,10 +692,10 @@
    "away": "Sunderland AFC",
    "kickoff_utc": "2026-10-31T15:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.675,
-   "p_cal": 0.6744,
-   "p_final": 0.6744,
-   "lambda_total": 2.8761,
+   "p_raw": 0.6898,
+   "p_cal": 0.6893,
+   "p_final": 0.6272,
+   "lambda_total": 2.8094,
    "threshold": 0.6
   },
   {
@@ -706,10 +706,10 @@
    "away": "Ipswich Town FC",
    "kickoff_utc": "2026-10-31T15:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6723,
-   "p_cal": 0.6718,
-   "p_final": 0.6477,
-   "lambda_total": 2.8881,
+   "p_raw": 0.6806,
+   "p_cal": 0.6804,
+   "p_final": 0.6614,
+   "lambda_total": 2.851,
    "threshold": 0.6
   },
   {
@@ -720,10 +720,10 @@
    "away": "Nottingham Forest FC",
    "kickoff_utc": "2026-10-31T15:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6896,
-   "p_cal": 0.6884,
-   "p_final": 0.6272,
-   "lambda_total": 2.8105,
+   "p_raw": 0.6979,
+   "p_cal": 0.697,
+   "p_final": 0.6545,
+   "lambda_total": 2.773,
    "threshold": 0.6
   },
   {
@@ -734,10 +734,10 @@
    "away": "RC Celta de Vigo",
    "kickoff_utc": "2026-10-31T15:15:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6558,
-   "p_cal": 0.655,
-   "p_final": 0.6204,
-   "lambda_total": 2.9616,
+   "p_raw": 0.6607,
+   "p_cal": 0.66,
+   "p_final": 0.6477,
+   "lambda_total": 2.94,
    "threshold": 0.6
   },
   {
@@ -748,10 +748,10 @@
    "away": "Stade Rennais FC 1901",
    "kickoff_utc": "2026-10-31T16:15:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.6335,
-   "p_cal": 0.6341,
-   "p_final": 0.5595,
-   "lambda_total": 3.0613,
+   "p_raw": 0.6337,
+   "p_cal": 0.6344,
+   "p_final": 0.5797,
+   "lambda_total": 3.0605,
    "threshold": 0.6
   },
   {
@@ -761,11 +761,11 @@
    "home": "Udinese Calcio",
    "away": "AS Roma",
    "kickoff_utc": "2026-10-31T17:00:00+00:00",
-   "decision": "qualified",
-   "p_raw": 0.6455,
-   "p_cal": 0.6475,
-   "p_final": 0.6204,
-   "lambda_total": 3.0079,
+   "decision": "below-line",
+   "p_raw": 0.6329,
+   "p_cal": 0.6354,
+   "p_final": 0.5662,
+   "lambda_total": 3.064,
    "threshold": 0.6
   },
   {
@@ -776,10 +776,10 @@
    "away": "Crystal Palace FC",
    "kickoff_utc": "2026-10-31T17:30:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6668,
-   "p_cal": 0.6666,
-   "p_final": 0.634,
-   "lambda_total": 2.9127,
+   "p_raw": 0.6768,
+   "p_cal": 0.6768,
+   "p_final": 0.6545,
+   "lambda_total": 2.8678,
    "threshold": 0.6
   },
   {
@@ -790,10 +790,10 @@
    "away": "M\u00e1laga CF",
    "kickoff_utc": "2026-10-31T17:30:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.6337,
-   "p_cal": 0.6337,
-   "p_final": 0.5527,
-   "lambda_total": 3.0604,
+   "p_raw": 0.6381,
+   "p_cal": 0.6384,
+   "p_final": 0.5595,
+   "lambda_total": 3.0407,
    "threshold": 0.6
   },
   {
@@ -804,10 +804,10 @@
    "away": "Borussia Dortmund",
    "kickoff_utc": "2026-10-31T17:30:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.4955,
-   "p_cal": 0.4968,
-   "p_final": 0.4968,
-   "lambda_total": 3.6936,
+   "p_raw": 0.5306,
+   "p_cal": 0.5309,
+   "p_final": 0.5192,
+   "lambda_total": 3.5279,
    "threshold": 0.6
   },
   {
@@ -818,10 +818,10 @@
    "away": "Angers SCO",
    "kickoff_utc": "2026-10-31T19:45:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.6352,
-   "p_cal": 0.6357,
-   "p_final": 0.5527,
-   "lambda_total": 3.0539,
+   "p_raw": 0.6351,
+   "p_cal": 0.6358,
+   "p_final": 0.5595,
+   "lambda_total": 3.0542,
    "threshold": 0.6
   },
   {
@@ -832,10 +832,10 @@
    "away": "Stade Brestois 29",
    "kickoff_utc": "2026-10-31T19:45:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.6597,
-   "p_cal": 0.6591,
-   "p_final": 0.6272,
-   "lambda_total": 2.9445,
+   "p_raw": 0.6598,
+   "p_cal": 0.6595,
+   "p_final": 0.6408,
+   "lambda_total": 2.9439,
    "threshold": 0.6
   },
   {
@@ -846,10 +846,10 @@
    "away": "Le Mans FC",
    "kickoff_utc": "2026-10-31T19:45:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.6279,
-   "p_cal": 0.6287,
+   "p_raw": 0.6281,
+   "p_cal": 0.629,
    "p_final": 0.5527,
-   "lambda_total": 3.0865,
+   "lambda_total": 3.0856,
    "threshold": 0.6
   },
   {
@@ -860,10 +860,10 @@
    "away": "FC Internazionale Milano",
    "kickoff_utc": "2026-10-31T19:45:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.6219,
-   "p_cal": 0.625,
-   "p_final": 0.546,
-   "lambda_total": 3.113,
+   "p_raw": 0.6195,
+   "p_cal": 0.6226,
+   "p_final": 0.5595,
+   "lambda_total": 3.124,
    "threshold": 0.6
   },
   {
@@ -874,10 +874,10 @@
    "away": "Fulham FC",
    "kickoff_utc": "2026-10-31T20:00:00+00:00",
    "decision": "qualified",
-   "p_raw": 0.691,
-   "p_cal": 0.6897,
-   "p_final": 0.6068,
-   "lambda_total": 2.8044,
+   "p_raw": 0.7044,
+   "p_cal": 0.7032,
+   "p_final": 0.634,
+   "lambda_total": 2.744,
    "threshold": 0.6
   },
   {
@@ -888,10 +888,10 @@
    "away": "Deportivo Alav\u00e9s",
    "kickoff_utc": "2026-10-31T20:00:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.5772,
-   "p_cal": 0.5797,
-   "p_final": 0.5595,
-   "lambda_total": 3.3142,
+   "p_raw": 0.5821,
+   "p_cal": 0.5846,
+   "p_final": 0.5729,
+   "lambda_total": 3.2922,
    "threshold": 0.6
   }
  ]
