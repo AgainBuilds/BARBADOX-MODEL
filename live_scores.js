@@ -6,12 +6,16 @@
  * Features:
  * - Displays current scores and match status.
  * - Shows whether each selection is on track.
- * - Matches fixtures by team names and date.
+ * - Matches fixtures by team names and date, with tolerant
+ *   name matching ("TSG 1899 Hoffenheim" matches "Hoffenheim",
+ *   "Stade Rennais FC 1901" matches "Rennes", etc.).
  * - Captures the FINAL SCORE of every finished leg and saves it
  *   on the leg itself, so the slips history archive, the CSV
  *   export and the GitHub record all keep the score forever.
- * - Automatically grades completed four-leg slips
- *   when every result can be confidently determined.
+ * - Automatically grades completed four-leg slips — BOTH the
+ *   live tracker AND the permanent history archive. Slips that
+ *   were cleared from the tracker are still graded, so archived
+ *   slips never sit at PENDING forever.
  * - Preserves the existing tracker and manual grading.
  */
 
@@ -23,6 +27,9 @@
     }
 
     window.__barbadoxLiveScoresStarted = true;
+
+    const TRACK_KEY = "barbadox.slips.tracker.v1";
+    const HISTORY_KEY = "barbadox.slips.history.v2";
 
     const FINISHED = new Set([
         "FT",
@@ -67,6 +74,48 @@
             '"': "&quot;",
             "'": "&#39;"
         })[character]);
+    }
+
+
+    /*
+     * Direct access to the permanent history archive.
+     * The live tracker holds only the current slips; every
+     * generated slip also lives here forever.
+     */
+    function readArchive() {
+        try {
+            const value = JSON.parse(
+                localStorage.getItem(HISTORY_KEY) || "[]"
+            );
+
+            return Array.isArray(value) ? value : [];
+        } catch {
+            return [];
+        }
+    }
+
+    function writeArchive(slips) {
+        try {
+            localStorage.setItem(
+                HISTORY_KEY,
+                JSON.stringify(slips)
+            );
+        } catch {}
+    }
+
+    async function syncArchiveToServer(slips) {
+        try {
+            await fetch(
+                "/api/slip-history",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ slips })
+                }
+            );
+        } catch {}
     }
 
 
@@ -153,6 +202,8 @@
 
     /*
      * Normalize club names for fixture matching.
+     * Legal-form prefixes and founding years are kept only
+     * when they do not hide the club's core identity.
      */
     function normalizeTeam(name) {
         return String(name || "")
@@ -160,7 +211,7 @@
             .replace(/[\u0300-\u036f]/g, "")
             .toLowerCase()
             .replace(
-                /\b(football club|soccer club|fc|cf|afc|sc|ac|calcio|club|football|the)\b/g,
+                /\b(football club|soccer club|football|calcio|club)\b/g,
                 " "
             )
             .replace(/[^a-z0-9]+/g, " ")
@@ -171,25 +222,80 @@
 
 
     /*
+     * Two words count as the same club word when they are
+     * identical or share a 4+ character prefix:
+     *   "rennais" ~ "rennes", "internazionale" ~ "inter",
+     *   "milano" ~ "milan", "hoffenheim" ~ "hoffenheim".
+     */
+    function wordsEquivalent(a, b) {
+        if (a === b) {
+            return true;
+        }
+
+        const limit = Math.min(a.length, b.length);
+
+        if (limit < 4) {
+            return false;
+        }
+
+        let same = 0;
+
+        while (
+            same < limit
+            && a[same] === b[same]
+        ) {
+            same++;
+        }
+
+        return same >= 4;
+    }
+
+
+    /*
      * Compare two club names.
+     *
+     * - Numeric-only tokens (1899, 1901, 07, 05…) are ignored.
+     * - A short official name that is fully contained in the
+     *   long one ("Hoffenheim" in "TSG 1899 Hoffenheim") is a
+     *   strong match.
+     * - Otherwise the share of matching words decides.
      */
     function similarity(first, second) {
-        const a = new Set(normalizeTeam(first));
-        const b = new Set(normalizeTeam(second));
+        const a = normalizeTeam(first)
+            .filter(word => /[a-z]/.test(word));
 
-        if (!a.size || !b.size) {
+        const b = normalizeTeam(second)
+            .filter(word => /[a-z]/.test(word));
+
+        if (!a.length || !b.length) {
             return 0;
         }
 
         let common = 0;
 
         for (const word of a) {
-            if (b.has(word)) {
+            if (b.some(other => wordsEquivalent(word, other))) {
                 common++;
             }
         }
 
-        return common / Math.max(a.size, b.size);
+        if (!common) {
+            return 0;
+        }
+
+        const score = common / Math.max(a.length, b.length);
+
+        const subset =
+            a.every(word =>
+                b.some(other => wordsEquivalent(word, other))
+            )
+            || b.every(word =>
+                a.some(other => wordsEquivalent(word, other))
+            );
+
+        return subset
+            ? Math.max(score, 0.9)
+            : score;
     }
 
 
@@ -366,6 +472,45 @@
 
 
     /*
+     * Stamp one leg with its final score and result.
+     * Returns true when the leg changed.
+     */
+    function stampLeg(leg, fixture) {
+        let changed = false;
+
+        const score = formatScore(fixture);
+
+        if (score && leg.liveScore !== score) {
+            leg.liveScore = score;
+            changed = true;
+        }
+
+        const statusText = getMatchStatus(fixture);
+
+        if (leg.fixtureStatus !== statusText) {
+            leg.fixtureStatus = statusText;
+            changed = true;
+        }
+
+        const outcome = getOutcome(leg, fixture);
+
+        const result =
+            outcome === true
+                ? "WON"
+                : outcome === false
+                    ? "LOST"
+                    : (leg.result || "PENDING");
+
+        if (leg.result !== result) {
+            leg.result = result;
+            changed = true;
+        }
+
+        return changed;
+    }
+
+
+    /*
      * Explain the current state of an individual leg.
      */
     function getLegState(leg, fixture) {
@@ -469,24 +614,11 @@
 
 
     /*
-     * Capture the final score of every finished leg.
-     *
-     * Runs on EVERY slip (pending, won, lost) so scores are
-     * recorded even when the slip was graded manually before
-     * the live feed confirmed the fixture. The saved scores
-     * flow automatically into the slips history archive,
-     * its CSV export, and the GitHub record.
+     * Capture the final score of every finished leg in a
+     * slip collection (tracker or archive). Operates in
+     * place; returns true when anything changed.
      */
-    function captureScores() {
-        if (
-            typeof readTracker !== "function"
-            || typeof saveTracker !== "function"
-        ) {
-            return false;
-        }
-
-        const slips = readTracker();
-
+    function captureCollectionScores(slips) {
         if (!Array.isArray(slips)) {
             return false;
         }
@@ -508,42 +640,14 @@
                     continue;
                 }
 
-                const score = formatScore(fixture);
-
-                if (!score) {
+                if (!formatScore(fixture)) {
                     continue;
                 }
 
-                if (leg.liveScore !== score) {
-                    leg.liveScore = score;
-                    changed = true;
-                }
-
-                const statusText = getMatchStatus(fixture);
-
-                if (leg.fixtureStatus !== statusText) {
-                    leg.fixtureStatus = statusText;
-                    changed = true;
-                }
-
-                const outcome = getOutcome(leg, fixture);
-
-                const result =
-                    outcome === true
-                        ? "WON"
-                        : outcome === false
-                            ? "LOST"
-                            : (leg.result || "PENDING");
-
-                if (leg.result !== result) {
-                    leg.result = result;
+                if (stampLeg(leg, fixture)) {
                     changed = true;
                 }
             }
-        }
-
-        if (changed) {
-            saveTracker(slips);
         }
 
         return changed;
@@ -551,24 +655,18 @@
 
 
     /*
-     * Automatically grade a slip only if:
+     * Grade every slip in a collection that can be safely
+     * graded. Operates in place; returns true when any slip
+     * was graded.
      *
+     * A slip grades only if:
      * - It is still pending.
      * - It has exactly four legs.
      * - All four fixtures are matched.
      * - All four matches are finished.
      * - Every market result can be determined.
      */
-    function autoGradeSlips() {
-        if (
-            typeof readTracker !== "function"
-            || typeof saveTracker !== "function"
-        ) {
-            return false;
-        }
-
-        const slips = readTracker();
-
+    function gradeCollection(slips) {
         if (!Array.isArray(slips)) {
             return false;
         }
@@ -577,7 +675,8 @@
 
         for (const slip of slips) {
             if (
-                slip.status !== "PENDING"
+                String(slip.status || "PENDING").toUpperCase()
+                    !== "PENDING"
                 || !Array.isArray(slip.legs)
                 || slip.legs.length !== 4
             ) {
@@ -622,27 +721,7 @@
             /* Stamp every leg with its final score before
                grading, so the archive keeps the scores. */
             matchedLegs.forEach(item => {
-                const score = formatScore(item.fixture);
-
-                if (score) {
-                    item.leg.liveScore = score;
-                }
-
-                item.leg.fixtureStatus = getMatchStatus(
-                    item.fixture
-                );
-
-                const outcome = getOutcome(
-                    item.leg,
-                    item.fixture
-                );
-
-                item.leg.result =
-                    outcome === true
-                        ? "WON"
-                        : outcome === false
-                            ? "LOST"
-                            : (item.leg.result || "PENDING");
+                stampLeg(item.leg, item.fixture);
             });
 
             slip.status = outcomes.every(
@@ -660,11 +739,86 @@
             changed = true;
         }
 
+        return changed;
+    }
+
+
+    /*
+     * TRACKER: capture scores + auto-grade live slips.
+     */
+    function captureScores() {
+        if (
+            typeof readTracker !== "function"
+            || typeof saveTracker !== "function"
+        ) {
+            return false;
+        }
+
+        const slips = readTracker();
+
+        if (!Array.isArray(slips)) {
+            return false;
+        }
+
+        const changed = captureCollectionScores(slips);
+
         if (changed) {
             saveTracker(slips);
         }
 
         return changed;
+    }
+
+    function autoGradeSlips() {
+        if (
+            typeof readTracker !== "function"
+            || typeof saveTracker !== "function"
+        ) {
+            return false;
+        }
+
+        const slips = readTracker();
+
+        if (!Array.isArray(slips)) {
+            return false;
+        }
+
+        const changed = gradeCollection(slips);
+
+        if (changed) {
+            saveTracker(slips);
+        }
+
+        return changed;
+    }
+
+
+    /*
+     * ARCHIVE: capture scores + auto-grade archived slips.
+     *
+     * Slips cleared from the live tracker still live in the
+     * permanent history archive. Without this pass they would
+     * sit at PENDING forever even after all their matches
+     * finished.
+     */
+    function captureArchiveScores() {
+        return captureCollectionScores(readArchive());
+    }
+
+    function autoGradeArchive() {
+        const archive = readArchive();
+
+        if (!archive.length) {
+            return false;
+        }
+
+        const graded = gradeCollection(archive);
+
+        if (graded) {
+            writeArchive(archive);
+        }
+
+        return graded;
     }
 
 
@@ -852,12 +1006,47 @@
 
                 message = "";
 
-                /* Capture final scores first so every
-                   archived leg keeps its score. */
+                /* 1. Capture final scores on live tracker legs. */
                 const scoresChanged = captureScores();
 
+                /* 2. Auto-grade live tracker slips. */
+                const trackerGraded = autoGradeSlips();
+
+                /* 3. Capture final scores on ARCHIVED legs —
+                   including slips that were cleared from the
+                   tracker. */
+                const archiveScoresChanged =
+                    captureArchiveScores();
+
+                const archive = readArchive();
+
+                if (archiveScoresChanged) {
+                    writeArchive(archive);
+                }
+
+                /* 4. Auto-grade archived slips whose four legs
+                   have all finished. */
+                const archiveGraded = autoGradeArchive();
+
+                if (archiveGraded) {
+                    syncArchiveToServer(readArchive());
+                }
+
                 if (
-                    autoGradeSlips()
+                    archiveScoresChanged
+                    || archiveGraded
+                ) {
+                    /* Tell the slips-history module that the
+                       permanent record changed. */
+                    document.dispatchEvent(
+                        new CustomEvent(
+                            "barbadox:history-updated"
+                        )
+                    );
+                }
+
+                if (
+                    trackerGraded
                     || scoresChanged
                 ) {
                     if (
