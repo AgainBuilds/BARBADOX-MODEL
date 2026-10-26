@@ -5,18 +5,15 @@
  *
  * Features:
  * - Displays current scores and match status.
- * - Shows whether each selection is on track.
- * - Matches fixtures by team names and date, with tolerant
- *   name matching ("TSG 1899 Hoffenheim" matches "Hoffenheim",
- *   "Stade Rennais FC 1901" matches "Rennes", etc.).
- * - Captures the FINAL SCORE of every finished leg and saves it
- *   on the leg itself, so the slips history archive, the CSV
- *   export and the GitHub record all keep the score forever.
- * - Automatically grades completed four-leg slips — BOTH the
- *   live tracker AND the permanent history archive. Slips that
- *   were cleared from the tracker are still graded, so archived
- *   slips never sit at PENDING forever.
- * - Preserves the existing tracker and manual grading.
+ * - Shows whether selections are on track.
+ * - Matches fixtures by club names and date.
+ * - Rejects ambiguous fixture matches.
+ * - Never grades a slip using a repeated fixture.
+ * - Persists final scores on tracker and archive legs.
+ * - Automatically grades completed slips.
+ * - Requests historical match dates for pending slips.
+ * - Fixes slip generation without requiring a console.html rewrite.
+ * - Removes the obsolete manual-grading controls.
  */
 
 (() => {
@@ -79,8 +76,6 @@
 
     /*
      * Direct access to the permanent history archive.
-     * The live tracker holds only the current slips; every
-     * generated slip also lives here forever.
      */
     function readArchive() {
         try {
@@ -202,8 +197,6 @@
 
     /*
      * Normalize club names for fixture matching.
-     * Legal-form prefixes and founding years are kept only
-     * when they do not hide the club's core identity.
      */
     function normalizeTeam(name) {
         return String(name || "")
@@ -221,12 +214,6 @@
     }
 
 
-    /*
-     * Two words count as the same club word when they are
-     * identical or share a 4+ character prefix:
-     *   "rennais" ~ "rennes", "internazionale" ~ "inter",
-     *   "milano" ~ "milan", "hoffenheim" ~ "hoffenheim".
-     */
     function wordsEquivalent(a, b) {
         if (a === b) {
             return true;
@@ -252,13 +239,7 @@
 
 
     /*
-     * Compare two club names.
-     *
-     * - Numeric-only tokens (1899, 1901, 07, 05…) are ignored.
-     * - A short official name that is fully contained in the
-     *   long one ("Hoffenheim" in "TSG 1899 Hoffenheim") is a
-     *   strong match.
-     * - Otherwise the share of matching words decides.
+     * Score similarity between two club names.
      */
     function similarity(first, second) {
         const a = normalizeTeam(first)
@@ -299,9 +280,6 @@
     }
 
 
-    /*
-     * Compare fixture dates.
-     */
     function dayDifference(first, second) {
         const a = Date.parse(
             String(first || "").slice(0, 10)
@@ -327,17 +305,24 @@
 
 
     /*
-     * Match a tracker leg against the score provider.
+     * Match a tracker leg to exactly one plausible fixture.
      *
-     * A fixture must have similar home/away names and
-     * a date within one day. No score is invented when
-     * a fixture cannot be matched.
+     * The home/away order must match.
+     * The fixture date must be within one day.
+     * Ambiguous matches are rejected rather than guessed.
      */
     function matchFixture(leg) {
-        let bestFixture = null;
-        let bestScore = 0;
+        if (!leg || !leg.home || !leg.away || !leg.date) {
+            return null;
+        }
+
+        const candidates = [];
 
         for (const fixture of fixtures) {
+            if (!fixture || !fixture.home || !fixture.away) {
+                continue;
+            }
+
             if (
                 dayDifference(
                     leg.date,
@@ -347,39 +332,52 @@
                 continue;
             }
 
-            const direct = (
-                similarity(leg.home, fixture.home)
-                +
-                similarity(leg.away, fixture.away)
-            ) / 2;
-
-            const reversed = (
-                similarity(leg.home, fixture.away)
-                +
-                similarity(leg.away, fixture.home)
-            ) / 2;
-
-            const score = Math.max(
-                direct,
-                reversed
+            const homeScore = similarity(
+                leg.home,
+                fixture.home
             );
 
-            if (score > bestScore) {
-                bestScore = score;
-                bestFixture = fixture;
+            const awayScore = similarity(
+                leg.away,
+                fixture.away
+            );
+
+            if (
+                homeScore < 0.68
+                || awayScore < 0.68
+            ) {
+                continue;
+            }
+
+            const score = (homeScore + awayScore) / 2;
+
+            if (score >= 0.80) {
+                candidates.push({
+                    fixture,
+                    score
+                });
             }
         }
 
-        return bestScore >= 0.62
-            ? bestFixture
-            : null;
+        candidates.sort(
+            (a, b) => b.score - a.score
+        );
+
+        if (!candidates.length) {
+            return null;
+        }
+
+        if (
+            candidates.length > 1
+            && candidates[0].score - candidates[1].score < 0.08
+        ) {
+            return null;
+        }
+
+        return candidates[0].fixture;
     }
 
 
-    /*
-     * Human-readable final score, e.g. "2 - 1".
-     * Empty string when the fixture has no confirmed score.
-     */
     function formatScore(fixture) {
         if (
             !fixture
@@ -393,9 +391,6 @@
     }
 
 
-    /*
-     * Convert provider status codes into readable text.
-     */
     function getMatchStatus(fixture) {
         if (FINISHED.has(fixture.status)) {
             if (fixture.status === "FT") {
@@ -434,26 +429,31 @@
 
 
     /*
-     * Determine the final result for supported markets.
-     *
-     * Returns:
-     * true  = won
-     * false = lost
-     * null  = cannot determine safely
+     * Determine a leg outcome from confirmed final scores.
      */
     function getOutcome(leg, fixture) {
         if (
-            !FINISHED.has(fixture.status)
+            !fixture
+            || !FINISHED.has(fixture.status)
             || fixture.homeScore == null
             || fixture.awayScore == null
         ) {
             return null;
         }
 
-        const total =
-            Number(fixture.homeScore)
-            +
-            Number(fixture.awayScore);
+        const homeScore = Number(fixture.homeScore);
+        const awayScore = Number(fixture.awayScore);
+
+        if (
+            !Number.isFinite(homeScore)
+            || !Number.isFinite(awayScore)
+            || homeScore < 0
+            || awayScore < 0
+        ) {
+            return null;
+        }
+
+        const total = homeScore + awayScore;
 
         const market = String(
             leg.market || ""
@@ -471,10 +471,6 @@
     }
 
 
-    /*
-     * Stamp one leg with its final score and result.
-     * Returns true when the leg changed.
-     */
     function stampLeg(leg, fixture) {
         let changed = false;
 
@@ -510,9 +506,6 @@
     }
 
 
-    /*
-     * Explain the current state of an individual leg.
-     */
     function getLegState(leg, fixture) {
         if (!fixture) {
             return [
@@ -526,15 +519,11 @@
             && fixture.awayScore != null;
 
         const total = hasScore
-            ? Number(fixture.homeScore)
-                + Number(fixture.awayScore)
+            ? Number(fixture.homeScore) + Number(fixture.awayScore)
             : null;
 
         if (FINISHED.has(fixture.status)) {
-            const outcome = getOutcome(
-                leg,
-                fixture
-            );
+            const outcome = getOutcome(leg, fixture);
 
             if (outcome === true) {
                 return ["WON", "live-good"];
@@ -614,9 +603,7 @@
 
 
     /*
-     * Capture the final score of every finished leg in a
-     * slip collection (tracker or archive). Operates in
-     * place; returns true when anything changed.
+     * Capture final scores in either the active tracker or archive.
      */
     function captureCollectionScores(slips) {
         if (!Array.isArray(slips)) {
@@ -636,11 +623,8 @@
                 if (
                     !fixture
                     || !FINISHED.has(fixture.status)
+                    || !formatScore(fixture)
                 ) {
-                    continue;
-                }
-
-                if (!formatScore(fixture)) {
                     continue;
                 }
 
@@ -655,16 +639,7 @@
 
 
     /*
-     * Grade every slip in a collection that can be safely
-     * graded. Operates in place; returns true when any slip
-     * was graded.
-     *
-     * A slip grades only if:
-     * - It is still pending.
-     * - It has exactly four legs.
-     * - All four fixtures are matched.
-     * - All four matches are finished.
-     * - Every market result can be determined.
+     * Grade only when all four legs map to four distinct finished fixtures.
      */
     function gradeCollection(slips) {
         if (!Array.isArray(slips)) {
@@ -675,65 +650,73 @@
 
         for (const slip of slips) {
             if (
-                String(slip.status || "PENDING").toUpperCase()
-                    !== "PENDING"
+                String(slip.status || "PENDING").toUpperCase() !== "PENDING"
                 || !Array.isArray(slip.legs)
                 || slip.legs.length !== 4
             ) {
                 continue;
             }
 
-            const matchedLegs = slip.legs.map(
-                leg => ({
-                    leg,
-                    fixture: matchFixture(leg)
-                })
+            const matchedLegs = slip.legs.map(leg => ({
+                leg,
+                fixture: matchFixture(leg)
+            }));
+
+            const identity = fixture => {
+                if (fixture && fixture.id != null) {
+                    return "id:" + String(fixture.id);
+                }
+
+                if (!fixture) {
+                    return "";
+                }
+
+                return [
+                    String(fixture.date || ""),
+                    String(fixture.home || "").toLowerCase(),
+                    String(fixture.away || "").toLowerCase()
+                ].join("|");
+            };
+
+            const identities = matchedLegs.map(
+                item => identity(item.fixture)
             );
 
-            const everyFixtureFinished =
-                matchedLegs.every(
-                    item =>
-                        item.fixture
-                        && FINISHED.has(
-                            item.fixture.status
-                        )
-                );
+            if (
+                identities.some(value => !value)
+                || new Set(identities).size !== 4
+            ) {
+                continue;
+            }
+
+            const everyFixtureFinished = matchedLegs.every(
+                item =>
+                    item.fixture
+                    && FINISHED.has(item.fixture.status)
+            );
 
             if (!everyFixtureFinished) {
                 continue;
             }
 
             const outcomes = matchedLegs.map(
-                item => getOutcome(
-                    item.leg,
-                    item.fixture
-                )
+                item => getOutcome(item.leg, item.fixture)
             );
 
-            if (
-                outcomes.some(
-                    outcome => outcome === null
-                )
-            ) {
+            if (outcomes.some(outcome => outcome === null)) {
                 continue;
             }
 
-            /* Stamp every leg with its final score before
-               grading, so the archive keeps the scores. */
             matchedLegs.forEach(item => {
                 stampLeg(item.leg, item.fixture);
             });
 
-            slip.status = outcomes.every(
-                Boolean
-            )
+            slip.status = outcomes.every(Boolean)
                 ? "WON"
                 : "LOST";
 
             slip.gradedAt = new Date().toISOString();
-
-            slip.gradingSource = "LIVE_SCORE_API";
-
+            slip.gradingSource = "FOOTBALL_DATA_ORG";
             slip.autoGraded = true;
 
             changed = true;
@@ -743,9 +726,6 @@
     }
 
 
-    /*
-     * TRACKER: capture scores + auto-grade live slips.
-     */
     function captureScores() {
         if (
             typeof readTracker !== "function"
@@ -768,6 +748,7 @@
 
         return changed;
     }
+
 
     function autoGradeSlips() {
         if (
@@ -793,17 +774,17 @@
     }
 
 
-    /*
-     * ARCHIVE: capture scores + auto-grade archived slips.
-     *
-     * Slips cleared from the live tracker still live in the
-     * permanent history archive. Without this pass they would
-     * sit at PENDING forever even after all their matches
-     * finished.
-     */
     function captureArchiveScores() {
-        return captureCollectionScores(readArchive());
+        const archive = readArchive();
+        const changed = captureCollectionScores(archive);
+
+        if (changed) {
+            writeArchive(archive);
+        }
+
+        return changed;
     }
+
 
     function autoGradeArchive() {
         const archive = readArchive();
@@ -812,13 +793,342 @@
             return false;
         }
 
-        const graded = gradeCollection(archive);
+        const changed = gradeCollection(archive);
 
-        if (graded) {
+        if (changed) {
             writeArchive(archive);
         }
 
-        return graded;
+        return changed;
+    }
+
+
+    /*
+     * Ask the backend for dates represented by pending slips.
+     * Includes archived slips that are no longer visible in the tracker.
+     */
+    function pendingMatchDates() {
+        const dates = new Set();
+        const collections = [];
+
+        if (typeof readTracker === "function") {
+            const tracker = readTracker();
+
+            if (Array.isArray(tracker)) {
+                collections.push(tracker);
+            }
+        }
+
+        const archive = readArchive();
+
+        if (Array.isArray(archive)) {
+            collections.push(archive);
+        }
+
+        for (const collection of collections) {
+            for (const slip of collection) {
+                if (
+                    String(slip.status || "PENDING").toUpperCase()
+                    !== "PENDING"
+                ) {
+                    continue;
+                }
+
+                for (const leg of (
+                    Array.isArray(slip.legs) ? slip.legs : []
+                )) {
+                    const date = String(leg.date || "").slice(0, 10);
+
+                    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                        dates.add(date);
+                    }
+                }
+            }
+        }
+
+        return [...dates].sort();
+    }
+
+
+    /*
+     * Fix slip generation without requiring a rewrite of console.html.
+     * A slip can start its seven-day window on any of its four fixtures.
+     */
+    function installSlipBuilderFixes() {
+        if (typeof window.pendingFixtureKeys === "function") {
+            window.pendingFixtureKeys = function pendingFixtureKeysSafe() {
+                const keys = new Set();
+                const collections = [
+                    typeof readTracker === "function" ? readTracker() : []
+                ];
+
+                const archive = readArchive();
+
+                if (Array.isArray(archive)) {
+                    collections.push(archive);
+                }
+
+                const settled = new Set([
+                    "WON",
+                    "LOST",
+                    "HIT",
+                    "HIT / WON",
+                    "FAILED",
+                    "FAILED / LOST",
+                    "MISS",
+                    "VOID",
+                    "CANCELLED"
+                ]);
+
+                for (const collection of collections) {
+                    for (const slip of (
+                        Array.isArray(collection) ? collection : []
+                    )) {
+                        if (
+                            settled.has(
+                                String(slip.status || "PENDING").toUpperCase()
+                            )
+                        ) {
+                            continue;
+                        }
+
+                        for (const leg of (
+                            Array.isArray(slip.legs) ? slip.legs : []
+                        )) {
+                            if (typeof fixtureKey === "function") {
+                                keys.add(fixtureKey(leg));
+                            }
+                        }
+                    }
+                }
+
+                return keys;
+            };
+        }
+
+        if (typeof window.buildSlips === "function") {
+            window.buildSlips = function buildSlipsSafe() {
+                const now = Date.now();
+
+                const taken = typeof pendingFixtureKeys === "function"
+                    ? pendingFixtureKeys()
+                    : new Set();
+
+                const future = fixture => {
+                    const time = kickoffMs(fixture);
+
+                    return Number.isFinite(time)
+                        && time > now + 30 * 60000;
+                };
+
+                const dedupe = (rows, score) => {
+                    const byKey = new Map();
+
+                    for (const fixture of rows) {
+                        const key = fixtureKey(fixture);
+                        const previous = byKey.get(key);
+
+                        if (
+                            !previous
+                            || score(fixture) > score(previous)
+                        ) {
+                            byKey.set(key, fixture);
+                        }
+                    }
+
+                    return [...byKey.values()];
+                };
+
+                const overs = dedupe(
+                    (
+                        snap && Array.isArray(snap.fixtures)
+                            ? snap.fixtures
+                            : []
+                    ).filter(
+                        fixture =>
+                            qualifiedOver(fixture, now)
+                            && future(fixture)
+                            && !taken.has(fixtureKey(fixture))
+                    ),
+                    overProb
+                ).sort(
+                    (a, b) => overProb(b) - overProb(a)
+                );
+
+                const underRows = dedupe(
+                    (
+                        underSnap && Array.isArray(underSnap.fixtures)
+                            ? underSnap.fixtures
+                            : []
+                    ).filter(
+                        fixture =>
+                            qualifiedUnder(fixture, now)
+                            && future(fixture)
+                            && !taken.has(fixtureKey(fixture))
+                    ),
+                    fixture => Number(fixture.p_final) || 0
+                ).sort(
+                    (a, b) =>
+                        (Number(b.p_final) || 0)
+                        - (Number(a.p_final) || 0)
+                );
+
+                const used = new Set(taken);
+                const list = [];
+
+                const windowMs = 7 * 24 * 60 * 60 * 1000;
+                const kickoffBufferMs = 30 * 60 * 1000;
+
+                while (true) {
+                    const availableOvers = overs.filter(
+                        fixture =>
+                            !used.has(fixtureKey(fixture))
+                            && future(fixture)
+                    );
+
+                    const availableUnders = underRows.filter(
+                        fixture =>
+                            !used.has(fixtureKey(fixture))
+                            && future(fixture)
+                    );
+
+                    if (
+                        availableOvers.length < 3
+                        || !availableUnders.length
+                    ) {
+                        break;
+                    }
+
+                    const anchors = [...new Set(
+                        [...availableOvers, ...availableUnders]
+                            .map(kickoffMs)
+                            .filter(Number.isFinite)
+                    )].sort((a, b) => a - b);
+
+                    let chosen = null;
+
+                    for (const anchor of anchors) {
+                        const inWindow = fixture => {
+                            const time = kickoffMs(fixture);
+
+                            return Number.isFinite(time)
+                                && time >= anchor
+                                && time <= anchor + windowMs
+                                && time > now + kickoffBufferMs
+                                && !used.has(fixtureKey(fixture));
+                        };
+
+                        const windowOvers = availableOvers.filter(inWindow);
+
+                        if (windowOvers.length < 3) {
+                            continue;
+                        }
+
+                        for (const under of availableUnders.filter(inWindow)) {
+                            const underKey = fixtureKey(under);
+
+                            const trio = windowOvers
+                                .filter(
+                                    fixture =>
+                                        fixtureKey(fixture) !== underKey
+                                )
+                                .slice(0, 3);
+
+                            if (trio.length === 3) {
+                                chosen = {
+                                    over: trio,
+                                    under
+                                };
+
+                                break;
+                            }
+                        }
+
+                        if (chosen) {
+                            break;
+                        }
+                    }
+
+                    if (!chosen) {
+                        break;
+                    }
+
+                    const keys = [
+                        ...chosen.over,
+                        chosen.under
+                    ].map(fixtureKey);
+
+                    if (new Set(keys).size !== 4) {
+                        throw new Error(
+                            "Slip builder refused a repeated fixture."
+                        );
+                    }
+
+                    keys.forEach(key => used.add(key));
+                    list.push(chosen);
+                }
+
+                return {
+                    list,
+                    overFree: overs.filter(
+                        fixture => !used.has(fixtureKey(fixture))
+                    ).length,
+                    underFree: underRows.filter(
+                        fixture => !used.has(fixtureKey(fixture))
+                    ).length
+                };
+            };
+        }
+
+        /*
+         * Remove obsolete manual-grading buttons from the UI.
+         * Observe rerenders so the buttons do not reappear.
+         */
+        const removeManualControls = () => {
+            document.querySelectorAll(
+                "#trackerList [data-grade]"
+            ).forEach(button => {
+                const actionRow = button.closest(".slip-actions");
+
+                if (actionRow) {
+                    actionRow.remove();
+                } else {
+                    button.remove();
+                }
+            });
+
+            document.querySelectorAll(".status").forEach(element => {
+                if (
+                    element.textContent.includes(
+                        "Manual grading remains available."
+                    )
+                ) {
+                    element.textContent = element.textContent.replace(
+                        "Manual grading remains available.",
+                        "Manual grading is disabled; confirmed full-time scores settle slips automatically."
+                    );
+                }
+            });
+        };
+
+        removeManualControls();
+
+        const tracker = $("trackerList");
+
+        if (
+            tracker
+            && typeof MutationObserver !== "undefined"
+        ) {
+            const observer = new MutationObserver(removeManualControls);
+
+            observer.observe(
+                tracker,
+                {
+                    childList: true,
+                    subtree: true
+                }
+            );
+        }
     }
 
 
@@ -836,13 +1146,10 @@
             } else if (updatedAt) {
                 banner.textContent =
                     "LIVE SCORES · Provider updated "
-                    + new Date(
-                        updatedAt
-                    ).toLocaleTimeString()
+                    + new Date(updatedAt).toLocaleTimeString()
                     + " · Page checks every 60 seconds.";
             } else {
-                banner.textContent =
-                    "Waiting for score data…";
+                banner.textContent = "Waiting for score data…";
             }
         }
 
@@ -850,9 +1157,7 @@
             return;
         }
 
-        const filter =
-            $("trackerFilter")?.value || "ALL";
-
+        const filter = $("trackerFilter")?.value || "ALL";
         const allSlips = readTracker();
 
         if (!Array.isArray(allSlips)) {
@@ -860,9 +1165,7 @@
         }
 
         const visibleSlips = allSlips.filter(
-            slip =>
-                filter === "ALL"
-                || slip.status === filter
+            slip => filter === "ALL" || slip.status === filter
         );
 
         const slipElements = document.querySelectorAll(
@@ -872,95 +1175,80 @@
         slipElements.forEach((element, slipIndex) => {
             const slip = visibleSlips[slipIndex];
 
-            if (
-                !slip
-                || !Array.isArray(slip.legs)
-            ) {
+            if (!slip || !Array.isArray(slip.legs)) {
                 return;
             }
 
-            const target = element.querySelector(
-                ".legs"
-            );
+            const target = element.querySelector(".legs");
 
             if (!target) {
                 return;
             }
 
-            target.innerHTML = slip.legs.map(
-                (leg, legIndex) => {
-                    const fixture = matchFixture(leg);
+            target.innerHTML = slip.legs.map((leg, legIndex) => {
+                const fixture = matchFixture(leg);
+                const legState = getLegState(leg, fixture);
 
-                    const legState = getLegState(
-                        leg,
-                        fixture
-                    );
+                const score =
+                    fixture
+                    && fixture.homeScore != null
+                    && fixture.awayScore != null
+                        ? `${fixture.homeScore} – ${fixture.awayScore}`
+                        : "— : —";
 
-                    const score =
-                        fixture
-                        && fixture.homeScore != null
-                        && fixture.awayScore != null
-                            ? `${fixture.homeScore} – ${fixture.awayScore}`
-                            : "— : —";
+                const probability =
+                    typeof pct === "function"
+                        ? pct(leg.probability)
+                        : `${Math.round(Number(leg.probability || 0) * 100)}%`;
 
-                    const probability =
-                        typeof pct === "function"
-                            ? pct(leg.probability)
-                            : `${Math.round(
-                                Number(
-                                    leg.probability || 0
-                                ) * 100
-                            )}%`;
+                const fixtureStatus = fixture
+                    ? getMatchStatus(fixture)
+                    : "Fixture not matched";
 
-                    const fixtureStatus = fixture
-                        ? getMatchStatus(fixture)
-                        : "Fixture not matched";
+                const league = fixture?.league
+                    ? ` · ${escapeHTML(fixture.league)}`
+                    : "";
 
-                    const league = fixture?.league
-                        ? ` · ${escapeHTML(fixture.league)}`
-                        : "";
-
-                    return `
-                        <div class="live-leg">
+                return `
+                    <div class="live-leg">
+                        <div>
                             <div>
-                                <div>
-                                    ${legIndex + 1}.
-                                    ${escapeHTML(leg.home)}
-                                    vs
-                                    ${escapeHTML(leg.away)}
+                                ${legIndex + 1}.
+                                ${escapeHTML(leg.home)}
+                                vs
+                                ${escapeHTML(leg.away)}
 
-                                    <span class="live-detail">
-                                        —
-                                        ${escapeHTML(leg.market)}
-                                        (${escapeHTML(probability)})
-                                    </span>
-                                </div>
-
-                                <div class="live-detail">
-                                    ${escapeHTML(fixtureStatus)}
-                                    ${league}
-                                </div>
+                                <span class="live-detail">
+                                    —
+                                    ${escapeHTML(leg.market)}
+                                    (${escapeHTML(probability)})
+                                </span>
                             </div>
 
-                            <div style="text-align:right">
-                                <div class="live-score">
-                                    ${escapeHTML(score)}
-                                </div>
-
-                                <div class="live-detail ${legState[1]}">
-                                    ${escapeHTML(legState[0])}
-                                </div>
+                            <div class="live-detail">
+                                ${escapeHTML(fixtureStatus)}
+                                ${league}
                             </div>
                         </div>
-                    `;
-                }
-            ).join("");
+
+                        <div style="text-align:right">
+                            <div class="live-score">
+                                ${escapeHTML(score)}
+                            </div>
+
+                            <div class="live-detail ${legState[1]}">
+                                ${escapeHTML(legState[0])}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join("");
         });
     }
 
 
     /*
-     * Fetch the latest score snapshot from the backend.
+     * Request score data from the backend and grade safely matched slips.
      */
     async function refreshLiveScores() {
         addUI();
@@ -969,7 +1257,14 @@
             const response = await fetch(
                 "/api/live-scores",
                 {
-                    cache: "no-store"
+                    method: "POST",
+                    cache: "no-store",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        dates: pendingMatchDates()
+                    })
                 }
             );
 
@@ -980,68 +1275,50 @@
 
                 message =
                     "LIVE SCORES NOT CONFIGURED · "
-                    + "Add API_FOOTBALL_KEY in Render → "
-                    + "Environment. Manual tracking remains available.";
+                    + "Add FOOTBALL_DATA_KEY in Render → "
+                    + "Environment. Scores come from football-data.org.";
 
-            } else if (
-                !response.ok
-                || !payload.ok
-            ) {
+            } else if (!response.ok || !payload.ok) {
                 message =
                     "LIVE SCORE ERROR · "
                     + (
                         payload.message
+                        || payload.error
                         || `HTTP ${response.status}`
                     );
 
             } else {
-                fixtures = Array.isArray(
-                    payload.fixtures
-                )
+                fixtures = Array.isArray(payload.fixtures)
                     ? payload.fixtures
                     : [];
 
                 updatedAt = payload.updatedAt
                     || new Date().toISOString();
 
-                message = "";
+                message = (
+                    Array.isArray(payload.historyWarnings)
+                    && payload.historyWarnings.length
+                )
+                    ? "SCORE DATA PARTIAL · " + payload.historyWarnings[0]
+                    : "";
 
-                /* 1. Capture final scores on live tracker legs. */
+                /* Capture confirmed final scores on the active tracker. */
                 const scoresChanged = captureScores();
 
-                /* 2. Auto-grade live tracker slips. */
+                /* Grade active slips only when all four fixtures are confirmed. */
                 const trackerGraded = autoGradeSlips();
 
-                /* 3. Capture final scores on ARCHIVED legs —
-                   including slips that were cleared from the
-                   tracker. */
-                const archiveScoresChanged =
-                    captureArchiveScores();
+                /* Capture and persist confirmed scores for archived slips. */
+                const archiveScoresChanged = captureArchiveScores();
 
-                const archive = readArchive();
-
-                if (archiveScoresChanged) {
-                    writeArchive(archive);
-                }
-
-                /* 4. Auto-grade archived slips whose four legs
-                   have all finished. */
+                /* Grade archived slips, even after they leave the active tracker. */
                 const archiveGraded = autoGradeArchive();
 
-                if (archiveGraded) {
+                if (archiveScoresChanged || archiveGraded) {
                     syncArchiveToServer(readArchive());
-                }
 
-                if (
-                    archiveScoresChanged
-                    || archiveGraded
-                ) {
-                    /* Tell the slips-history module that the
-                       permanent record changed. */
                     document.dispatchEvent(
-                        new CustomEvent(
-                            "barbadox:history-updated"
-                        )
+                        new CustomEvent("barbadox:history-updated")
                     );
                 }
 
@@ -1049,10 +1326,7 @@
                     trackerGraded
                     || scoresChanged
                 ) {
-                    if (
-                        typeof renderTracker
-                            === "function"
-                    ) {
+                    if (typeof renderTracker === "function") {
                         renderTracker();
                     }
                 }
@@ -1072,50 +1346,26 @@
 
 
     /*
-     * Refresh the live display when the tracker filter changes.
+     * Repaint score rows when the tracker filter changes.
      */
-    document.addEventListener(
-        "change",
-        event => {
-            if (
-                event.target?.id === "trackerFilter"
-            ) {
-                setTimeout(
-                    renderLiveScores,
-                    0
-                );
-            }
+    document.addEventListener("change", event => {
+        if (event.target?.id === "trackerFilter") {
+            setTimeout(renderLiveScores, 0);
         }
-    );
+    });
 
 
     /*
-     * Refresh after manual grading actions.
+     * Install the safe slip builder and remove the old manual controls.
      */
-    document.addEventListener(
-        "click",
-        event => {
-            if (
-                event.target?.closest(
-                    "#trackerList [data-grade]"
-                )
-            ) {
-                setTimeout(
-                    renderLiveScores,
-                    0
-                );
-            }
-        }
-    );
+    installSlipBuilderFixes();
 
 
     /*
      * Start the tracker.
      */
     addUI();
-
     renderLiveScores();
-
     refreshLiveScores();
 
     setInterval(
