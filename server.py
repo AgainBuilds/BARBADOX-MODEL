@@ -958,6 +958,12 @@ def slips_page():
     return send_from_directory(str(BASE), "slips.html")
 
 
+@app.get("/live_scores.js")
+def live_scores_script():
+    """Serve the client-side live-score + archive-grading script."""
+    return send_from_directory(str(BASE), "live_scores.js", mimetype="application/javascript")
+
+
 @app.get("/api/slipstracker")
 def slipstracker():
     if gh_sync.enabled():
