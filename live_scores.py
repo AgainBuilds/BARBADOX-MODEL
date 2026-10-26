@@ -1,252 +1,247 @@
+#!/usr/bin/env python3
 """
-BARBADOX Live-Score API (football-data.org edition)
-Provides football scores to the existing console.html slips tracker.
+BARBADOX live-score API, backed by football-data.org.
 
-Drop-in replacement for the API-Football version. The JSON payload
-served to live_scores.js is identical in shape, so the tracker,
-the archive and auto-grading need no frontend changes.
+The browser sends dates belonging to pending active and archived slips.
+Dates are grouped into seven-day ranges, cached independently, and
+processed in batches so old pending slips can be graded without wasting
+the provider quota on every browser poll.
 
-Uses the SAME free football-data.org key the model cores already
-use for fixtures and results. API-Football is no longer required
-for score tracking.
-
-Required Render environment variable (already set for the model):
-    FOOTBALL_DATA_KEY
-
-Status mapping (football-data.org -> tracker codes):
-    FINISHED  -> FT      (graded as finished)
-    AWARDED   -> AWD
-    IN_PLAY   -> LIVE
-    PAUSED    -> HT
-    SUSPENDED -> SUSP
-    POSTPONED -> PST
-    CANCELLED -> CANC
-    SCHEDULED / TIMED -> NS
-
-Free-tier note: football-data.org publishes full-time scores
-reliably but does not expose in-play minute-by-minute scores, so
-matches show "LIVE" with the final score appearing at full time.
-Slip grading only needs full-time results, so this is safe.
+Render runs this module through server.py's registered blueprint.
 """
 
-import json
 import os
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 
 import requests
-from flask import Blueprint, jsonify, send_from_directory
-from pathlib import Path
+from flask import Blueprint, jsonify, request
 
 
 live_scores_bp = Blueprint("barbadox_live_scores", __name__)
 
-ROOT = Path(__file__).resolve().parent
+FOOTBALL_DATA_URL = "https://api.football-data.org/v4/matches"
+LIVE_COMPETITIONS = "PL,PD,FL1,BL1,SA"
 
-CACHE = {
-    "at": 0.0,
-    "ttl": CACHE_SECONDS,
-    "payload": None,
-}
+LIVE_CACHE_SECONDS = 900
+LIVE_ERROR_CACHE_SECONDS = 3600
+LIVE_MAX_FETCHES_PER_REQUEST = 3
 
-API = "https://api.football-data.org/v4/matches"
-
-# 15-minute cache keeps upstream calls far under the free-tier
-# limit of 10 requests/minute (2 calls per cache cycle).
-CACHE_SECONDS = 900
-
-# On provider errors (rate limit, outage) hold the result longer so
-# the remaining quota is not burned on retries.
-ERROR_CACHE_SECONDS = 3600
-
-# Match window: today - 2 days (recently finished matches that may
-# still need grading) up to today + 8 days (upcoming legs).
-# football-data.org caps dateFrom/dateTo at 10 days per request,
-# so the 11-day window is fetched in two calls.
-LOOKBACK_DAYS = 2
-LOOKAHEAD_DAYS = 8
-
-# Top-5 leagues — the codes used across BARBADOX.
-LEAGUE_CODES = ["PL", "PD", "FL1", "BL1", "SA"]
-
-# football-data.org status -> tracker status codes
-STATUS_MAP = {
-    "FINISHED": ("FT", "Match Finished"),
-    "AWARDED": ("AWD", "Awarded"),
-    "IN_PLAY": ("LIVE", "In Play"),
-    "PAUSED": ("HT", "Halftime"),
-    "SUSPENDED": ("SUSP", "Suspended"),
-    "POSTPONED": ("PST", "Postponed"),
-    "CANCELLED": ("CANC", "Cancelled"),
-}
-
-STATUS_DEFAULT = ("NS", "Not Started")
+# A separate cache entry for each seven-day range.
+LIVE_MATCH_CACHE = {}
+_live_lock = threading.RLock()
 
 
-def _api_key():
-    """Read the football-data.org key, accepting the same aliases
-    the model cores accept."""
+def _utc_now():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _football_data_key():
+    """Read the football-data.org token without exposing it to the browser."""
     for name in (
         "FOOTBALL_DATA_KEY",
         "FOOTBALL_DATA_TOKEN",
         "FOOTBALL_DATA_API_KEY",
         "FOOTBALL_API_KEY",
-        "API_KEY",
     ):
-        value = os.environ.get(name, "").strip()
+        value = os.getenv(name, "").strip()
         if value:
             return value
     return ""
 
 
-def _map_status(status):
-    return STATUS_MAP.get(status, STATUS_DEFAULT)
+def _football_status(status):
+    """Map football-data.org statuses to the codes expected by the tracker."""
+    mapping = {
+        "FINISHED": ("FT", "Full Time"),
+        "AWARDED": ("AWD", "Awarded"),
+        "IN_PLAY": ("LIVE", "In Play"),
+        "PAUSED": ("HT", "Halftime"),
+        "SUSPENDED": ("SUSP", "Suspended"),
+        "POSTPONED": ("PST", "Postponed"),
+        "CANCELLED": ("CANC", "Cancelled"),
+        "TIMED": ("NS", "Not Started"),
+        "SCHEDULED": ("NS", "Not Started"),
+        "TBD": ("NS", "Not Started"),
+    }
 
-
-def _fetch_window(api_key, date_from, date_to):
-    """Fetch one date window (max 10 days) from football-data.org."""
-    response = requests.get(
-        API,
-        params={
-            "dateFrom": date_from,
-            "dateTo": date_to,
-        },
-        headers={"X-Auth-Token": api_key},
-        timeout=12,
+    return mapping.get(
+        str(status or "").upper(),
+        ("NS", "Not Started"),
     )
 
-    if response.status_code != 200:
-        message = (
-            f"Football score provider HTTP {response.status_code}"
-        )
 
-        if response.status_code == 401:
-            message += (
-                ". Check FOOTBALL_DATA_KEY in Render → Environment."
-            )
-        elif response.status_code == 403:
-            message += (
-                ". The football-data.org plan does not cover "
-                "one or more of the requested competitions."
-            )
-        elif response.status_code == 429:
-            message += (
-                ". Rate limit reached — retrying later."
-            )
+def _football_fixture(match):
+    """Normalize one provider match without inventing missing scores."""
+    home_team = match.get("homeTeam") or {}
+    away_team = match.get("awayTeam") or {}
 
-        raise ProviderError(message, response.status_code)
+    home = home_team.get("name")
+    away = away_team.get("name")
+
+    if not home or not away:
+        return None
+
+    competition = match.get("competition") or {}
+    score = match.get("score") or {}
+    full_time = score.get("fullTime") or {}
+
+    home_score = full_time.get("home")
+    away_score = full_time.get("away")
 
     try:
-        data = response.json()
-    except ValueError:
-        raise ProviderError(
-            "The provider returned an invalid response.",
-            502,
-        )
-
-    matches = data.get("matches")
-
-    if not isinstance(matches, list):
-        raise ProviderError(
-            "The provider returned an unexpected response shape.",
-            502,
-        )
-
-    return matches
-
-
-class ProviderError(Exception):
-    def __init__(self, message, status=502):
-        super().__init__(message)
-        self.status = status
-        self.message = message
-
-
-def _build_fixtures(matches):
-    """Convert football-data.org matches into the tracker shape."""
-    fixtures = []
-
-    for match in matches:
-        home_team = match.get("homeTeam") or {}
-        away_team = match.get("awayTeam") or {}
-
-        home_name = home_team.get("name")
-        away_name = away_team.get("name")
-
-        if not home_name or not away_name:
-            continue
-
-        competition = match.get("competition") or {}
-        score = match.get("score") or {}
-
-        # Full-time score: present only when the match finished.
-        full_time = score.get("fullTime") or {}
-
-        home_score = full_time.get("home")
-        away_score = full_time.get("away")
-
-        # Sanity-check the score values before serving them.
         if home_score is not None:
             home_score = int(home_score)
+
         if away_score is not None:
             away_score = int(away_score)
 
-        status_code, status_text = _map_status(match.get("status"))
+        if (
+            home_score is not None and home_score < 0
+        ) or (
+            away_score is not None and away_score < 0
+        ):
+            home_score = None
+            away_score = None
 
-        kickoff = match.get("utcDate") or ""
+    except (TypeError, ValueError, OverflowError):
+        home_score = None
+        away_score = None
 
-        fixtures.append({
-            "id": match.get("id"),
-            "date": kickoff[:10],
-            "kickoff": kickoff,
-            "timestamp": (
-                int(
-                    datetime.fromisoformat(
-                        kickoff.replace("Z", "+00:00")
-                    ).timestamp()
-                )
-                if kickoff
-                else None
+    kickoff = str(match.get("utcDate") or "")
+    timestamp = None
+
+    if kickoff:
+        try:
+            parsed = datetime.fromisoformat(
+                kickoff.replace("Z", "+00:00")
+            )
+
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+
+            timestamp = int(parsed.timestamp())
+
+        except (TypeError, ValueError, OverflowError):
+            timestamp = None
+
+    status, status_text = _football_status(match.get("status"))
+
+    return {
+        "id": match.get("id"),
+        "date": kickoff[:10],
+        "kickoff": kickoff,
+        "timestamp": timestamp,
+        "home": home,
+        "away": away,
+        "homeScore": home_score,
+        "awayScore": away_score,
+        "status": status,
+        "statusText": status_text,
+        "league": competition.get("name", ""),
+        "elapsed": None,
+    }
+
+
+def _football_data_fetch(date_from, date_to, api_key):
+    """Fetch one seven-day range from football-data.org."""
+    response = requests.get(
+        FOOTBALL_DATA_URL,
+        params={
+            "dateFrom": date_from,
+            "dateTo": date_to,
+            "competitions": LIVE_COMPETITIONS,
+        },
+        headers={
+            "X-Auth-Token": api_key,
+        },
+        timeout=18,
+    )
+
+    if response.status_code != 200:
+        messages = {
+            401: (
+                "Authentication failed. Check FOOTBALL_DATA_KEY "
+                "in Render."
             ),
+            403: (
+                "football-data.org denied this date range or competition "
+                "on the current plan."
+            ),
+            429: (
+                "football-data.org rate limit reached; score refresh "
+                "is paused temporarily."
+            ),
+        }
 
-            "league": competition.get("name", ""),
+        raise RuntimeError(
+            messages.get(
+                response.status_code,
+                "football-data.org returned HTTP "
+                + str(response.status_code)
+                + ".",
+            )
+        )
 
-            "home": home_name,
-            "away": away_name,
+    payload = response.json()
 
-            "homeScore": home_score,
-            "awayScore": away_score,
+    matches = (
+        payload.get("matches")
+        if isinstance(payload, dict)
+        else None
+    )
 
-            "status": status_code,
-            "statusText": status_text,
+    if not isinstance(matches, list):
+        raise ValueError(
+            "football-data.org returned an unexpected response shape."
+        )
 
-            # football-data.org does not provide the live minute.
-            "elapsed": None,
-        })
+    fixtures = []
+
+    for match in matches:
+        if isinstance(match, dict):
+            fixture = _football_fixture(match)
+
+            if fixture:
+                fixtures.append(fixture)
 
     return fixtures
 
 
-@live_scores_bp.get("/live_scores.js")
-def live_scores_script():
-    """Serve the frontend live-score script."""
-    return send_from_directory(
-        str(ROOT),
-        "live_scores.js",
-        mimetype="application/javascript",
-    )
+def _date_from_client(value):
+    """Return a validated ISO calendar date or None."""
+    if not isinstance(value, str) or len(value) != 10:
+        return None
+
+    try:
+        parsed = datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+    return parsed if parsed.isoformat() == value else None
 
 
-@live_scores_bp.get("/api/live-scores")
+def _week_start(day):
+    """Return the Monday starting the requested calendar week."""
+    return day - timedelta(days=day.weekday())
+
+
+@live_scores_bp.route("/api/live-scores", methods=["GET", "POST"])
 def live_scores():
     """
-    Return football fixtures, scores and match statuses.
+    Return current fixtures and match dates required by pending slips.
 
-    The API key remains on the server and is never sent to the
-    browser.
+    POST body:
+        {"dates": ["YYYY-MM-DD", ...]}
+
+    Up to three uncached or stale seven-day ranges are fetched per request.
+    Remaining ranges stay queued for subsequent polls.
+
+    Failed provider ranges are cached for longer to prevent rapid retries
+    from exhausting the API quota.
     """
-
-    api_key = _api_key()
+    api_key = _football_data_key()
 
     if not api_key:
         return jsonify({
@@ -256,81 +251,211 @@ def live_scores():
                 "Add FOOTBALL_DATA_KEY in Render → Environment."
             ),
             "fixtures": [],
-        })
+            "updatedAt": _utc_now(),
+            "provider": "football-data.org",
+        }), 200
 
-    now = time.time()
+    body = (
+        request.get_json(silent=True)
+        if request.method == "POST"
+        else {}
+    )
 
-    # Reuse cached results to reduce API requests.
-    if (
-        CACHE["payload"] is not None
-        and now - CACHE["at"] < CACHE["ttl"]
-    ):
-        return jsonify(CACHE["payload"])
+    body = body if isinstance(body, dict) else {}
+
+    raw_dates = body.get("dates", [])
+
+    if not isinstance(raw_dates, list):
+        raw_dates = []
 
     today = datetime.now(timezone.utc).date()
 
-    # 11-day window split into two legal <=10-day requests.
-    windows = [
-        (
-            (today - timedelta(days=LOOKBACK_DAYS)).isoformat(),
-            (today + timedelta(days=3)).isoformat(),
-        ),
-        (
-            (today + timedelta(days=4)).isoformat(),
-            (today + timedelta(days=LOOKAHEAD_DAYS)).isoformat(),
-        ),
-    ]
+    # Maintain coverage for recent results, today's matches, and
+    # upcoming fixtures, even when the browser has no pending slips.
+    current_days = {
+        today + timedelta(days=offset)
+        for offset in range(-2, 8)
+    }
 
-    try:
-        collected = []
+    requested_days = set()
 
-        for date_from, date_to in windows:
-            collected.extend(
-                _fetch_window(api_key, date_from, date_to)
+    for raw in raw_dates:
+        parsed = _date_from_client(raw)
+
+        if parsed:
+            requested_days.add(parsed)
+
+    current_weeks = {
+        _week_start(day)
+        for day in current_days
+    }
+
+    requested_weeks = {
+        _week_start(day)
+        for day in requested_days
+    }
+
+    # Current/near-future windows come first. Historical windows follow,
+    # allowing the backlog to progress on subsequent page polls.
+    ordered_weeks = (
+        sorted(current_weeks)
+        + sorted(requested_weeks - current_weeks)
+    )
+
+    warnings = []
+    fixtures_by_id = {}
+
+    fetched_this_request = 0
+    successful_windows = 0
+
+    with _live_lock:
+        now = time.time()
+
+        for week in ordered_weeks:
+            date_from = week.isoformat()
+            date_to = (
+                week + timedelta(days=6)
+            ).isoformat()
+
+            cache_key = date_from + ":" + date_to
+            cached = LIVE_MATCH_CACHE.get(cache_key)
+
+            valid = (
+                cached is not None
+                and now - cached.get("at", 0)
+                < cached.get("ttl", LIVE_CACHE_SECONDS)
             )
 
-        fixtures = _build_fixtures(collected)
+            if (
+                not valid
+                and fetched_this_request < LIVE_MAX_FETCHES_PER_REQUEST
+            ):
+                fetched_this_request += 1
 
-        payload = {
-            "ok": True,
-            "configured": True,
-            "updatedAt": datetime.now(
-                timezone.utc
-            ).isoformat(),
+                try:
+                    cached = {
+                        "at": time.time(),
+                        "ttl": LIVE_CACHE_SECONDS,
+                        "fixtures": _football_data_fetch(
+                            date_from,
+                            date_to,
+                            api_key,
+                        ),
+                        "error": None,
+                        "ok": True,
+                    }
 
-            "cacheSeconds": CACHE_SECONDS,
-            "fixtures": fixtures,
-        }
+                except (
+                    requests.RequestException,
+                    ValueError,
+                    TypeError,
+                    RuntimeError,
+                ) as exc:
+                    cached = {
+                        "at": time.time(),
+                        "ttl": LIVE_ERROR_CACHE_SECONDS,
+                        "fixtures": [],
+                        "error": str(exc)[:350],
+                        "ok": False,
+                    }
 
-        CACHE["at"] = now
-        CACHE["ttl"] = CACHE_SECONDS
-        CACHE["payload"] = payload
+                LIVE_MATCH_CACHE[cache_key] = cached
+                valid = True
 
-        return jsonify(payload)
+            elif not valid:
+                # Preserve the uncached/stale range for the next poll.
+                cached = None
 
-    except ProviderError as error:
-        # Hold errors longer so the quota is not burned on retries.
-        CACHE["at"] = time.time()
-        CACHE["ttl"] = ERROR_CACHE_SECONDS
-        CACHE["payload"] = {
-            "ok": False,
-            "configured": True,
-            "message": error.message,
-            "fixtures": [],
-        }
+            if not valid or cached is None:
+                continue
 
-        return jsonify(CACHE["payload"]), error.status
+            if cached.get("ok"):
+                successful_windows += 1
 
-    except (
-        requests.RequestException,
-        ValueError,
-        TypeError,
-    ) as error:
-        return jsonify({
-            "ok": False,
-            "configured": True,
-            "message": (
-                f"Live-score request failed: {error}"
-            ),
-            "fixtures": [],
-        }), 502
+                for fixture in cached.get("fixtures", []):
+                    ident = fixture.get("id")
+
+                    if ident is None:
+                        ident = "|".join((
+                            str(fixture.get("date") or ""),
+                            str(
+                                fixture.get("home") or ""
+                            ).casefold(),
+                            str(
+                                fixture.get("away") or ""
+                            ).casefold(),
+                        ))
+
+                    fixtures_by_id[str(ident)] = fixture
+
+            elif cached.get("error"):
+                warnings.append(
+                    date_from
+                    + "–"
+                    + date_to
+                    + ": "
+                    + cached["error"]
+                )
+
+        waiting = 0
+        current_time = time.time()
+
+        for week in ordered_weeks:
+            key = (
+                week.isoformat()
+                + ":"
+                + (
+                    week + timedelta(days=6)
+                ).isoformat()
+            )
+
+            entry = LIVE_MATCH_CACHE.get(key)
+
+            if (
+                entry is None
+                or current_time - entry.get("at", 0)
+                >= entry.get("ttl", LIVE_CACHE_SECONDS)
+            ):
+                waiting += 1
+
+    fixtures = sorted(
+        fixtures_by_id.values(),
+        key=lambda item: (
+            item.get("timestamp")
+            if isinstance(
+                item.get("timestamp"),
+                (int, float),
+            )
+            else 0
+        ),
+    )
+
+    if waiting:
+        warnings.append(
+            str(waiting)
+            + " score window(s) are queued for the next refresh "
+            "to protect the API quota."
+        )
+
+    payload = {
+        "ok": bool(successful_windows) or not warnings,
+        "configured": True,
+        "error": None,
+        "message": (
+            warnings[0]
+            if warnings and not successful_windows
+            else None
+        ),
+        "updatedAt": _utc_now(),
+        "cacheSeconds": LIVE_CACHE_SECONDS,
+        "provider": "football-data.org",
+        "fixtures": fixtures,
+        "historyWarnings": warnings[:8],
+        "queuedWindows": waiting,
+    }
+
+    if not successful_windows and warnings and not waiting:
+        payload["ok"] = False
+        return jsonify(payload), 502
+
+    return jsonify(payload), 200
