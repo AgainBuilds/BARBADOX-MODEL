@@ -636,8 +636,9 @@ footer {
       Slips are graded automatically only when all four fixtures are uniquely
       matched, finished, and have confirmed scores — including slips that were
       cleared from this tracker (they stay in the permanent archive and are
-      still graded there). Manual grading remains available. Clearing this
-      tracker never deletes the archive.
+      still graded there). Manual grading is disabled; confirmed full-time
+      scores settle slips automatically. Clearing this tracker never deletes
+      the archive.
     </div>
   </section>
 
@@ -1127,45 +1128,10 @@ function renderTracker() {
                </div>`
             : ""
         }
-
-        <div class="slip-actions">
-          <button class="smallbtn win" data-grade="${esc(s.id)}" data-status="WON">
-            MARK HIT / WON
-          </button>
-          <button class="smallbtn loss" data-grade="${esc(s.id)}" data-status="LOST">
-            MARK FAILED / LOST
-          </button>
-          <button class="smallbtn pending" data-grade="${esc(s.id)}" data-status="PENDING">
-            RESET PENDING
-          </button>
-        </div>
       </article>`;
   }).join("") ||
     '<div class="empty">No slips here yet. Tap GENERATE SLIPS to build and save slips.</div>';
 }
-
-/* Manual grading */
-
-$("trackerList").addEventListener("click", e => {
-  const b = e.target.closest("[data-grade]");
-  if (!b) return;
-
-  const rows = readTracker();
-  const slip = rows.find(x => String(x.id) === String(b.dataset.grade));
-  if (!slip) return;
-
-  slip.status = b.dataset.status;
-
-  slip.gradedAt = slip.status === "PENDING"
-    ? null
-    : new Date().toISOString();
-
-  if (slip.status === "PENDING") {
-    slip.autoGraded = false;
-  }
-
-  saveTracker(rows);
-});
 
 $("trackerFilter").addEventListener("change", renderTracker);
 
