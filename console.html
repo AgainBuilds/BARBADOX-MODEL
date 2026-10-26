@@ -764,7 +764,7 @@ function fixtureKey(f) {
 
 const KICKOFF_TZ_HOURS = 1;
 const KICKOFF_BUFFER_MS = 30 * 60000;
-const SLIP_WINDOW_MS = 24 * 3600000;
+const SLIP_WINDOW_MS = 7 * 24 * 3600000;
 
 function formatKickoff(value) {
   if (!value) return "Kickoff time unavailable";
@@ -1277,7 +1277,6 @@ function slipDiagnostics(now = Date.now()) {
 function buildSlips() {
   const now = Date.now();
   const taken = pendingFixtureKeys();
-  const MAX_NEW_SLIPS = 3;
 
   const over = (snap && Array.isArray(snap.fixtures) ? snap.fixtures : [])
     .filter(f => qualifiedOver(f, now) && !taken.has(fixtureKey(f)))
@@ -1297,11 +1296,7 @@ function buildSlips() {
   )].sort((a, b) => a - b);
 
   for (const anchor of anchors) {
-    if (list.length >= MAX_NEW_SLIPS) break;
-
     for (;;) {
-      if (list.length >= MAX_NEW_SLIPS) break;
-
       const inWindow = f => {
         const t = kickoffMs(f);
         return Number.isFinite(t) &&
@@ -1391,7 +1386,7 @@ async function generateSlips() {
       <div class="empty">
         No complete slip can be made right now.<br>
         Each slip needs 3 free Core 1 Over picks + 1 free Core 2 Under pick,
-        all upcoming and starting within 24 hours of each other.
+        all upcoming and starting within one week of each other.
       </div>`;
 
     const hints = [];
@@ -1417,7 +1412,7 @@ async function generateSlips() {
     if (overFree >= 3 && underFree === 0) {
       hints.push(
         "There are Over picks available, but no free Under 3.5 pick inside " +
-        "their 24-hour window. Slip building stops instead of padding."
+        "their one-week window. Slip building stops instead of padding."
       );
     }
 
@@ -1707,7 +1702,7 @@ function scheduleLive(ms) {
 
 async function refreshLiveScores() {
   try {
-    const r = await fetch("/api/live-scores", {cache: "no-store"});
+    const r = await fetch("/api/live-scores", {cache:"no-store"});
     let data = null;
 
     try {
