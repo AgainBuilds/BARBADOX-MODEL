@@ -3,566 +3,672 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BARBADOX - Match Intelligence System</title>
+<meta name="color-scheme" content="dark">
+<title>BARBADOX · Match Intelligence System</title>
 
 <style>
 :root {
-  --bg:#0b1020;
-  --panel:#131a2e;
-  --panel2:#1a2340;
-  --line:#2a3558;
-  --ink:#f2f5ff;
+  --bg:#07090f;
+  --bg2:#0b0f1a;
+  --panel:rgba(255,255,255,.028);
+  --panel2:rgba(255,255,255,.05);
+  --line:rgba(255,255,255,.075);
+  --line2:rgba(255,255,255,.14);
+  --ink:#f4f6ff;
   --dim:#8b96b8;
-  --acid:#b8ff3c;
+  --dim2:#5c6584;
+  --acid:#c6ff4d;
   --cyan:#37e0ff;
   --pink:#ff3d71;
   --amber:#ffb13d;
   --green:#3dff9e;
+  --grad:linear-gradient(135deg,var(--acid),var(--cyan));
+  --radius:20px;
+  --shadow:0 18px 50px rgba(0,0,0,.45);
 }
 
-* { box-sizing:border-box; }
+*{box-sizing:border-box}
+
+html{scroll-behavior:smooth}
 
 body {
   margin:0;
-  background:var(--bg);
+  background:
+    radial-gradient(1100px 520px at 85% -10%,rgba(55,224,255,.09),transparent 60%),
+    radial-gradient(900px 500px at -10% 0%,rgba(198,255,77,.06),transparent 55%),
+    var(--bg);
   color:var(--ink);
-  font:14px system-ui,-apple-system,"Segoe UI",sans-serif;
-}
-
-button,input,select { font:inherit; }
-button { cursor:pointer; }
-.mono { font-family:ui-monospace,monospace; }
-
-#boot {
+  font:14px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;
   min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  flex-direction:column;
-  gap:16px;
-  background:radial-gradient(ellipse at top,rgba(55,224,255,.12),transparent 55%);
+  -webkit-font-smoothing:antialiased;
 }
 
-#boot h1 {
-  font-size:clamp(32px,8vw,64px);
-  letter-spacing:.18em;
-  margin:0;
+button,select,input{font:inherit}
+button{cursor:pointer}
+.mono{font-family:ui-monospace,"SF Mono",monospace}
+
+::selection{background:rgba(198,255,77,.25)}
+
+/* ---------- TOPBAR ---------- */
+
+.topbar {
+  position:sticky;top:0;z-index:30;
+  backdrop-filter:blur(14px);
+  background:rgba(7,9,15,.72);
+  border-bottom:1px solid var(--line);
 }
 
-#boot p {
+.topbar-in {
+  max-width:1180px;margin:auto;
+  padding:14px 22px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:14px;flex-wrap:wrap;
+}
+
+.brand {
+  display:flex;align-items:baseline;gap:10px;
+}
+
+.brand b {
+  font-size:19px;font-weight:900;letter-spacing:.14em;
+}
+
+.brand b span {
+  background:var(--grad);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+
+.brand small {
+  color:var(--dim);font-size:9.5px;letter-spacing:.32em;
+}
+
+.sys {
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+
+.pill {
+  font-size:10px;font-weight:700;letter-spacing:.14em;
+  padding:6px 12px;border-radius:99px;
+  border:1px solid var(--line2);
+  background:var(--panel2);
   color:var(--dim);
-  letter-spacing:.3em;
-  font-size:11px;
+  white-space:nowrap;
 }
 
-.spinner {
-  width:42px;
-  height:42px;
-  border:3px solid var(--line);
-  border-top-color:var(--acid);
-  border-radius:50%;
-  animation:spin 1s linear infinite;
+.pill.on {color:var(--green);border-color:rgba(61,255,158,.35)}
+.pill.warn {color:var(--amber);border-color:rgba(255,177,61,.35)}
+.pill.err {color:var(--pink);border-color:rgba(255,61,113,.35)}
+
+.dot {
+  width:7px;height:7px;border-radius:50%;
+  display:inline-block;margin-right:7px;
+  background:var(--dim);vertical-align:1px;
 }
 
-@keyframes spin {
-  to { transform:rotate(360deg); }
+.dot.on{background:var(--green);box-shadow:0 0 10px rgba(61,255,158,.8);animation:pulse 2s infinite}
+.dot.warn{background:var(--amber);box-shadow:0 0 10px rgba(255,177,61,.8);animation:pulse 2s infinite}
+.dot.err{background:var(--pink)}
+
+@keyframes pulse{50%{opacity:.35}}
+
+/* ---------- GATE (pre-run landing) ---------- */
+
+#gate {
+  min-height:calc(100vh - 62px);
+  display:flex;align-items:center;justify-content:center;
+  padding:40px 20px;
 }
+
+.gate-card {
+  max-width:640px;width:100%;
+  text-align:center;
+  padding:54px 34px;
+  border:1px solid var(--line);
+  border-radius:28px;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+  box-shadow:var(--shadow);
+}
+
+.gate-logo {
+  font-size:clamp(40px,8vw,62px);
+  font-weight:900;letter-spacing:.16em;line-height:1;
+  margin-bottom:8px;
+}
+
+.gate-logo span {
+  background:var(--grad);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+
+.gate-sub {
+  color:var(--dim);font-size:11px;letter-spacing:.42em;
+  margin-bottom:34px;
+}
+
+.gate-desc {
+  color:var(--dim2);font-size:13px;max-width:420px;
+  margin:0 auto 34px;line-height:1.9;
+}
+
+.gate-actions {
+  display:flex;gap:12px;justify-content:center;flex-wrap:wrap;
+}
+
+.gate-meta {
+  margin-top:30px;font-size:11px;color:var(--dim2);letter-spacing:.06em;
+}
+
+/* ---------- BUTTONS ---------- */
+
+.btn {
+  border:0;border-radius:14px;
+  font-weight:800;letter-spacing:.1em;font-size:12.5px;
+  padding:13px 22px;
+  background:var(--grad);color:#061018;
+  box-shadow:0 6px 24px rgba(55,224,255,.25);
+  transition:transform .15s,box-shadow .15s,opacity .15s;
+}
+
+.btn:hover{transform:translateY(-1px);box-shadow:0 10px 32px rgba(55,224,255,.4)}
+.btn:disabled{opacity:.45;cursor:wait;transform:none;box-shadow:none}
+
+.btn.secondary {
+  background:transparent;color:var(--ink);
+  border:1px solid var(--line2);
+  box-shadow:none;
+}
+
+.btn.secondary:hover{border-color:var(--cyan);box-shadow:0 0 18px rgba(55,224,255,.15)}
+
+.btn.danger {
+  background:rgba(255,61,113,.12);color:var(--pink);
+  border:1px solid rgba(255,61,113,.4);
+  box-shadow:none;
+}
+
+.btn.small {padding:8px 14px;font-size:10.5px;border-radius:10px}
+
+/* ---------- LAYOUT ---------- */
 
 #dash {
   display:none;
-  max-width:1120px;
-  margin:auto;
-  padding:22px 16px 50px;
-}
-
-header,.row,.panelhead,.actions {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  flex-wrap:wrap;
-}
-
-header { margin-bottom:22px; }
-
-.brand {
-  font-size:25px;
-  font-weight:850;
-  letter-spacing:.12em;
-}
-
-.brand span { color:var(--acid); }
-.sub,.muted { color:var(--dim); }
-
-.sub {
-  font-size:10px;
-  letter-spacing:.25em;
+  max-width:1180px;margin:auto;
+  padding:26px 22px 70px;
 }
 
 .panel {
   background:var(--panel);
   border:1px solid var(--line);
-  border-radius:18px;
-  padding:18px;
-  margin:14px 0;
+  border-radius:var(--radius);
+  padding:24px;
+  margin:18px 0;
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(6px);
+  position:relative;
   overflow:hidden;
 }
 
-.panelhead { margin-bottom:14px; }
+.panel::before {
+  content:"";position:absolute;inset:0 0 auto 0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(198,255,77,.4),transparent);
+}
+
+.panelhead,.actions {
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;flex-wrap:wrap;
+}
+
+.panelhead{margin-bottom:18px}
 
 .panelhead h2 {
-  font-size:13px;
-  letter-spacing:.14em;
-  margin:0;
+  font-size:12px;letter-spacing:.22em;font-weight:800;
+  margin:0;color:var(--ink);
+  display:flex;align-items:center;gap:10px;
+}
+
+.panelhead h2 em {
+  font-style:normal;color:var(--dim2);font-weight:600;font-size:10px;
+}
+
+.actions{margin-top:16px}
+
+.muted{color:var(--dim)}
+
+.status {
+  font-size:12px;line-height:1.8;color:var(--dim);
+  margin-top:14px;
+}
+
+.status.ok{color:var(--green)}
+.status.err{color:var(--pink)}
+.status.warn{color:var(--amber)}
+
+.empty {
+  color:var(--dim2);padding:40px 14px;text-align:center;
+  font-size:12.5px;line-height:2.1;letter-spacing:.04em;
 }
 
 .tag {
-  font-size:10px;
-  color:var(--cyan);
-  border:1px solid #31526b;
-  border-radius:30px;
-  padding:5px 9px;
+  font-size:10px;font-weight:700;letter-spacing:.12em;
+  color:var(--cyan);border:1px solid rgba(55,224,255,.3);
+  border-radius:99px;padding:5px 12px;
+  background:rgba(55,224,255,.06);white-space:nowrap;
 }
 
-.btn {
-  background:var(--cyan);
-  color:var(--bg);
-  font-weight:800;
-  border:0;
-  border-radius:10px;
-  padding:11px 14px;
+/* ---------- RUN PHASES ---------- */
+
+.phases {
+  display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;
 }
 
-.btn.secondary {
-  background:transparent;
-  color:var(--ink);
+.phase {
+  display:flex;align-items:center;gap:8px;
+  font-size:10px;font-weight:800;letter-spacing:.12em;
+  padding:8px 14px;border-radius:99px;
   border:1px solid var(--line);
+  color:var(--dim2);
+  transition:all .3s;
 }
 
-.btn.danger {
-  background:rgba(255,61,113,.15);
-  color:var(--pink);
-  border:1px solid rgba(255,61,113,.4);
+.phase.active {
+  color:var(--acid);border-color:rgba(198,255,77,.4);
+  background:rgba(198,255,77,.06);
 }
 
-.btn:disabled {
-  opacity:.45;
-  cursor:wait;
-}
+.phase.active .dot{background:var(--acid);box-shadow:0 0 10px rgba(198,255,77,.9);animation:pulse 1s infinite}
 
-.status {
-  font-size:12px;
-  line-height:1.6;
-  color:var(--dim);
-  margin-top:12px;
-}
+.phase.done {color:var(--green);border-color:rgba(61,255,158,.3)}
 
-.status.ok { color:var(--green); }
-.status.err { color:var(--pink); }
-.status.warn { color:var(--amber); }
-
-.cards {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(245px,1fr));
-  gap:12px;
-}
-
-.card {
-  background:var(--panel2);
-  border:1px solid var(--line);
-  border-radius:14px;
-  padding:15px;
-}
-
-.league {
-  font-size:10px;
-  color:var(--dim);
-  letter-spacing:.13em;
-  margin-bottom:9px;
-}
-
-.teams {
-  font-weight:800;
-  font-size:15px;
-  margin-bottom:7px;
-}
-
-.meta {
-  font-size:11px;
-  color:var(--dim);
-  margin-bottom:13px;
-}
-
-.pick {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  gap:8px;
-  color:var(--acid);
-  font-weight:800;
-}
-
-.prob {
-  font-size:26px;
-  color:var(--cyan);
-  white-space:nowrap;
-}
-
-.prob small {
-  display:block;
-  font-size:9px;
-  color:var(--dim);
-  text-align:right;
-}
-
-.empty {
-  color:var(--dim);
-  padding:24px 8px;
-  text-align:center;
-  line-height:1.8;
-  font-size:12px;
-}
+/* ---------- KPIs ---------- */
 
 .kpis {
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
-  gap:10px;
-  margin-bottom:14px;
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:12px;margin-bottom:16px;
 }
 
 .kpi {
   background:var(--panel2);
-  padding:13px;
-  border-radius:12px;
-  text-align:center;
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:16px 12px;text-align:center;
+  transition:transform .15s;
 }
 
+.kpi:hover{transform:translateY(-2px)}
+
 .kpi strong {
-  font-size:22px;
-  display:block;
+  font-size:24px;font-weight:900;display:block;
+  letter-spacing:.02em;
 }
 
 .kpi span {
-  font-size:9px;
-  letter-spacing:.12em;
-  color:var(--dim);
+  font-size:9px;letter-spacing:.18em;color:var(--dim2);
+  margin-top:5px;display:block;
 }
 
-.hist {
-  display:flex;
-  flex-direction:column;
-  gap:6px;
+/* ---------- PICK CARDS ---------- */
+
+.cards {
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  gap:14px;
 }
 
-.hrow {
-  display:grid;
-  grid-template-columns:90px 1fr auto auto;
-  gap:10px;
-  align-items:center;
-  padding:10px;
-  border-radius:8px;
-  background:var(--panel2);
-  font-size:12px;
+.card {
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:18px;
+  transition:transform .18s,border-color .18s,box-shadow .18s;
 }
 
-.chip {
-  font-size:10px;
-  font-weight:800;
+.card:hover {
+  transform:translateY(-3px);
+  border-color:var(--line2);
+  box-shadow:0 14px 34px rgba(0,0,0,.4);
 }
 
-.hit { color:var(--green); }
-.miss { color:var(--pink); }
-.pending { color:var(--amber); }
+.league {
+  font-size:9.5px;color:var(--dim2);letter-spacing:.2em;
+  font-weight:800;margin-bottom:10px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+
+.teams {
+  font-weight:800;font-size:15px;line-height:1.45;margin-bottom:6px;
+}
+
+.teams .vs {
+  color:var(--dim2);font-weight:600;font-size:12px;
+  display:block;letter-spacing:.14em;margin:2px 0;
+}
+
+.meta {
+  font-size:11px;color:var(--dim);margin-bottom:14px;
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+}
+
+.market-chip {
+  font-size:9.5px;font-weight:800;letter-spacing:.1em;
+  color:var(--acid);border:1px solid rgba(198,255,77,.3);
+  background:rgba(198,255,77,.06);
+  padding:3px 9px;border-radius:99px;
+}
+
+.market-chip.u {
+  color:var(--cyan);border-color:rgba(55,224,255,.3);
+  background:rgba(55,224,255,.06);
+}
+
+.conf {
+  margin-top:auto;
+}
+
+.conf-top {
+  display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;
+}
+
+.conf-top b {font-size:24px;font-weight:900;color:var(--cyan)}
+
+.conf-top small {font-size:8.5px;letter-spacing:.2em;color:var(--dim2)}
+
+.meter {
+  height:5px;border-radius:99px;
+  background:rgba(255,255,255,.07);overflow:hidden;
+}
+
+.meter i {
+  display:block;height:100%;border-radius:99px;
+  background:var(--grad);
+  transition:width .6s cubic-bezier(.2,.8,.2,1);
+}
+
+.reason {
+  font-size:10px;letter-spacing:.14em;font-weight:800;
+  margin-top:10px;
+}
+
+.reason.q{color:var(--green)}
+.reason.r{color:var(--amber)}
+.reason.n{color:var(--dim2)}
+
+/* ---------- SLIPS TRACKER ---------- */
 
 .tracker-controls {
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  margin-bottom:14px;
+  display:flex;gap:10px;flex-wrap:wrap;margin:16px 0;
 }
 
-.tracker-controls select,
-.tracker-controls input {
-  background:var(--panel2);
-  border:1px solid var(--line);
-  color:var(--ink);
-  border-radius:8px;
-  padding:9px;
+.tracker-controls select {
+  background:var(--panel2);border:1px solid var(--line2);
+  color:var(--ink);border-radius:12px;padding:10px 14px;
 }
 
 .tracker-list {
-  display:flex;
-  flex-direction:column;
-  gap:10px;
+  display:flex;flex-direction:column;gap:14px;
 }
 
 .sliprow {
   border:1px solid var(--line);
   background:var(--panel2);
-  border-radius:12px;
-  padding:13px;
+  border-radius:18px;
+  padding:18px;
 }
 
 .sliprowhead {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:8px;
-  flex-wrap:wrap;
-  margin-bottom:8px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;flex-wrap:wrap;margin-bottom:12px;
 }
 
-.legs {
-  color:var(--dim);
-  font-size:12px;
-  line-height:1.7;
+.chip {
+  font-size:10px;font-weight:800;letter-spacing:.14em;
+  padding:5px 13px;border-radius:99px;
 }
+
+.chip.hit,.chip.WON,.chip.HIT {
+  color:var(--green);background:rgba(61,255,158,.09);
+  border:1px solid rgba(61,255,158,.3);
+}
+
+.chip.miss,.chip.LOST,.chip.MISS {
+  color:var(--pink);background:rgba(255,61,113,.09);
+  border:1px solid rgba(255,61,113,.3);
+}
+
+.chip.pending,.chip.PENDING {
+  color:var(--amber);background:rgba(255,177,61,.09);
+  border:1px solid rgba(255,177,61,.3);
+}
+
+.chip.VOID{color:var(--dim);background:rgba(139,150,184,.08);border:1px solid var(--line2)}
+
+.legs{font-size:12px;color:var(--dim);line-height:1.8}
 
 .slip-actions {
-  display:flex;
-  gap:6px;
-  flex-wrap:wrap;
-  margin-top:10px;
+  display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;
 }
 
 .smallbtn {
-  font-size:10px;
-  padding:6px 9px;
-  border-radius:7px;
-  border:1px solid var(--line);
-  background:transparent;
-  color:var(--ink);
+  font-size:10px;font-weight:800;letter-spacing:.1em;
+  padding:7px 12px;border-radius:10px;
+  border:1px solid var(--line2);
+  background:transparent;color:var(--ink);
+  transition:all .15s;
 }
 
-.smallbtn.win {
-  color:var(--green);
-  border-color:var(--green);
-}
+.smallbtn.win{color:var(--green);border-color:rgba(61,255,158,.4)}
+.smallbtn.loss{color:var(--pink);border-color:rgba(255,61,113,.4)}
+.smallbtn.pending{color:var(--amber);border-color:rgba(255,177,61,.4)}
+.smallbtn:hover{background:rgba(255,255,255,.05)}
 
-.smallbtn.loss {
-  color:var(--pink);
-  border-color:var(--pink);
-}
+/* ---------- HISTORY ---------- */
 
-.smallbtn.pending {
-  color:var(--amber);
-  border-color:var(--amber);
-}
+.hist{display:flex;flex-direction:column;gap:8px}
 
-/* LIVE-SCORE TRACKER */
-
-.live-note {
-  margin:8px 0 14px;
-  padding:11px;
-  border:1px solid var(--line);
-  border-radius:9px;
-  color:var(--dim);
-  font-size:11px;
-  line-height:1.7;
-  overflow-wrap:anywhere;
-}
-
-.live-note.error {
-  color:var(--amber);
-  border-color:rgba(255,177,61,.35);
-}
-
-.live-leg {
-  margin-top:10px;
-  padding:11px;
-  border:1px solid var(--line);
-  border-radius:9px;
-  background:rgba(11,16,32,.45);
+.hrow {
+  display:grid;grid-template-columns:92px 1fr auto auto;
+  gap:12px;align-items:center;
+  padding:11px 14px;border-radius:12px;
+  background:var(--panel2);border:1px solid var(--line);
   font-size:12px;
-  line-height:1.7;
-  overflow-wrap:anywhere;
 }
 
-.live-score {
-  font-size:24px;
-  font-weight:850;
-  color:var(--cyan);
-  margin:4px 0;
-  letter-spacing:.05em;
+/* ---------- GENERATE DIAGNOSTICS ---------- */
+
+.diag {
+  background:var(--panel2);border:1px solid var(--line);
+  border-radius:14px;padding:16px;margin:14px 0;
+  font-size:12px;line-height:2;
 }
 
-.live-state {
-  color:var(--amber);
-  font-size:10px;
-  font-weight:800;
-  letter-spacing:.08em;
+.diag b{color:var(--ink)}
+
+.diag .rowline {
+  display:flex;justify-content:space-between;gap:10px;
+  border-bottom:1px dashed var(--line);padding:3px 0;
 }
 
-.live-state.finished { color:var(--green); }
-.live-state.crossed { color:var(--pink); }
+.diag .rowline:last-child{border-bottom:0}
 
-.live-progress {
-  color:var(--dim);
-  font-size:11px;
-  margin-top:3px;
+.diag .n{font-weight:900;color:var(--cyan)}
+
+.diag-hint {
+  color:var(--amber);font-size:11.5px;margin-top:10px;line-height:1.9;
 }
 
-.live-result {
-  font-size:11px;
-  font-weight:800;
-  margin-top:5px;
+/* ---------- MODAL ---------- */
+
+.modal {
+  display:none;position:fixed;inset:0;z-index:40;
+  background:rgba(5,7,12,.92);
+  backdrop-filter:blur(10px);
+  overflow:auto;padding:26px 20px;
 }
 
-.live-result.won { color:var(--green); }
-.live-result.lost { color:var(--pink); }
+.modal-in{max-width:980px;margin:auto}
 
-.live-refresh {
-  display:block;
-  margin-top:4px;
-  font-size:10px;
-  color:var(--dim);
+/* ---------- SKELETON ---------- */
+
+.skeleton {
+  background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.09),rgba(255,255,255,.04));
+  background-size:200% 100%;
+  animation:shimmer 1.4s infinite;
+  border-radius:14px;
 }
+
+@keyframes shimmer{to{background-position:-200% 0}}
 
 footer {
-  text-align:center;
-  color:var(--dim);
-  font-size:10px;
-  letter-spacing:.13em;
-  padding:22px 0;
+  text-align:center;color:var(--dim2);
+  font-size:10px;letter-spacing:.28em;font-weight:700;
+  padding:34px 0 10px;
 }
 
-@media(max-width:600px) {
-  .hrow { grid-template-columns:1fr auto; }
-  .hrow .hide-sm { display:none; }
-  .panel { padding:14px; }
-  .tracker-controls > * { max-width:100%; }
+@media(max-width:640px) {
+  .hrow{grid-template-columns:1fr auto}
+  .hrow .hide-sm{display:none}
+  .panel{padding:16px}
+  .gate-card{padding:38px 20px}
+  .brand small{display:none}
 }
 </style>
 </head>
 
 <body>
 
-<div id="boot">
-  <h1>BARBADOX</h1>
-  <p>MATCH INTELLIGENCE SYSTEM</p>
-  <div class="spinner"></div>
-  <span class="muted">CONNECTING TO MODEL…</span>
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <b>BARBADOX<span>·</span></b>
+      <small>MATCH INTELLIGENCE</small>
+    </div>
+    <div class="sys">
+      <span id="sysDot" class="pill"><i class="dot"></i>CONNECTING…</span>
+      <span id="snapTime" class="pill mono" style="display:none">—</span>
+    </div>
+  </div>
 </div>
 
-<main id="dash">
+<!-- GATE: nothing loads until the owner acts -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">BARBA<span>DOX</span></div>
+    <div class="gate-sub">MATCH INTELLIGENCE SYSTEM</div>
 
-<header>
-  <div>
-    <div class="brand">BARBADOX<span>·</span></div>
-    <div class="sub">MATCH INTELLIGENCE SYSTEM</div>
-  </div>
+    <p class="gate-desc">
+      The model is idle. No fixtures, picks or slips are loaded yet.<br>
+      Run a fresh scan of the next 7 days, or load the last saved snapshot.
+    </p>
 
-  <div class="row">
-    <span id="sysDot" class="tag">CONNECTING…</span>
-    <span id="snapTime" class="muted mono">—</span>
-  </div>
-</header>
-
-<section class="panel">
-  <div class="panelhead">
-    <h2>MODEL CONTROL</h2>
-    <span id="thTag" class="tag">ENTRY BAR —</span>
-  </div>
-
-  <div class="actions">
-    <button id="btnRun" class="btn">▶ RUN MODEL</button>
-    <button id="btnSlip" class="btn secondary">GENERATE SLIPS</button>
-  </div>
-
-  <div id="runStatus" class="status">Loading model data…</div>
-</section>
-
-<section class="panel">
-  <div class="panelhead">
-    <h2>CORE 1 · OVER 1.5 GOALS</h2>
-    <span id="resTag" class="tag">—</span>
-  </div>
-
-  <div id="resCards" class="cards"></div>
-  <div id="contextReady" class="status"></div>
-</section>
-
-<section class="panel">
-  <div class="panelhead">
-    <h2>CORE 2 · UNDER 3.5 GOALS</h2>
-    <span id="under35Tag" class="tag">LOADING</span>
-  </div>
-
-  <div id="under35Kpis" class="kpis"></div>
-  <div id="under35Status" class="status"></div>
-  <div id="under35Cards" class="cards"></div>
-  <div id="under35Foot" class="muted"></div>
-</section>
-
-<section class="panel">
-  <div class="panelhead">
-    <h2>SLIPS TRACKER</h2>
-    <span class="tag">LIVE SCORE TRACKING</span>
-  </div>
-
-  <div class="kpis" id="trackerKpis"></div>
-
-  <div id="liveScoreNote" class="live-note">
-    Connecting to live-score service…
-  </div>
-
-  <div class="tracker-controls">
-    <select id="trackerFilter" aria-label="Filter slips">
-      <option value="ALL">ALL SLIPS</option>
-      <option value="PENDING">PENDING</option>
-      <option value="WON">HIT / WON</option>
-      <option value="LOST">FAILED / LOST</option>
-    </select>
-
-    <button id="exportTracker" class="btn secondary">EXPORT CSV</button>
-    <button id="clearTracker" class="btn danger">CLEAR TRACKER</button>
-  </div>
-
-  <div id="trackerList" class="tracker-list"></div>
-
-  <div class="status">
-    Each generated slip is recorded here. Live scores refresh on a long
-    interval (about 5–15 minutes, longer after rate-limit errors) so the
-    free API quota is not burned. Automatic grading occurs only when all
-    four fixtures have been uniquely matched, have confirmed numeric scores,
-    and are confirmed finished. Manual grading remains available. Every
-    generated slip is also synchronized with the permanent history archive
-    when the server is reachable. Clearing this tracker does not delete
-    the archive.
-  </div>
-</section>
-
-<section class="panel">
-  <div class="panelhead">
-    <h2>CORE 1 PERFORMANCE</h2>
-    <span id="perfTag" class="tag">—</span>
-  </div>
-
-  <div id="perfKpis" class="kpis"></div>
-</section>
-
-<section class="panel">
-  <div class="panelhead">
-    <h2>ANALYSIS HISTORY</h2>
-    <span id="histTag" class="tag">—</span>
-  </div>
-
-  <div id="histList" class="hist"></div>
-</section>
-
-<footer id="footData">BUILT BY AGAINBUILDS · BARBADOX</footer>
-</main>
-
-<div id="slipModal"
-     style="display:none;position:fixed;inset:0;background:var(--bg);z-index:10;overflow:auto;padding:20px">
-
-  <div style="max-width:900px;margin:auto">
-    <div class="panelhead">
-      <h2>GENERATED SLIPS · 3 OVER 1.5 + 1 UNDER 3.5</h2>
-      <button id="closeSlip" class="btn secondary">CLOSE</button>
+    <div class="gate-actions">
+      <button id="gateRun" class="btn">▶&nbsp; RUN MODEL</button>
+      <button id="gateLoad" class="btn secondary">LOAD LAST SNAPSHOT</button>
     </div>
 
+    <div class="gate-meta" id="gateMeta">Checking service…</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<main id="dash">
+
+  <section class="panel">
+    <div class="panelhead">
+      <h2>MODEL CONTROL <em>· CORE 1 + CORE 2</em></h2>
+      <span id="thTag" class="tag">ENTRY BAR —</span>
+    </div>
+
+    <div class="actions" style="margin-top:0">
+      <button id="btnRun" class="btn">▶ RUN MODEL</button>
+      <button id="btnSlip" class="btn secondary">GENERATE SLIPS</button>
+    </div>
+
+    <div id="runStatus" class="status">Idle. Nothing is loaded until you run the model or load the last snapshot.</div>
+
+    <div id="phases" class="phases" style="display:none">
+      <span class="phase" id="ph-core1"><i class="dot"></i>CORE 1</span>
+      <span class="phase" id="ph-review"><i class="dot"></i>REVIEW WINDOW</span>
+      <span class="phase" id="ph-export"><i class="dot"></i>FINAL EXPORT</span>
+      <span class="phase" id="ph-core2"><i class="dot"></i>CORE 2</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panelhead">
+      <h2>CORE 1 <em>· OVER 1.5 GOALS</em></h2>
+      <span id="resTag" class="tag">—</span>
+    </div>
+    <div id="resCards" class="cards"></div>
+    <div id="contextReady" class="status"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panelhead">
+      <h2>CORE 2 <em>· UNDER 3.5 GOALS</em></h2>
+      <span id="under35Tag" class="tag">—</span>
+    </div>
+    <div id="under35Kpis" class="kpis"></div>
+    <div id="under35Status" class="status"></div>
+    <div id="under35Cards" class="cards"></div>
+    <div id="under35Foot" class="muted" style="font-size:11px;margin-top:12px"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panelhead">
+      <h2>SLIPS TRACKER <em>· LIVE SCORE TRACKING</em></h2>
+      <span class="tag" id="trackerTag">—</span>
+    </div>
+
+    <div class="kpis" id="trackerKpis"></div>
+
+    <div class="tracker-controls">
+      <select id="trackerFilter" aria-label="Filter slips">
+        <option value="ALL">ALL SLIPS</option>
+        <option value="PENDING">PENDING</option>
+        <option value="WON">HIT / WON</option>
+        <option value="LOST">FAILED / LOST</option>
+      </select>
+      <button id="exportTracker" class="btn secondary small">EXPORT CSV</button>
+      <button id="clearTracker" class="btn danger small">CLEAR TRACKER</button>
+    </div>
+
+    <div id="trackerList" class="tracker-list"></div>
+
+    <div class="status">
+      Slips are graded automatically only when all four fixtures are uniquely
+      matched, finished, and have confirmed scores — including slips that were
+      cleared from this tracker (they stay in the permanent archive and are
+      still graded there). Manual grading remains available. Clearing this
+      tracker never deletes the archive.
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panelhead">
+      <h2>CORE 1 PERFORMANCE</h2>
+      <span id="perfTag" class="tag">—</span>
+    </div>
+    <div id="perfKpis" class="kpis"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panelhead">
+      <h2>ANALYSIS HISTORY</h2>
+      <span id="histTag" class="tag">—</span>
+    </div>
+    <div id="histList" class="hist"></div>
+  </section>
+
+  <footer>BUILT BY AGAINBUILDS · BARBADOX</footer>
+</main>
+
+<!-- GENERATE SLIPS MODAL -->
+<div id="slipModal" class="modal">
+  <div class="modal-in">
+    <div class="panelhead">
+      <h2>GENERATED SLIPS <em>· 3 × OVER 1.5 + 1 × UNDER 3.5</em></h2>
+      <button id="closeSlip" class="btn secondary small">CLOSE</button>
+    </div>
     <div id="slipStatus" class="status"></div>
+    <div id="slipDiag"></div>
     <div id="slipCards" class="cards"></div>
   </div>
 </div>
@@ -591,18 +697,13 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({
 }[c]));
 
 const pct = x =>
-  x !== null &&
-  x !== undefined &&
-  x !== "" &&
+  x !== null && x !== undefined && x !== "" &&
   Number.isFinite(Number(x))
     ? (Number(x) * 100).toFixed(1) + "%"
     : "—";
 
 const api = async (path, opts = {}) => {
-  const r = await fetch(path, {
-    cache:"no-store",
-    ...opts
-  });
+  const r = await fetch(path, {cache:"no-store", ...opts});
 
   if (!r.ok) {
     throw Error(path + " returned HTTP " + r.status);
@@ -614,30 +715,21 @@ const api = async (path, opts = {}) => {
 let snap = null;
 let underSnap = null;
 let pollTimer = null;
-let liveRefreshTimer = null;
-// Default client poll; server cache is 15 min. On rate-limit we back off harder.
-let livePollMs = 300000;
-const LIVE_POLL_DEFAULT_MS = 300000;
-const LIVE_POLL_MIN_MS = 120000;
-const LIVE_POLL_MAX_MS = 3600000;
+let dataLoaded = false;
 
 let THRESHOLD = .80;
 let MARKET = 1.5;
-let slipList = [];
+const UNDER_BAR = .60;
 
-let liveFixtures = [];
-let liveScoreError = null;
-let liveUpdatedAt = null;
-let liveRefreshBusy = false;
+/* -------------------------------------------------------
+   TRACKER STORAGE (shared contract with the JS modules)
+------------------------------------------------------- */
 
 const TRACK_KEY = "barbadox.slips.tracker.v1";
 
 function readTracker() {
   try {
-    const v = JSON.parse(
-      localStorage.getItem(TRACK_KEY) || "[]"
-    );
-
+    const v = JSON.parse(localStorage.getItem(TRACK_KEY) || "[]");
     return Array.isArray(v) ? v : [];
   } catch {
     return [];
@@ -645,31 +737,9 @@ function readTracker() {
 }
 
 function saveTracker(rows) {
-  localStorage.setItem(
-    TRACK_KEY,
-    JSON.stringify(rows)
-  );
-
+  localStorage.setItem(TRACK_KEY, JSON.stringify(rows));
   renderTracker();
 }
-
-function fixtureKey(f) {
-  // Normalise team names so "FC Internazionale Milano" and
-  // "Internazionale" style variants still collide correctly.
-  const date = String(f && f.date || "").slice(0, 10).trim().toLowerCase();
-  const home = typeof normTeam === "function"
-    ? normTeam(f && f.home)
-    : String(f && f.home || "").trim().toLowerCase();
-  const away = typeof normTeam === "function"
-    ? normTeam(f && f.away)
-    : String(f && f.away || "").trim().toLowerCase();
-  return [date, home, away].join("|");
-}
-
-
-/* -------------------------------------------------------
-   LIVE SCORE MATCHING
-------------------------------------------------------- */
 
 function normTeam(name) {
   return String(name || "")
@@ -681,19 +751,21 @@ function normTeam(name) {
     .replace(/[^a-z0-9]/g, "");
 }
 
-function sameTeam(a, b) {
-  const x = normTeam(a);
-  const y = normTeam(b);
-
-  if (!x || !y) return false;
-  if (x === y) return true;
-
-  return Math.min(x.length, y.length) >= 5 &&
-    (x.includes(y) || y.includes(x));
+function fixtureKey(f) {
+  const date = String(f && f.date || "").slice(0,10).trim().toLowerCase();
+  const home = normTeam(f && f.home);
+  const away = normTeam(f && f.away);
+  return [date, home, away].join("|");
 }
 
-/* Format kickoff in Nigeria time.
-   Date-only values do not receive an invented time. */
+/* -------------------------------------------------------
+   KICKOFF / ELIGIBILITY
+------------------------------------------------------- */
+
+const KICKOFF_TZ_HOURS = 1;
+const KICKOFF_BUFFER_MS = 30 * 60000;
+const SLIP_WINDOW_MS = 24 * 3600000;
+
 function formatKickoff(value) {
   if (!value) return "Kickoff time unavailable";
 
@@ -701,578 +773,27 @@ function formatKickoff(value) {
   const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(raw);
   const date = new Date(raw);
 
-  if (Number.isNaN(date.getTime())) {
-    return "Kickoff time unavailable";
-  }
+  if (Number.isNaN(date.getTime())) return "Kickoff time unavailable";
 
   const options = {
     timeZone:"Africa/Lagos",
-    weekday:"short",
-    day:"2-digit",
-    month:"short",
-    year:"numeric"
+    weekday:"short", day:"2-digit", month:"short", year:"numeric"
   };
 
   if (dateOnly) {
-    return new Intl.DateTimeFormat(
-      "en-NG",
-      options
-    ).format(date) + " (time not provided)";
+    return new Intl.DateTimeFormat("en-NG", options).format(date) +
+      " (time not provided)";
   }
 
   return new Intl.DateTimeFormat("en-NG", {
-    ...options,
-    hour:"2-digit",
-    minute:"2-digit",
-    hour12:true
+    ...options, hour:"2-digit", minute:"2-digit", hour12:true
   }).format(date) + " WAT";
 }
-
-function fixtureKickoffLabel(fixture) {
-  if (!fixture || !fixture.date) {
-    return "Kickoff time unavailable";
-  }
-
-  const status = String(
-    fixture.status || ""
-  ).toUpperCase();
-
-  if (["NS", "TBD"].includes(status)) {
-    return "KICKOFF: " + formatKickoff(fixture.date);
-  }
-
-  return "SCHEDULED: " + formatKickoff(fixture.date);
-}
-
-function legDate(leg) {
-  const raw = String(leg.date || "").slice(0, 10);
-
-  return /^\d{4}-\d{2}-\d{2}$/.test(raw)
-    ? raw
-    : null;
-}
-
-function liveDate(fixture) {
-  const raw = String(fixture.date || "").slice(0, 10);
-
-  return /^\d{4}-\d{2}-\d{2}$/.test(raw)
-    ? raw
-    : null;
-}
-
-function findLiveFixture(leg) {
-  const candidates = liveFixtures.filter(f => {
-    if (
-      !sameTeam(leg.home, f.home) ||
-      !sameTeam(leg.away, f.away)
-    ) {
-      return false;
-    }
-
-    const a = legDate(leg);
-    const b = liveDate(f);
-
-    if (a && b) {
-      const timeA = new Date(a + "T00:00:00Z").getTime();
-      const timeB = new Date(b + "T00:00:00Z").getTime();
-
-      const diff = Math.abs(timeA - timeB);
-
-      // Permit a one-day difference for timezone/date-boundary cases.
-      if (diff > 86400000) {
-        return false;
-      }
-    }
-
-    return true;
-  });
-
-  // Ambiguous fixture matches must never be guessed.
-  return candidates.length === 1
-    ? candidates[0]
-    : null;
-}
-
-function hasValidScore(fixture) {
-  if (!fixture) return false;
-
-  const hg = fixture.home_goals;
-  const ag = fixture.away_goals;
-
-  if (
-    hg === null ||
-    hg === undefined ||
-    ag === null ||
-    ag === undefined ||
-    hg === "" ||
-    ag === ""
-  ) {
-    return false;
-  }
-
-  return Number.isFinite(Number(hg)) &&
-    Number.isFinite(Number(ag));
-}
-
-function fixtureState(fixture) {
-  if (!fixture) {
-    return "FIXTURE NOT MATCHED";
-  }
-
-  const status = String(
-    fixture.status || ""
-  ).toUpperCase();
-
-  if (["FT", "AET", "PEN"].includes(status)) {
-    return "FULL TIME";
-  }
-
-  if (
-    ["1H", "2H", "HT", "ET", "BT", "P", "LIVE"].includes(status)
-  ) {
-    return fixture.elapsed === null ||
-      fixture.elapsed === undefined
-        ? "LIVE"
-        : "LIVE · " + fixture.elapsed + "'";
-  }
-
-  if (["NS", "TBD"].includes(status)) {
-    return "NOT STARTED";
-  }
-
-  if (
-    ["PST", "CANC", "ABD", "AWD", "WO"].includes(status)
-  ) {
-    return String(
-      fixture.status_long || status
-    ).toUpperCase();
-  }
-
-  return String(
-    fixture.status_long || status || "STATUS UNKNOWN"
-  ).toUpperCase();
-}
-
-function isFinished(fixture) {
-  if (!fixture) return false;
-
-  return fixture.finished === true &&
-    ["FT", "AET", "PEN"].includes(
-      String(fixture.status || "").toUpperCase()
-    );
-}
-
-function legResult(leg, fixture) {
-  if (!hasValidScore(fixture)) {
-    return null;
-  }
-
-  const total =
-    Number(fixture.home_goals) +
-    Number(fixture.away_goals);
-
-  const market = String(
-    leg.market || ""
-  ).toUpperCase();
-
-  if (market.includes("OVER 1.5")) {
-    return total >= 2 ? "WON" : "LOST";
-  }
-
-  if (market.includes("UNDER 3.5")) {
-    return total <= 3 ? "WON" : "LOST";
-  }
-
-  return null;
-}
-
-function legProgress(leg, fixture) {
-  if (!fixture) {
-    return "Fixture not matched. Score unavailable.";
-  }
-
-  if (!hasValidScore(fixture)) {
-    return "No confirmed numeric score available.";
-  }
-
-  const total =
-    Number(fixture.home_goals) +
-    Number(fixture.away_goals);
-
-  const market = String(
-    leg.market || ""
-  ).toUpperCase();
-
-  if (market.includes("OVER 1.5")) {
-    if (total >= 2) {
-      return "Target reached: at least 2 total goals.";
-    }
-
-    return "Needs " +
-      (2 - total) +
-      " more goal(s) to reach Over 1.5.";
-  }
-
-  if (market.includes("UNDER 3.5")) {
-    if (total >= 4) {
-      return "UNDER 3.5 line crossed: 4 or more total goals.";
-    }
-
-    return (
-      (3 - total) +
-      " additional goal(s) can occur before the line is crossed."
-    );
-  }
-
-  return "Market unavailable.";
-}
-
-function renderLiveLeg(leg, index) {
-  const fixture = findLiveFixture(leg);
-
-  if (!fixture) {
-    return `
-      <div class="live-leg">
-        <strong>
-          ${index + 1}. ${esc(leg.home)} vs ${esc(leg.away)}
-        </strong>
-
-        <div class="live-state">
-          FIXTURE NOT MATCHED
-        </div>
-
-        <div class="live-progress">
-          ${esc(leg.market)} · No score assumed.
-        </div>
-
-        <div class="live-progress">
-          ${esc(
-            leg.date
-              ? "SCHEDULED: " + formatKickoff(leg.kickoff || leg.date)
-              : "Kickoff time unavailable"
-          )}
-        </div>
-      </div>`;
-  }
-
-  const scoreAvailable = hasValidScore(fixture);
-  const state = fixtureState(fixture);
-  const result = legResult(leg, fixture);
-
-  const total = scoreAvailable
-    ? Number(fixture.home_goals) +
-      Number(fixture.away_goals)
-    : null;
-
-  const market = String(
-    leg.market || ""
-  ).toUpperCase();
-
-  let stateClass = "";
-
-  if (isFinished(fixture)) {
-    stateClass = "finished";
-  } else if (
-    total !== null &&
-    market.includes("UNDER 3.5") &&
-    total >= 4
-  ) {
-    stateClass = "crossed";
-  }
-
-  let resultHtml = "";
-
-  if (result) {
-    resultHtml = `
-      <div class="live-result ${result === "WON" ? "won" : "lost"}">
-        LEG RESULT: ${esc(result)}
-      </div>`;
-  }
-
-  return `
-    <div class="live-leg">
-      <strong>
-        ${index + 1}. ${esc(leg.home)} vs ${esc(leg.away)}
-      </strong>
-
-      <div class="live-score">
-        ${
-          scoreAvailable
-            ? Number(fixture.home_goals) +
-              " - " +
-              Number(fixture.away_goals)
-            : "—"
-        }
-      </div>
-
-      <div class="live-state ${stateClass}">
-        ${esc(state)}
-      </div>
-
-      <div class="live-progress">
-        ${esc(fixtureKickoffLabel(fixture))}
-      </div>
-
-      <div class="live-progress">
-        ${esc(leg.market)} ·
-        ${esc(legProgress(leg, fixture))}
-      </div>
-
-      ${resultHtml}
-    </div>`;
-}
-
-
-/* -------------------------------------------------------
-   AUTOMATIC SLIP GRADING
-------------------------------------------------------- */
-
-function autoGradeCompletedSlips(rows) {
-  let changed = false;
-
-  for (const slip of rows) {
-    // Never overwrite a manual or previously completed grade.
-    if (slip.status !== "PENDING") {
-      continue;
-    }
-
-    if (
-      !Array.isArray(slip.legs) ||
-      slip.legs.length !== 4
-    ) {
-      continue;
-    }
-
-    const matched = slip.legs.map(leg => ({
-      leg,
-      fixture:findLiveFixture(leg)
-    }));
-
-    const fixtureIds = matched.map(
-      item => item.fixture && item.fixture.id
-    );
-
-    const allHaveIds = fixtureIds.every(
-      id => id !== null &&
-        id !== undefined &&
-        id !== ""
-    );
-
-    const allUnique = allHaveIds &&
-      new Set(fixtureIds).size === 4;
-
-    const allFinished = matched.every(item =>
-      item.fixture &&
-      isFinished(item.fixture) &&
-      hasValidScore(item.fixture)
-    );
-
-    // Four uniquely matched, finished fixtures are required.
-    if (!allUnique || !allFinished) {
-      continue;
-    }
-
-    const results = matched.map(item =>
-      legResult(item.leg, item.fixture)
-    );
-
-    // Unknown markets or incomplete results must not be graded.
-    if (results.some(result => result === null)) {
-      continue;
-    }
-
-    slip.legs.forEach((leg, index) => {
-      const fixture = matched[index].fixture;
-
-      leg.liveScore =
-        Number(fixture.home_goals) +
-        "-" +
-        Number(fixture.away_goals);
-
-      leg.liveStatus = "FULL TIME";
-      leg.result = results[index];
-    });
-
-    slip.status = results.every(
-      result => result === "WON"
-    ) ? "WON" : "LOST";
-
-    slip.gradedAt = new Date().toISOString();
-    slip.autoGraded = true;
-
-    changed = true;
-  }
-
-  if (changed) {
-    localStorage.setItem(
-      TRACK_KEY,
-      JSON.stringify(rows)
-    );
-  }
-
-  return changed;
-}
-
-
-/* -------------------------------------------------------
-   LIVE SCORE REFRESH
-   Client polls on a long interval. Server caches for 15 min
-   and holds rate-limit errors for 1 hour so free quotas last.
-------------------------------------------------------- */
-
-function scheduleLiveRefresh(ms) {
-  if (liveRefreshTimer) {
-    clearInterval(liveRefreshTimer);
-    liveRefreshTimer = null;
-  }
-
-  const interval = Math.max(
-    LIVE_POLL_MIN_MS,
-    Math.min(LIVE_POLL_MAX_MS, Number(ms) || LIVE_POLL_DEFAULT_MS)
-  );
-
-  livePollMs = interval;
-  liveRefreshTimer = setInterval(refreshLiveScores, interval);
-}
-
-async function refreshLiveScores() {
-  if (liveRefreshBusy) {
-    return;
-  }
-
-  liveRefreshBusy = true;
-
-  try {
-    const r = await fetch(
-      "/api/live-scores",
-      {cache:"no-store"}
-    );
-
-    let data = null;
-
-    try {
-      data = await r.json();
-    } catch {}
-
-    const serverCacheSec = data && Number(data.cacheSeconds);
-    const rateLimited = !!(data && data.rateLimited);
-
-    if (!data || data.ok !== true) {
-      liveFixtures = [];
-
-      liveScoreError = data && (data.error || data.message)
-        ? (data.error || data.message) + (r.ok ? "" : " (HTTP " + r.status + ")")
-        : "Live scores are currently unavailable (HTTP " + r.status + ").";
-
-      liveUpdatedAt = null;
-
-      // Back off: honour server TTL when rate-limited, otherwise double.
-      if (rateLimited || /limit|quota|rate/i.test(String(liveScoreError))) {
-        const backoffMs = Number.isFinite(serverCacheSec)
-          ? serverCacheSec * 1000
-          : Math.min(LIVE_POLL_MAX_MS, livePollMs * 2);
-        scheduleLiveRefresh(backoffMs);
-      } else if (Number.isFinite(serverCacheSec) && serverCacheSec > 0) {
-        scheduleLiveRefresh(serverCacheSec * 1000);
-      }
-
-    } else {
-      liveFixtures = Array.isArray(data.fixtures)
-        ? data.fixtures
-        : [];
-
-      liveScoreError = null;
-      liveUpdatedAt = data.updated_at || null;
-
-      if (Number.isFinite(serverCacheSec) && serverCacheSec > 0) {
-        scheduleLiveRefresh(Math.max(LIVE_POLL_MIN_MS, serverCacheSec * 1000));
-      } else if (livePollMs !== LIVE_POLL_DEFAULT_MS) {
-        scheduleLiveRefresh(LIVE_POLL_DEFAULT_MS);
-      }
-    }
-
-    const rows = readTracker();
-
-    autoGradeCompletedSlips(rows);
-
-    const note = $("liveScoreNote");
-
-    if (note) {
-      if (liveScoreError) {
-        note.className = "live-note error";
-
-        note.textContent =
-          liveScoreError +
-          " Check API_FOOTBALL_KEY in Render and the API provider. " +
-          "Scores will not be guessed, and slips will not be " +
-          "automatically graded without confirmed finished results. " +
-          "Next poll in about " + Math.round(livePollMs / 60000) + " min.";
-
-      } else {
-        note.className = "live-note";
-
-        note.innerHTML =
-          "LIVE-SCORE FEED CONNECTED · " +
-          esc(liveFixtures.length) +
-          " PROVIDER FIXTURES LOADED." +
-          "<span class=\"live-refresh\">" +
-          "Refresh interval: approximately " +
-          Math.round(livePollMs / 60000) +
-          " minutes (server cache respected)." +
-          " Updated: " +
-          esc(liveUpdatedAt || "—") +
-          "</span>";
-      }
-    }
-
-    renderTracker();
-
-  } catch (error) {
-    liveScoreError =
-      error.message || "Live-score connection failed.";
-
-    scheduleLiveRefresh(Math.min(LIVE_POLL_MAX_MS, livePollMs * 2));
-
-    const note = $("liveScoreNote");
-
-    if (note) {
-      note.className = "live-note error";
-
-      note.textContent =
-        "Live scores could not be refreshed. " +
-        "Your saved slips have been preserved. " +
-        "Automatic grading is paused until the score feed is available. " +
-        "Retrying in about " + Math.round(livePollMs / 60000) + " min.";
-    }
-
-    renderTracker();
-
-  } finally {
-    liveRefreshBusy = false;
-  }
-}
-
-
-/* -------------------------------------------------------
-   KICKOFF AND ELIGIBILITY RULES
-   A pick is usable only if it meets its bar AND has not started.
-------------------------------------------------------- */
-
-// Must match BARBADOX_TZ_HOURS on Render (the server default is 1).
-const KICKOFF_TZ_HOURS = 1;
-// Ignore any fixture starting sooner than this.
-const KICKOFF_BUFFER_MS = 30 * 60000;
-// All four legs of a slip must start inside this window.
-const SLIP_WINDOW_MS = 24 * 3600000;
-const UNDER_BAR = .60;
 
 function kickoffMs(f) {
   if (f && f.kickoff_utc) {
     const t = Date.parse(f.kickoff_utc);
-
-    if (Number.isFinite(t)) {
-      return t;
-    }
+    if (Number.isFinite(t)) return t;
   }
 
   if (
@@ -1280,7 +801,6 @@ function kickoffMs(f) {
     /^\d{4}-\d{2}-\d{2}$/.test(String(f.date || "")) &&
     /^\d{2}:\d{2}$/.test(String(f.time || ""))
   ) {
-    // Older snapshots only carry local date and time.
     return Date.parse(f.date + "T" + f.time + ":00Z") -
       KICKOFF_TZ_HOURS * 3600000;
   }
@@ -1290,22 +810,16 @@ function kickoffMs(f) {
 
 function kickoffIso(f) {
   const t = kickoffMs(f);
-
-  return Number.isFinite(t)
-    ? new Date(t).toISOString()
-    : null;
+  return Number.isFinite(t) ? new Date(t).toISOString() : null;
 }
 
 function isUpcoming(f, now = Date.now()) {
   const t = kickoffMs(f);
-
-  return Number.isFinite(t) &&
-    t > now + KICKOFF_BUFFER_MS;
+  return Number.isFinite(t) && t > now + KICKOFF_BUFFER_MS;
 }
 
 function overProb(f) {
   const p = Number(f.point ?? f.core);
-
   return Number.isFinite(p) ? p : NaN;
 }
 
@@ -1326,29 +840,22 @@ function qualifiedUnder(f, now = Date.now()) {
     isUpcoming(f, now);
 }
 
-/* Fixtures already sitting in any unsettled slip are never reused.
-   Manual "Mark HIT" without real scores must not free those fixtures
-   for a second slip, or one miss sinks several slips. */
+/* Fixtures inside any unsettled slip are never reused. */
 function pendingFixtureKeys() {
   const keys = new Set();
 
   readTracker().forEach(slip => {
     const status = String(slip.status || "PENDING").toUpperCase();
-    // Only fully auto-graded (or clearly finished) slips release fixtures.
-    // Manual HIT / WON without autoGraded still blocks reuse.
+
     const settled =
       (status === "HIT" || status === "HIT / WON" || status === "WON") &&
       slip.autoGraded === true;
 
     const failed =
-      status === "FAILED" ||
-      status === "FAILED / LOST" ||
-      status === "MISS" ||
-      status === "LOST";
+      status === "FAILED" || status === "FAILED / LOST" ||
+      status === "MISS" || status === "LOST";
 
-    if (settled || failed) {
-      return;
-    }
+    if (settled || failed) return;
 
     (slip.legs || []).forEach(leg => keys.add(fixtureKey(leg)));
   });
@@ -1356,45 +863,52 @@ function pendingFixtureKeys() {
   return keys;
 }
 
-
 /* -------------------------------------------------------
-   MODEL CARDS
+   PICK CARDS
 ------------------------------------------------------- */
 
-function card(f, market, prob, reason = "") {
+function card(f, market, prob, kind = "q") {
+  const barWidth = Number.isFinite(Number(prob))
+    ? Math.max(0, Math.min(100, Number(prob) * 100))
+    : 0;
+
+  const reasonLabel =
+    kind === "q" ? "QUALIFIED" :
+    kind === "r" ? "REVIEW WINDOW" :
+    "NEAR ENTRY BAR";
+
+  const reasonClass =
+    kind === "q" ? "q" : kind === "r" ? "r" : "n";
+
   return `
     <article class="card">
       <div class="league">
-        ${esc(LG[f.league] || f.league || "FOOTBALL")}
+        <span>${esc(LG[f.league] || f.league || "FOOTBALL")}</span>
+        <span class="reason ${reasonClass}">${reasonLabel}</span>
       </div>
 
       <div class="teams">
         ${esc(f.home)}
-        <span class="muted">vs</span>
+        <span class="vs">VS</span>
         ${esc(f.away)}
       </div>
 
       <div class="meta">
-        ${esc(f.date || "Date TBC")}
-        ${f.time ? " · " + esc(f.time) : ""}
+        <span>${esc(formatKickoff(f.kickoff_utc || f.date))}</span>
       </div>
 
-      <div class="pick">
-        <span>${esc(market)}</span>
-
-        <span class="prob">
-          ${pct(prob)}
+      <div class="conf">
+        <div class="conf-top">
+          <b>${pct(prob)}</b>
+          <span class="market-chip ${market.includes("UNDER") ? "u" : ""}">
+            ${esc(market)}
+          </span>
+        </div>
+        <div class="meter"><i style="width:${barWidth}%"></i></div>
+        <div class="conf-top" style="margin-top:6px;margin-bottom:0">
           <small>CONFIDENCE</small>
-        </span>
+        </div>
       </div>
-
-      ${
-        reason
-          ? `<div class="meta" style="margin:10px 0 0">
-               ${esc(reason)}
-             </div>`
-          : ""
-      }
     </article>`;
 }
 
@@ -1403,38 +917,42 @@ function setStatus(msg, cls = "") {
   $("runStatus").className = "status " + cls;
 }
 
+function setPhases(active, done) {
+  const box = $("phases");
+  box.style.display = "flex";
+
+  ["core1", "review", "export", "core2"].forEach(k => {
+    const el = $("ph-" + k);
+    el.className = "phase";
+    if (done.includes(k)) el.classList.add("done");
+    if (active === k) el.classList.add("active");
+  });
+}
+
+/* -------------------------------------------------------
+   CORE RENDERERS
+------------------------------------------------------- */
+
 function renderCore1() {
-  const fs = snap &&
-    Array.isArray(snap.fixtures)
-      ? snap.fixtures
-      : [];
+  const fs = snap && Array.isArray(snap.fixtures) ? snap.fixtures : [];
 
   if (snap) {
-    if (
-      snap.threshold !== null &&
-      snap.threshold !== undefined &&
-      Number.isFinite(Number(snap.threshold))
-    ) {
+    if (snap.threshold !== null && snap.threshold !== undefined &&
+        Number.isFinite(Number(snap.threshold))) {
       THRESHOLD = Number(snap.threshold);
     }
 
-    if (
-      snap.market !== null &&
-      snap.market !== undefined &&
-      Number.isFinite(Number(snap.market))
-    ) {
+    if (snap.market !== null && snap.market !== undefined &&
+        Number.isFinite(Number(snap.market))) {
       MARKET = Number(snap.market);
     }
   }
 
-  $("thTag").textContent =
-    "ENTRY BAR " + Math.round(THRESHOLD * 100) + "%";
+  $("thTag").textContent = "ENTRY BAR " + Math.round(THRESHOLD * 100) + "%";
 
   $("resTag").textContent =
-    fs.filter(f => qualifiedOver(f)).length +
-    " QUALIFIED · " +
-    fs.length +
-    " SCANNED";
+    fs.filter(f => qualifiedOver(f)).length + " QUALIFIED · " +
+    fs.length + " SCANNED";
 
   const picks = fs.filter(f =>
     isUpcoming(f) && (
@@ -1448,16 +966,13 @@ function renderCore1() {
         f,
         "OVER " + MARKET + " GOALS",
         overProb(f),
-        f.decision === "logged"
-          ? "QUALIFIED"
-          : f.decision === "review-window"
-            ? "REVIEW WINDOW"
-            : "NEAR ENTRY BAR"
+        f.decision === "logged" ? "q" :
+          f.decision === "review-window" ? "r" : "n"
       )).join("")
     : `<div class="empty">${
         snap
-          ? "No Core 1 fixtures to display. No selections were manufactured."
-          : "Core 1 data unavailable. Run the model or check service logs."
+          ? "No upcoming Core 1 fixtures to display. No selections were manufactured."
+          : "Core 1 data not loaded."
       }</div>`;
 
   $("contextReady").textContent = snap
@@ -1467,78 +982,37 @@ function renderCore1() {
 
 function renderCore2() {
   const d = underSnap;
+  const fs = d && Array.isArray(d.fixtures) ? d.fixtures : [];
 
-  const fs = d && Array.isArray(d.fixtures)
-    ? d.fixtures
-    : [];
+  const q = fs.filter(f => f.decision === "qualified" && isUpcoming(f));
 
-  const q = fs.filter(
-    f => f.decision === "qualified" && isUpcoming(f)
-  );
-
-  const t = d &&
-    d.threshold !== null &&
-    d.threshold !== undefined &&
-    Number.isFinite(Number(d.threshold))
-      ? Number(d.threshold)
-      : .60;
+  const t = d && d.threshold !== null && d.threshold !== undefined &&
+    Number.isFinite(Number(d.threshold)) ? Number(d.threshold) : .60;
 
   $("under35Tag").textContent = d
-    ? (
-        d.status === "ok"
-          ? "CORE 2 · " + Math.round(t * 100) + "% BAR"
-          : "STATUS " +
-            String(d.status || "UNKNOWN").toUpperCase()
-      )
+    ? (d.status === "ok"
+        ? "CORE 2 · " + Math.round(t * 100) + "% BAR"
+        : "STATUS " + String(d.status || "UNKNOWN").toUpperCase())
     : "UNAVAILABLE";
 
   $("under35Kpis").innerHTML = `
-    <div class="kpi">
-      <strong>${d ? (d.scanned ?? fs.length) : "—"}</strong>
-      <span>SCANNED</span>
-    </div>
-
-    <div class="kpi">
-      <strong>${q.length}</strong>
-      <span>QUALIFIED</span>
-    </div>
-
-    <div class="kpi">
-      <strong>${Math.max(0, fs.length - q.length)}</strong>
-      <span>NOT QUALIFIED</span>
-    </div>`;
+    <div class="kpi"><strong>${d ? (d.scanned ?? fs.length) : "—"}</strong><span>SCANNED</span></div>
+    <div class="kpi"><strong>${q.length}</strong><span>QUALIFIED</span></div>
+    <div class="kpi"><strong>${Math.max(0, fs.length - q.length)}</strong><span>NOT QUALIFIED</span></div>`;
 
   $("under35Status").textContent = d
-    ? (
-        d.status === "ok"
-          ? "Under 3.5 results loaded at " +
-            Math.round(t * 100) +
-            "% threshold."
-          : "Core 2 reports " +
-            d.status +
-            ". Do not treat this as a successful run."
-      )
+    ? (d.status === "ok"
+        ? "Under 3.5 results loaded at " + Math.round(t * 100) + "% threshold."
+        : "Core 2 reports " + d.status + ". Do not treat this as a successful run.")
     : "Could not retrieve /api/under35.";
 
   $("under35Status").className =
-    "status " + (
-      d && d.status === "ok"
-        ? "ok"
-        : "warn"
-    );
+    "status " + (d && d.status === "ok" ? "ok" : "warn");
 
   $("under35Cards").innerHTML = q.length
     ? [...q]
-        .sort((a, b) =>
-          (Number(b.p_final) || 0) -
-          (Number(a.p_final) || 0)
-        )
-        .map(f => card(
-          f,
-          "UNDER 3.5 GOALS",
-          f.p_final,
-          f.reason || "Qualified by Core 2"
-        ))
+        .sort((a, b) => (Number(b.p_final) || 0) - (Number(a.p_final) || 0))
+        .map(f => card(f, "UNDER 3.5 GOALS", f.p_final, "q"))
         .join("")
     : `<div class="empty">${
         d && d.status === "ok"
@@ -1548,244 +1022,136 @@ function renderCore2() {
 
   $("under35Foot").textContent =
     d && d.generated_at
-      ? "Generated: " +
-        d.generated_at +
-        " · Threshold " +
-        Math.round(t * 100) +
-        "%"
+      ? "Generated: " + d.generated_at + " · Threshold " + Math.round(t * 100) + "%"
       : "";
 }
 
 function renderPerformance() {
-  const ps = snap &&
-    Array.isArray(snap.picks)
-      ? snap.picks
-      : [];
+  const ps = snap && Array.isArray(snap.picks) ? snap.picks : [];
 
-  const g = ps.filter(p =>
-    p.result === "HIT" ||
-    p.result === "MISS"
-  );
-
-  const hits = g.filter(
-    p => p.result === "HIT"
-  ).length;
-
+  const g = ps.filter(p => p.result === "HIT" || p.result === "MISS");
+  const hits = g.filter(p => p.result === "HIT").length;
   const pending = ps.length - g.length;
 
-  $("perfTag").textContent =
-    g.length + " GRADED";
+  $("perfTag").textContent = g.length + " GRADED";
 
   $("perfKpis").innerHTML = `
-    <div class="kpi">
-      <strong>${hits}/${g.length}</strong>
-      <span>HITS / GRADED</span>
-    </div>
-
-    <div class="kpi">
-      <strong>${g.length ? pct(hits / g.length) : "—"}</strong>
-      <span>HIT RATE</span>
-    </div>
-
-    <div class="kpi">
-      <strong>${pending}</strong>
-      <span>PENDING</span>
-    </div>`;
+    <div class="kpi"><strong>${hits}/${g.length}</strong><span>HITS / GRADED</span></div>
+    <div class="kpi"><strong>${g.length ? pct(hits / g.length) : "—"}</strong><span>HIT RATE</span></div>
+    <div class="kpi"><strong>${pending}</strong><span>PENDING</span></div>`;
 }
 
 function renderHistory() {
-  const ps = snap &&
-    Array.isArray(snap.picks)
-      ? [...snap.picks]
-      : [];
+  const ps = snap && Array.isArray(snap.picks) ? [...snap.picks] : [];
 
-  ps.sort((a, b) =>
-    String(b.date || "").localeCompare(
-      String(a.date || "")
-    )
-  );
+  ps.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
 
-  $("histTag").textContent =
-    ps.length + " LOGGED";
+  $("histTag").textContent = ps.length + " LOGGED";
 
   $("histList").innerHTML =
     ps.slice(0, 30).map(p => `
       <div class="hrow">
-        <span class="muted">${esc(p.date)}</span>
-
+        <span class="muted mono">${esc(p.date)}</span>
         <span>
           ${esc(p.home)} vs ${esc(p.away)}
-          <span class="muted">
-            (${esc(p.hg ?? "—")}-${esc(p.ag ?? "—")})
-          </span>
+          <span class="muted">(${esc(p.hg ?? "—")}-${esc(p.ag ?? "—")})</span>
         </span>
-
-        <span class="hide-sm">
-          ${pct(parseFloat(p.probability))}
-        </span>
-
+        <span class="hide-sm">${pct(parseFloat(p.probability))}</span>
         <span class="chip ${
-          p.result === "HIT"
-            ? "hit"
-            : p.result === "MISS"
-              ? "miss"
-              : "pending"
-        }">
-          ${esc(p.result || "PENDING")}
-        </span>
+          p.result === "HIT" ? "hit" :
+          p.result === "MISS" ? "miss" : "pending"
+        }">${esc(p.result || "PENDING")}</span>
       </div>
     `).join("") ||
     '<div class="empty">No logged calls yet.</div>';
 }
 
-
 /* -------------------------------------------------------
    SLIPS TRACKER
+   Live scores, leg scores and archive grading are handled
+   by live_scores.js; this renders the slip shells + grading.
 ------------------------------------------------------- */
 
 function renderTracker() {
   const all = readTracker();
-
   const filter = $("trackerFilter").value;
 
-  const rows = all.filter(s =>
-    filter === "ALL" || s.status === filter
-  );
+  const rows = all.filter(s => filter === "ALL" || s.status === filter);
 
-  const won = all.filter(
-    s => s.status === "WON"
-  ).length;
-
-  const lost = all.filter(
-    s => s.status === "LOST"
-  ).length;
-
-  const pend = all.filter(
-    s => s.status === "PENDING"
-  ).length;
-
+  const won = all.filter(s => s.status === "WON").length;
+  const lost = all.filter(s => s.status === "LOST").length;
+  const pend = all.filter(s => s.status === "PENDING").length;
   const graded = won + lost;
 
+  $("trackerTag").textContent = all.length + " SLIP(S)";
+
   $("trackerKpis").innerHTML = `
-    <div class="kpi">
-      <strong>${all.length}</strong>
-      <span>SLIPS GENERATED</span>
-    </div>
-
-    <div class="kpi">
-      <strong>${won}</strong>
-      <span>HIT / WON</span>
-    </div>
-
-    <div class="kpi">
-      <strong>${lost}</strong>
-      <span>FAILED / LOST</span>
-    </div>
-
-    <div class="kpi">
-      <strong>${pend}</strong>
-      <span>PENDING</span>
-    </div>
-
-    <div class="kpi">
-      <strong>${graded ? pct(won / graded) : "—"}</strong>
-      <span>GRADED HIT RATE</span>
-    </div>`;
+    <div class="kpi"><strong>${all.length}</strong><span>SLIPS GENERATED</span></div>
+    <div class="kpi"><strong>${won}</strong><span>HIT / WON</span></div>
+    <div class="kpi"><strong>${lost}</strong><span>FAILED / LOST</span></div>
+    <div class="kpi"><strong>${pend}</strong><span>PENDING</span></div>
+    <div class="kpi"><strong>${graded ? pct(won / graded) : "—"}</strong><span>GRADED HIT RATE</span></div>`;
 
   $("trackerList").innerHTML = rows.map(s => {
-    const legs = Array.isArray(s.legs)
-      ? s.legs
-      : [];
+    const legs = Array.isArray(s.legs) ? s.legs : [];
 
     return `
       <article class="sliprow">
-
         <div class="sliprowhead">
-          <strong>
-            SLIP #${esc(s.number)} · ${esc(s.createdAt)}
-          </strong>
-
+          <strong>SLIP #${esc(s.number)} · ${esc(s.createdAt)}</strong>
           <span class="chip ${
-            s.status === "WON"
-              ? "hit"
-              : s.status === "LOST"
-                ? "miss"
-                : "pending"
-          }">
-            ${
-              s.status === "WON"
-                ? "HIT / WON"
-                : s.status === "LOST"
-                  ? "FAILED / LOST"
-                  : "PENDING"
-            }
-          </span>
+            s.status === "WON" ? "hit" :
+            s.status === "LOST" ? "miss" : "pending"
+          }">${
+            s.status === "WON" ? "HIT / WON" :
+            s.status === "LOST" ? "FAILED / LOST" : "PENDING"
+          }</span>
         </div>
 
         <div class="legs">
           ${legs.map((l, i) => `
             <div>
               ${i + 1}. ${esc(l.home)} vs ${esc(l.away)}
-              — ${esc(l.market)}
-              (${pct(l.probability)})
+              — ${esc(l.market)} (${pct(l.probability)})
+              ${l.liveScore ? " · " + esc(l.liveScore) : ""}
+              ${l.result === "WON" ? " · LEG WON" :
+                l.result === "LOST" ? " · LEG LOST" : ""}
             </div>
-
-            ${renderLiveLeg(l, i)}
           `).join("")}
         </div>
 
         ${
-          s.autoGraded
-            ? `<div class="status ok">
-                 Automatically graded after all four fixtures
-                 were confirmed finished.
-                 ${s.gradedAt ? " " + esc(s.gradedAt) : ""}
+          s.gradedAt
+            ? `<div class="status ${s.autoGraded ? "ok" : "warn"}" style="margin-top:8px">
+                 Graded ${esc(s.gradedAt)} · ${s.autoGraded ? "AUTOMATIC" : "MANUAL"}
                </div>`
             : ""
         }
 
         <div class="slip-actions">
-          <button
-            class="smallbtn win"
-            data-grade="${esc(s.id)}"
-            data-status="WON">
+          <button class="smallbtn win" data-grade="${esc(s.id)}" data-status="WON">
             MARK HIT / WON
           </button>
-
-          <button
-            class="smallbtn loss"
-            data-grade="${esc(s.id)}"
-            data-status="LOST">
+          <button class="smallbtn loss" data-grade="${esc(s.id)}" data-status="LOST">
             MARK FAILED / LOST
           </button>
-
-          <button
-            class="smallbtn pending"
-            data-grade="${esc(s.id)}"
-            data-status="PENDING">
+          <button class="smallbtn pending" data-grade="${esc(s.id)}" data-status="PENDING">
             RESET PENDING
           </button>
         </div>
-
       </article>`;
   }).join("") ||
-    '<div class="empty">No slips recorded yet. Tap GENERATE SLIPS to create and save slips here.</div>';
+    '<div class="empty">No slips here yet. Tap GENERATE SLIPS to build and save slips.</div>';
 }
-
 
 /* Manual grading */
 
 $("trackerList").addEventListener("click", e => {
   const b = e.target.closest("[data-grade]");
-
   if (!b) return;
 
   const rows = readTracker();
-
-  const slip = rows.find(
-    x => String(x.id) === String(b.dataset.grade)
-  );
-
+  const slip = rows.find(x => String(x.id) === String(b.dataset.grade));
   if (!slip) return;
 
   slip.status = b.dataset.status;
@@ -1794,7 +1160,6 @@ $("trackerList").addEventListener("click", e => {
     ? null
     : new Date().toISOString();
 
-  // Manual changes should not be represented as automatic grades.
   if (slip.status === "PENDING") {
     slip.autoGraded = false;
   }
@@ -1802,14 +1167,11 @@ $("trackerList").addEventListener("click", e => {
   saveTracker(rows);
 });
 
-$("trackerFilter").addEventListener(
-  "change",
-  renderTracker
-);
+$("trackerFilter").addEventListener("change", renderTracker);
 
 $("clearTracker").addEventListener("click", () => {
   if (!confirm(
-    "Clear the active slips tracker? The permanent slips history will remain archived."
+    "Clear the active slips tracker? The permanent slips history stays archived and keeps being graded there."
   )) {
     return;
   }
@@ -1817,62 +1179,34 @@ $("clearTracker").addEventListener("click", () => {
   saveTracker([]);
 });
 
-
 /* CSV export */
 
 $("exportTracker").addEventListener("click", () => {
   const rows = readTracker();
 
-  const head = [
-    "number",
-    "createdAt",
-    "status",
-    "gradedAt",
-    "autoGraded",
-    "legs"
-  ];
+  const head = ["number","createdAt","status","gradedAt","autoGraded","legs"];
 
   const csv = [
     head.join(","),
 
     ...rows.map(s => {
       const legs = Array.isArray(s.legs)
-        ? s.legs.map(l => {
-            const score = l.liveScore
-              ? " [" + l.liveScore + "]"
-              : "";
-
-            return (
-              l.home +
-              " vs " +
-              l.away +
-              " (" +
-              l.market +
-              ")" +
-              score
-            );
-          }).join(" | ")
+        ? s.legs.map(l =>
+            l.home + " vs " + l.away + " (" + l.market + ")" +
+            (l.liveScore ? " [" + l.liveScore + "]" : "")
+          ).join(" | ")
         : "";
 
       return [
-        s.number,
-        s.createdAt,
-        s.status,
-        s.gradedAt || "",
-        s.autoGraded ? "YES" : "NO",
-        legs
+        s.number, s.createdAt, s.status, s.gradedAt || "",
+        s.autoGraded ? "YES" : "NO", legs
       ].map(v =>
-        '"' +
-        String(v ?? "").replace(/"/g, '""') +
-        '"'
+        '"' + String(v ?? "").replace(/"/g, '""') + '"'
       ).join(",");
     })
   ].join("\r\n");
 
-  const blob = new Blob(
-    [csv],
-    {type:"text/csv;charset=utf-8"}
-  );
+  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
 
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -1884,70 +1218,92 @@ $("exportTracker").addEventListener("click", () => {
   a.click();
   a.remove();
 
-  setTimeout(() => {
-    URL.revokeObjectURL(url);
-  }, 1000);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
 
-
 /* -------------------------------------------------------
-   SLIP GENERATION
+   SLIP GENERATION (with full diagnostics)
 ------------------------------------------------------- */
+
+/* Explain exactly why a fixture is unusable, so
+   "nothing is there" never happens silently again. */
+function slipDiagnostics(now = Date.now()) {
+  const used = pendingFixtureKeys();
+
+  const overAll =
+    snap && Array.isArray(snap.fixtures) ? snap.fixtures : [];
+
+  const overQualified = overAll.filter(
+    f => f.decision === "logged" && overProb(f) >= THRESHOLD
+  );
+
+  const underAll =
+    underSnap && Array.isArray(underSnap.fixtures) ? underSnap.fixtures : [];
+
+  const underQualified = underAll.filter(f => {
+    const bar = underSnap &&
+      Number.isFinite(Number(underSnap.threshold))
+        ? Number(underSnap.threshold)
+        : UNDER_BAR;
+
+    return f.decision === "qualified" && Number(f.p_final) >= bar;
+  });
+
+  const classify = f => {
+    if (used.has(fixtureKey(f))) return "used";
+    if (!Number.isFinite(kickoffMs(f))) return "nokickoff";
+    if (!isUpcoming(f, now)) return "started";
+    return "free";
+  };
+
+  const tally = list => {
+    const t = {used:0, nokickoff:0, started:0, free:0};
+    list.forEach(f => t[classify(f)]++);
+    return t;
+  };
+
+  return {
+    over: {
+      total: overQualified.length,
+      ...tally(overQualified)
+    },
+    under: {
+      total: underQualified.length,
+      ...tally(underQualified)
+    }
+  };
+}
 
 function buildSlips() {
   const now = Date.now();
   const taken = pendingFixtureKeys();
-  // Hard cap so a single GENERATE click cannot flood the tracker.
   const MAX_NEW_SLIPS = 3;
 
-  const over = (
-    snap && Array.isArray(snap.fixtures)
-      ? snap.fixtures
-      : []
-  )
-    .filter(f =>
-      qualifiedOver(f, now) &&
-      !taken.has(fixtureKey(f))
-    )
+  const over = (snap && Array.isArray(snap.fixtures) ? snap.fixtures : [])
+    .filter(f => qualifiedOver(f, now) && !taken.has(fixtureKey(f)))
     .sort((a, b) => overProb(b) - overProb(a));
 
-  const unders = (
-    underSnap && Array.isArray(underSnap.fixtures)
-      ? underSnap.fixtures
-      : []
-  )
-    .filter(f =>
-      qualifiedUnder(f, now) &&
-      !taken.has(fixtureKey(f))
-    )
-    .sort((a, b) =>
-      (Number(b.p_final) || 0) -
-      (Number(a.p_final) || 0)
-    );
+  const unders = (underSnap && Array.isArray(underSnap.fixtures)
+    ? underSnap.fixtures
+    : [])
+    .filter(f => qualifiedUnder(f, now) && !taken.has(fixtureKey(f)))
+    .sort((a, b) => (Number(b.p_final) || 0) - (Number(a.p_final) || 0));
 
   const used = new Set(taken);
   const list = [];
 
-  // Earliest matchday first, so slips settle sooner.
-  // Drop non-finite anchors (date-only / missing time) — those must never
-  // enter a slip because we cannot prove the match has not already started.
   const anchors = [...new Set(
     over.map(kickoffMs).filter(Number.isFinite)
   )].sort((a, b) => a - b);
 
   for (const anchor of anchors) {
-    if (list.length >= MAX_NEW_SLIPS) {
-      break;
-    }
+    if (list.length >= MAX_NEW_SLIPS) break;
 
     for (;;) {
-      if (list.length >= MAX_NEW_SLIPS) {
-        break;
-      }
+      if (list.length >= MAX_NEW_SLIPS) break;
 
       const inWindow = f => {
         const t = kickoffMs(f);
-
         return Number.isFinite(t) &&
           t >= anchor &&
           t <= anchor + SLIP_WINDOW_MS &&
@@ -1957,47 +1313,61 @@ function buildSlips() {
 
       const trio = over.filter(inWindow).slice(0, 3);
 
-      if (trio.length < 3) {
-        break;
-      }
+      if (trio.length < 3) break;
 
       const trioKeys = new Set(trio.map(fixtureKey));
 
       const under = unders.find(f =>
-        inWindow(f) &&
-        !trioKeys.has(fixtureKey(f))
+        inWindow(f) && !trioKeys.has(fixtureKey(f))
       );
 
-      // No padding: if there is no valid Under, stop this anchor.
-      if (!under) {
-        break;
-      }
+      if (!under) break;
 
-      [...trio, under].forEach(f =>
-        used.add(fixtureKey(f))
-      );
+      [...trio, under].forEach(f => used.add(fixtureKey(f)));
 
-      list.push({
-        over: trio,
-        under
-      });
+      list.push({over: trio, under});
     }
   }
 
   return {
     list,
-    overCount: over.length,
-    underCount: unders.length
+    overFree: over.length,
+    underFree: unders.length
   };
+}
+
+function renderDiag(diag) {
+  const line = (label, n) =>
+    `<div class="rowline"><span>${label}</span><span class="n">${n}</span></div>`;
+
+  return `
+    <div class="diag">
+      <b>CORE 1 · OVER ${MARKET} CANDIDATES</b>
+      ${line("Qualified in total", diag.over.total)}
+      ${line("Already inside your pending slips (never reused)", diag.over.used)}
+      ${line("Missing kickoff timestamp (cannot prove not started)", diag.over.nokickoff)}
+      ${line("Kicked off / inside the 30-minute buffer", diag.over.started)}
+      ${line("Free &amp; upcoming", diag.over.free)}
+    </div>
+
+    <div class="diag">
+      <b>CORE 2 · UNDER 3.5 CANDIDATES</b>
+      ${line("Qualified in total", diag.under.total)}
+      ${line("Already inside your pending slips (never reused)", diag.under.used)}
+      ${line("Missing kickoff timestamp", diag.under.nokickoff)}
+      ${line("Kicked off / inside the 30-minute buffer", diag.under.started)}
+      ${line("Free &amp; upcoming", diag.under.free)}
+    </div>`;
 }
 
 async function generateSlips() {
   $("slipModal").style.display = "block";
 
   $("slipCards").innerHTML =
-    '<div class="empty">Building slips…</div>';
+    '<div class="empty skeleton" style="height:120px">Building slips…</div>';
 
   $("slipStatus").textContent = "";
+  $("slipDiag").innerHTML = "";
 
   if (!underSnap) {
     try {
@@ -2005,98 +1375,110 @@ async function generateSlips() {
     } catch {}
   }
 
-  const {
-    list,
-    overCount,
-    underCount
-  } = buildSlips();
+  if (!snap) {
+    $("slipCards").innerHTML =
+      '<div class="empty">No Core 1 snapshot is loaded. Run the model or load the last snapshot first.</div>';
+    return;
+  }
 
-  slipList = list;
+  const {list, overFree, underFree} = buildSlips();
+  const diag = slipDiagnostics();
+
+  $("slipDiag").innerHTML = renderDiag(diag);
 
   if (!list.length) {
     $("slipCards").innerHTML = `
       <div class="empty">
-        No complete slip can be made.
-        Each slip needs three logged Core 1 Over 1.5 picks
-        and one qualified Core 2 Under 3.5 pick, all upcoming,
-        starting within 24 hours of each other, and none already
-        in a pending slip.
+        No complete slip can be made right now.<br>
+        Each slip needs 3 free Core 1 Over picks + 1 free Core 2 Under pick,
+        all upcoming and starting within 24 hours of each other.
       </div>`;
 
-    $("slipStatus").textContent =
-      "0 slips generated · " +
-      overCount +
-      " qualified Over picks · " +
-      underCount +
-      " qualified Under picks.";
+    const hints = [];
+
+    if (diag.over.used > 0 && diag.over.free === 0) {
+      hints.push(
+        "Every qualified Over pick is already sitting in one of your pending " +
+        "slips. A fixture is never placed in two unsettled slips — that is the " +
+        "model's protection against one wrong match sinking several slips. " +
+        "Once those slips are graded (automatically after the matches finish) " +
+        "their fixtures are released."
+      );
+    }
+
+    if (diag.over.nokickoff > 0) {
+      hints.push(
+        diag.over.nokickoff + " qualified pick(s) carry no kickoff timestamp " +
+        "and can never enter a slip — the model never guesses whether a " +
+        "match has started."
+      );
+    }
+
+    if (overFree >= 3 && underFree === 0) {
+      hints.push(
+        "There are Over picks available, but no free Under 3.5 pick inside " +
+        "their 24-hour window. Slip building stops instead of padding."
+      );
+    }
+
+    if (!snap) {
+      hints.push("Core 1 data is not loaded.");
+    }
+
+    $("slipStatus").innerHTML =
+      `0 slips generated · ${overFree} free Over picks · ` +
+      `${underFree} free Under picks.` +
+      (hints.length
+        ? `<div class="diag-hint">${hints.map(esc).join("<br><br>")}</div>`
+        : "");
 
     return;
   }
 
   const saved = readTracker();
-
   const now = new Date().toISOString();
 
   const additions = list.map((s, i) => ({
-    id:
-      Date.now() +
-      "-" +
-      i +
-      "-" +
-      Math.random().toString(36).slice(2, 8),
+    id: Date.now() + "-" + i + "-" + Math.random().toString(36).slice(2, 8),
 
-    number:saved.length + i + 1,
+    number: saved.length + i + 1,
 
-    createdAt:
-      now.slice(0, 16).replace("T", " ") +
-      " UTC",
+    createdAt: now.slice(0, 16).replace("T", " ") + " UTC",
 
-    status:"PENDING",
-    gradedAt:null,
-    autoGraded:false,
+    status: "PENDING",
+    gradedAt: null,
+    autoGraded: false,
 
-    legs:[
+    legs: [
       ...s.over.map(f => ({
-        home:f.home,
-        away:f.away,
-        date:f.date,
-        league:f.league,
-        market:"OVER " + MARKET,
-        probability:overProb(f),
-        kickoff:kickoffIso(f)
+        home: f.home,
+        away: f.away,
+        date: f.date,
+        league: f.league,
+        market: "OVER " + MARKET,
+        probability: overProb(f),
+        kickoff: kickoffIso(f)
       })),
 
       {
-        home:s.under.home,
-        away:s.under.away,
-        date:s.under.date,
-        league:s.under.league,
-        market:"UNDER 3.5",
-        probability:s.under.p_final,
-        kickoff:kickoffIso(s.under)
+        home: s.under.home,
+        away: s.under.away,
+        date: s.under.date,
+        league: s.under.league,
+        market: "UNDER 3.5",
+        probability: s.under.p_final,
+        kickoff: kickoffIso(s.under)
       }
     ]
   }));
 
   const signature = x =>
-    x.legs.map(l =>
-      [
-        l.date,
-        l.home,
-        l.away,
-        l.market
-      ].join("|")
-    ).join("::");
+    x.legs.map(l => [l.date, l.home, l.away, l.market].join("|")).join("::");
 
-  const known = new Set(
-    saved.map(signature)
-  );
+  const known = new Set(saved.map(signature));
 
-  const fresh = additions.filter(
-    s => !known.has(signature(s))
-  );
+  const fresh = additions.filter(s => !known.has(signature(s)));
 
-  // Do not renumber or replace existing tracker records.
   const nextNumber = saved.reduce(
     (max, s) => Math.max(max, Number(s.number) || 0),
     0
@@ -2106,68 +1488,46 @@ async function generateSlips() {
     s.number = nextNumber + i + 1;
   });
 
-  saveTracker([
-    ...saved,
-    ...fresh
-  ]);
+  saveTracker([...saved, ...fresh]);
 
   $("slipCards").innerHTML = list.map((s, i) => `
     <article class="card">
-
-      <div class="league">
-        SLIP ${i + 1} · 4 MATCHES
-      </div>
+      <div class="league"><span>SLIP ${i + 1} · 4 MATCHES</span>
+        <span class="reason q">SAVED</span></div>
 
       ${s.over.map(f => `
-        <div class="teams">
-          ${esc(f.home)} vs ${esc(f.away)}
+        <div class="teams" style="font-size:13.5px">
+          ${esc(f.home)} <span class="vs">VS</span> ${esc(f.away)}
         </div>
-
         <div class="meta">
-          OVER ${MARKET} · ${pct(overProb(f))}
+          <span class="market-chip">OVER ${MARKET}</span>
+          <span>${pct(overProb(f))}</span>
         </div>
       `).join("")}
 
-      <hr style="
-        border:0;
-        border-top:1px solid var(--line);
-        margin:12px 0
-      ">
-
-      <div class="teams">
-        ${esc(s.under.home)} vs ${esc(s.under.away)}
+      <div class="teams" style="font-size:13.5px;margin-top:10px">
+        ${esc(s.under.home)} <span class="vs">VS</span> ${esc(s.under.away)}
       </div>
-
       <div class="meta">
-        UNDER 3.5 · ${pct(s.under.p_final)}
+        <span class="market-chip u">UNDER 3.5</span>
+        <span>${pct(s.under.p_final)}</span>
       </div>
-
-      <div class="status">
-        Saved to slips tracker
-      </div>
-
     </article>
   `).join("");
 
   $("slipStatus").textContent =
-    list.length +
-    " slip(s) generated: 3 Over 1.5 + 1 Under 3.5 each. " +
-    fresh.length +
-    " new slip record(s) added to tracker.";
+    list.length + " slip(s) built: 3 Over 1.5 + 1 Under 3.5 each. " +
+    fresh.length + " new record(s) added to the tracker.";
 }
 
-$("btnSlip").addEventListener(
-  "click",
-  generateSlips
-);
+$("btnSlip").addEventListener("click", generateSlips);
 
 $("closeSlip").addEventListener("click", () => {
   $("slipModal").style.display = "none";
 });
 
-
 /* -------------------------------------------------------
-   MODEL DATA REFRESH
+   DATA REFRESH + RUN POLLING
 ------------------------------------------------------- */
 
 async function refreshData() {
@@ -2176,33 +1536,27 @@ async function refreshData() {
     api("/api/under35")
   ]);
 
-  snap = a.status === "fulfilled"
-    ? a.value
-    : null;
-
-  underSnap = b.status === "fulfilled"
-    ? b.value
-    : null;
+  snap = a.status === "fulfilled" ? a.value : null;
+  underSnap = b.status === "fulfilled" ? b.value : null;
+  dataLoaded = !!snap;
 
   if (snap) {
-    $("sysDot").textContent = "CORE 1 DATA LOADED";
-    $("sysDot").className = "tag";
+    $("sysDot").className = "pill on";
+    $("sysDot").innerHTML = '<i class="dot on"></i>CORE 1 DATA LOADED';
 
-    $("snapTime").textContent =
-      snap.generated_at
-        ? String(snap.generated_at)
-            .slice(0, 16)
-            .replace("T", " ") + "Z"
-        : "—";
+    $("snapTime").style.display = "";
+    $("snapTime").textContent = snap.generated_at
+      ? String(snap.generated_at).slice(0, 16).replace("T", " ") + "Z"
+      : "—";
 
     setStatus(
-      "Data refreshed. Core 1 and Core 2 are displayed independently.",
+      "Data loaded. Core 1 and Core 2 are displayed independently.",
       "ok"
     );
 
   } else {
-    $("sysDot").textContent =
-      "CORE 1 DATA UNAVAILABLE";
+    $("sysDot").className = "pill err";
+    $("sysDot").innerHTML = '<i class="dot err"></i>NO DATA';
 
     setStatus(
       "Core 1 data could not be loaded. Check the service and /api/data endpoint.",
@@ -2214,24 +1568,39 @@ async function refreshData() {
   renderCore2();
   renderPerformance();
   renderHistory();
+  renderTracker();
 }
 
-
-/* -------------------------------------------------------
-   MODEL RUN STATUS
-------------------------------------------------------- */
+function enterDashboard() {
+  $("gate").style.display = "none";
+  $("dash").style.display = "block";
+}
 
 async function pollStatus() {
   try {
     const s = await api("/api/status");
 
     if (s.running) {
-      setStatus(
-        s.waiting
-          ? "Model running; review window active."
-          : "Model is running…",
-        "warn"
-      );
+      if (s.core1_status === "running" && s.waiting) {
+        setPhases("review", ["core1"]);
+        setStatus(
+          "Model running · review window active · " +
+          (s.wait_seconds || 0) + "s remaining. New fixtures were added to context.csv.",
+          "warn"
+        );
+
+      } else if (s.core1_status === "running") {
+        setPhases("core1", []);
+        setStatus("Core 1 scanning…", "warn");
+
+      } else if (s.core2_status === "running") {
+        setPhases("core2", ["core1", "review", "export"]);
+        setStatus("Core 2 (Under 3.5) running…", "warn");
+
+      } else {
+        setPhases("export", ["core1", "review"]);
+        setStatus("Model is running…", "warn");
+      }
 
       return;
     }
@@ -2240,9 +1609,11 @@ async function pollStatus() {
     pollTimer = null;
 
     $("btnRun").disabled = false;
+    $("gateRun").disabled = false;
     $("btnRun").textContent = "▶ RUN MODEL";
 
     if (s.ok) {
+      setPhases(null, ["core1", "review", "export", "core2"]);
       await refreshData();
 
       setStatus(
@@ -2253,116 +1624,186 @@ async function pollStatus() {
       );
 
     } else {
-      setStatus(
-        "Model run failed. Check service logs.",
-        "err"
-      );
+      setPhases(null, []);
+      setStatus("Model run failed. Check service logs.", "err");
     }
 
   } catch (e) {
-    setStatus(
-      "Status check failed: " + e.message,
-      "warn"
-    );
+    setStatus("Status check failed: " + e.message, "warn");
   }
 }
 
-$("btnRun").addEventListener("click", async () => {
-  $("btnRun").disabled = true;
-  $("btnRun").textContent = "RUNNING…";
+async function startRun(fromGate) {
+  const btn = $("btnRun");
+  const gateBtn = $("gateRun");
+
+  btn.disabled = true;
+  gateBtn.disabled = true;
+  btn.textContent = "RUNNING…";
 
   setStatus("Starting model…");
 
   try {
-    const r = await api("/api/run", {
-      method:"POST"
-    });
+    const r = await api("/api/run", {method: "POST"});
 
     if (!r.ok) {
-      throw Error(
-        r.message || "Run request was not accepted"
-      );
+      throw Error(r.message || "Run request was not accepted");
     }
 
-    if (pollTimer) {
-      clearInterval(pollTimer);
-    }
+    enterDashboard();
 
-    pollTimer = setInterval(
-      pollStatus,
-      1500
-    );
-
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(pollStatus, 1500);
     await pollStatus();
 
   } catch (e) {
-    $("btnRun").disabled = false;
-    $("btnRun").textContent = "▶ RUN MODEL";
+    btn.disabled = false;
+    gateBtn.disabled = false;
+    btn.textContent = "▶ RUN MODEL";
 
-    setStatus(
-      "Run request failed: " + e.message,
-      "err"
-    );
+    setStatus("Run request failed: " + e.message, "err");
+
+    if (fromGate) {
+      $("gateMeta").textContent = "Run request failed: " + e.message;
+    }
+  }
+}
+
+$("btnRun").addEventListener("click", () => startRun(false));
+$("gateRun").addEventListener("click", () => startRun(true));
+
+$("gateLoad").addEventListener("click", async () => {
+  $("gateMeta").textContent = "Loading last snapshot…";
+  enterDashboard();
+  setStatus("Loading last saved snapshot…", "warn");
+
+  try {
+    await refreshData();
+    await refreshLiveScores();
+    startLivePolling();
+  } catch (e) {
+    setStatus("Load failed: " + e.message, "err");
   }
 });
 
+/* -------------------------------------------------------
+   LIVE-SCORE POLLING (server cache respected)
+   Matching, score capture, slip + archive grading live in
+   live_scores.js — the client just paces the requests.
+------------------------------------------------------- */
+
+let liveTimer = null;
+let livePollMs = 300000;
+const LIVE_MIN = 120000;
+const LIVE_MAX = 3600000;
+
+function scheduleLive(ms) {
+  if (liveTimer) clearInterval(liveTimer);
+
+  livePollMs = Math.max(LIVE_MIN, Math.min(LIVE_MAX, Number(ms) || 300000));
+
+  liveTimer = setInterval(refreshLiveScores, livePollMs);
+}
+
+async function refreshLiveScores() {
+  try {
+    const r = await fetch("/api/live-scores", {cache: "no-store"});
+    let data = null;
+
+    try {
+      data = await r.json();
+    } catch {}
+
+    const cacheSec = data && Number(data.cacheSeconds);
+
+    if (data && data.ok === true) {
+      if (Number.isFinite(cacheSec) && cacheSec > 0) {
+        scheduleLive(Math.max(LIVE_MIN, cacheSec * 1000));
+      }
+    } else if (
+      data &&
+      (data.rateLimited ||
+       /limit|quota|rate/i.test(String(data.error || data.message || "")))
+    ) {
+      scheduleLive(
+        Number.isFinite(cacheSec)
+          ? cacheSec * 1000
+          : Math.min(LIVE_MAX, livePollMs * 2)
+      );
+    }
+
+    /* live_scores.js reads the feed itself and updates the
+       tracker, the archive and the displayed legs. */
+
+  } catch {
+    scheduleLive(Math.min(LIVE_MAX, livePollMs * 2));
+  }
+}
+
+function startLivePolling() {
+  refreshLiveScores();
+  scheduleLive(livePollMs);
+}
 
 /* -------------------------------------------------------
-   INITIALIZATION
+   INIT — nothing loads until the owner acts
 ------------------------------------------------------- */
 
 (async function init() {
   renderTracker();
 
-  $("boot").style.display = "flex";
-  $("dash").style.display = "none";
-
-  await new Promise(resolve =>
-    setTimeout(resolve, 650)
-  );
-
-  $("boot").style.display = "none";
-  $("dash").style.display = "block";
-
   try {
-    await refreshData();
-
-    // Load live scores immediately; schedule respects server cache / backoff.
-    await refreshLiveScores();
-    scheduleLiveRefresh(livePollMs);
-
     const s = await api("/api/status");
 
     if (s.running) {
-      $("btnRun").disabled = true;
-      $("btnRun").textContent = "RUNNING…";
+      $("gateMeta").textContent =
+        "A model run is already in progress — open the dashboard to watch it.";
 
-      pollTimer = setInterval(
-        pollStatus,
-        1500
-      );
+      const open = document.createElement("button");
+      open.className = "btn secondary";
+      open.textContent = "OPEN RUNNING MODEL";
+      open.addEventListener("click", () => {
+        enterDashboard();
+        $("btnRun").disabled = true;
+        $("gateRun").disabled = true;
+        $("btnRun").textContent = "RUNNING…";
+
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = setInterval(pollStatus, 1500);
+        pollStatus();
+      });
+
+      $("gate").querySelector(".gate-actions").appendChild(open);
+
+    } else if (s.finished_at) {
+      $("gateMeta").textContent =
+        "Last run finished " +
+        String(s.finished_at).slice(0, 16).replace("T", " ") +
+        "Z. LOAD LAST SNAPSHOT shows its picks.";
+
+    } else {
+      $("gateMeta").textContent =
+        "Service online. No run recorded yet — start one.";
     }
 
+    $("sysDot").className = "pill on";
+    $("sysDot").innerHTML = '<i class="dot on"></i>SERVICE ONLINE';
+
   } catch (e) {
-    $("sysDot").textContent = "SERVICE ERROR";
+    $("gateMeta").textContent =
+      "Service connection failed: " + e.message;
 
-    setStatus(
-      "Service connection failed: " + e.message,
-      "err"
-    );
-
-    renderCore1();
-    renderCore2();
-
-    // Still try the live-score endpoint if model data fails.
-    refreshLiveScores().then(() => scheduleLiveRefresh(livePollMs));
+    $("sysDot").className = "pill err";
+    $("sysDot").innerHTML = '<i class="dot err"></i>SERVICE ERROR';
   }
 })();
 </script>
 
-<!-- Persistent archive: adds SLIPS HISTORY beside GENERATE SLIPS.
-     It synchronizes archived slips with /api/slip-history. -->
+<!-- Permanent archive: SLIPS HISTORY button + server sync -->
 <script src="/slips_history.js"></script>
+
+<!-- Live scores: leg scores, tracker + ARCHIVE auto-grading -->
+<script src="/live_scores.js"></script>
 
 </body>
 </html>
