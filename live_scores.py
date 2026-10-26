@@ -1,1376 +1,336 @@
-/*
- * BARBADOX LIVE-SCORE TRACKER
- *
- * Integrates with the existing console.html slips tracker.
- *
- * Features:
- * - Displays current scores and match status.
- * - Shows whether selections are on track.
- * - Matches fixtures by club names and date.
- * - Rejects ambiguous fixture matches.
- * - Never grades a slip using a repeated fixture.
- * - Persists final scores on tracker and archive legs.
- * - Automatically grades completed slips.
- * - Requests historical match dates for pending slips.
- * - Fixes slip generation without requiring a console.html rewrite.
- * - Removes the obsolete manual-grading controls.
- */
+"""
+BARBADOX Live-Score API (football-data.org edition)
+Provides football scores to the existing console.html slips tracker.
 
-(() => {
-    "use strict";
+Drop-in replacement for the API-Football version. The JSON payload
+served to live_scores.js is identical in shape, so the tracker,
+the archive and auto-grading need no frontend changes.
 
-    if (window.__barbadoxLiveScoresStarted) {
-        return;
-    }
+Uses the SAME free football-data.org key the model cores already
+use for fixtures and results. API-Football is no longer required
+for score tracking.
 
-    window.__barbadoxLiveScoresStarted = true;
+Required Render environment variable (already set for the model):
+    FOOTBALL_DATA_KEY
 
-    const TRACK_KEY = "barbadox.slips.tracker.v1";
-    const HISTORY_KEY = "barbadox.slips.history.v2";
+Status mapping (football-data.org -> tracker codes):
+    FINISHED  -> FT      (graded as finished)
+    AWARDED   -> AWD
+    IN_PLAY   -> LIVE
+    PAUSED    -> HT
+    SUSPENDED -> SUSP
+    POSTPONED -> PST
+    CANCELLED -> CANC
+    SCHEDULED / TIMED -> NS
 
-    const FINISHED = new Set([
-        "FT",
-        "AET",
-        "PEN",
-        "AWD",
-        "WO"
-    ]);
+Free-tier note: football-data.org publishes full-time scores
+reliably but does not expose in-play minute-by-minute scores, so
+matches show "LIVE" with the final score appearing at full time.
+Slip grading only needs full-time results, so this is safe.
+"""
 
-    const PLAYING = new Set([
-        "1H",
-        "HT",
-        "2H",
-        "ET",
-        "BT",
-        "P",
-        "LIVE",
-        "INT"
-    ]);
+import json
+import os
+import time
+from datetime import datetime, timedelta, timezone
 
-    let fixtures = [];
-    let updatedAt = null;
-    let message = "";
-
-    const $ = id => document.getElementById(id);
+import requests
+from flask import Blueprint, jsonify, send_from_directory
+from pathlib import Path
 
 
-    /*
-     * Safely escape text before placing it in the tracker.
-     */
-    function escapeHTML(value) {
-        const text = String(value ?? "");
+live_scores_bp = Blueprint("barbadox_live_scores", __name__)
 
-        if (typeof esc === "function") {
-            return esc(text);
-        }
+ROOT = Path(__file__).resolve().parent
 
-        return text.replace(/[&<>"']/g, character => ({
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            '"': "&quot;",
-            "'": "&#39;"
-        })[character]);
-    }
+CACHE = {
+    "at": 0.0,
+    "ttl": CACHE_SECONDS,
+    "payload": None,
+}
 
+API = "https://api.football-data.org/v4/matches"
 
-    /*
-     * Direct access to the permanent history archive.
-     */
-    function readArchive() {
-        try {
-            const value = JSON.parse(
-                localStorage.getItem(HISTORY_KEY) || "[]"
-            );
+# 15-minute cache keeps upstream calls far under the free-tier
+# limit of 10 requests/minute (2 calls per cache cycle).
+CACHE_SECONDS = 900
 
-            return Array.isArray(value) ? value : [];
-        } catch {
-            return [];
-        }
-    }
+# On provider errors (rate limit, outage) hold the result longer so
+# the remaining quota is not burned on retries.
+ERROR_CACHE_SECONDS = 3600
 
-    function writeArchive(slips) {
-        try {
-            localStorage.setItem(
-                HISTORY_KEY,
-                JSON.stringify(slips)
-            );
-        } catch {}
-    }
+# Match window: today - 2 days (recently finished matches that may
+# still need grading) up to today + 8 days (upcoming legs).
+# football-data.org caps dateFrom/dateTo at 10 days per request,
+# so the 11-day window is fetched in two calls.
+LOOKBACK_DAYS = 2
+LOOKAHEAD_DAYS = 8
 
-    async function syncArchiveToServer(slips) {
-        try {
-            await fetch(
-                "/api/slip-history",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ slips })
-                }
-            );
-        } catch {}
-    }
+# Top-5 leagues — the codes used across BARBADOX.
+LEAGUE_CODES = ["PL", "PD", "FL1", "BL1", "SA"]
+
+# football-data.org status -> tracker status codes
+STATUS_MAP = {
+    "FINISHED": ("FT", "Match Finished"),
+    "AWARDED": ("AWD", "Awarded"),
+    "IN_PLAY": ("LIVE", "In Play"),
+    "PAUSED": ("HT", "Halftime"),
+    "SUSPENDED": ("SUSP", "Suspended"),
+    "POSTPONED": ("PST", "Postponed"),
+    "CANCELLED": ("CANC", "Cancelled"),
+}
+
+STATUS_DEFAULT = ("NS", "Not Started")
 
 
-    /*
-     * Add the score banner inside the existing tracker.
-     */
-    function addUI() {
-        if ($("liveScoreBanner")) {
-            return;
-        }
-
-        const trackerKPIs = $("trackerKpis");
-
-        if (!trackerKPIs) {
-            return;
-        }
-
-        const css = document.createElement("style");
-
-        css.textContent = `
-            .live-banner {
-                padding: 10px 12px;
-                margin: 0 0 12px;
-                border: 1px solid var(--line);
-                border-radius: 9px;
-                color: var(--dim);
-                font-size: 11px;
-            }
-
-            .live-leg {
-                display: flex;
-                flex-wrap: wrap;
-                justify-content: space-between;
-                align-items: center;
-                gap: 6px;
-                padding: 8px 0;
-                border-bottom: 1px solid var(--line);
-            }
-
-            .live-leg:last-child {
-                border-bottom: 0;
-            }
-
-            .live-score {
-                font-weight: 900;
-                color: var(--ink);
-                white-space: nowrap;
-            }
-
-            .live-detail {
-                font-size: 10px;
-                color: var(--dim);
-            }
-
-            .live-good {
-                color: var(--green);
-            }
-
-            .live-bad {
-                color: var(--pink);
-            }
-
-            .live-wait {
-                color: var(--amber);
-            }
-        `;
-
-        document.head.appendChild(css);
-
-        trackerKPIs.insertAdjacentHTML(
-            "beforebegin",
-            `
-                <div
-                    class="live-banner"
-                    id="liveScoreBanner"
-                    role="status"
-                >
-                    Connecting to live scores…
-                </div>
-            `
-        );
-    }
+def _api_key():
+    """Read the football-data.org key, accepting the same aliases
+    the model cores accept."""
+    for name in (
+        "FOOTBALL_DATA_KEY",
+        "FOOTBALL_DATA_TOKEN",
+        "FOOTBALL_DATA_API_KEY",
+        "FOOTBALL_API_KEY",
+        "API_KEY",
+    ):
+        value = os.environ.get(name, "").strip()
+        if value:
+            return value
+    return ""
 
 
-    /*
-     * Normalize club names for fixture matching.
-     */
-    function normalizeTeam(name) {
-        return String(name || "")
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .toLowerCase()
-            .replace(
-                /\b(football club|soccer club|football|calcio|club)\b/g,
-                " "
+def _map_status(status):
+    return STATUS_MAP.get(status, STATUS_DEFAULT)
+
+
+def _fetch_window(api_key, date_from, date_to):
+    """Fetch one date window (max 10 days) from football-data.org."""
+    response = requests.get(
+        API,
+        params={
+            "dateFrom": date_from,
+            "dateTo": date_to,
+        },
+        headers={"X-Auth-Token": api_key},
+        timeout=12,
+    )
+
+    if response.status_code != 200:
+        message = (
+            f"Football score provider HTTP {response.status_code}"
+        )
+
+        if response.status_code == 401:
+            message += (
+                ". Check FOOTBALL_DATA_KEY in Render → Environment."
             )
-            .replace(/[^a-z0-9]+/g, " ")
-            .trim()
-            .split(/\s+/)
-            .filter(Boolean);
-    }
-
-
-    function wordsEquivalent(a, b) {
-        if (a === b) {
-            return true;
-        }
-
-        const limit = Math.min(a.length, b.length);
-
-        if (limit < 4) {
-            return false;
-        }
-
-        let same = 0;
-
-        while (
-            same < limit
-            && a[same] === b[same]
-        ) {
-            same++;
-        }
-
-        return same >= 4;
-    }
-
-
-    /*
-     * Score similarity between two club names.
-     */
-    function similarity(first, second) {
-        const a = normalizeTeam(first)
-            .filter(word => /[a-z]/.test(word));
-
-        const b = normalizeTeam(second)
-            .filter(word => /[a-z]/.test(word));
-
-        if (!a.length || !b.length) {
-            return 0;
-        }
-
-        let common = 0;
-
-        for (const word of a) {
-            if (b.some(other => wordsEquivalent(word, other))) {
-                common++;
-            }
-        }
-
-        if (!common) {
-            return 0;
-        }
-
-        const score = common / Math.max(a.length, b.length);
-
-        const subset =
-            a.every(word =>
-                b.some(other => wordsEquivalent(word, other))
+        elif response.status_code == 403:
+            message += (
+                ". The football-data.org plan does not cover "
+                "one or more of the requested competitions."
             )
-            || b.every(word =>
-                a.some(other => wordsEquivalent(word, other))
-            );
+        elif response.status_code == 429:
+            message += (
+                ". Rate limit reached — retrying later."
+            )
 
-        return subset
-            ? Math.max(score, 0.9)
-            : score;
-    }
+        raise ProviderError(message, response.status_code)
 
+    try:
+        data = response.json()
+    except ValueError:
+        raise ProviderError(
+            "The provider returned an invalid response.",
+            502,
+        )
 
-    function dayDifference(first, second) {
-        const a = Date.parse(
-            String(first || "").slice(0, 10)
-            + "T12:00:00Z"
-        );
+    matches = data.get("matches")
 
-        const b = Date.parse(
-            String(second || "").slice(0, 10)
-            + "T12:00:00Z"
-        );
+    if not isinstance(matches, list):
+        raise ProviderError(
+            "The provider returned an unexpected response shape.",
+            502,
+        )
 
-        if (
-            !Number.isFinite(a)
-            || !Number.isFinite(b)
-        ) {
-            return 99;
-        }
+    return matches
 
-        return Math.abs(
-            Math.round((a - b) / 86400000)
-        );
-    }
 
+class ProviderError(Exception):
+    def __init__(self, message, status=502):
+        super().__init__(message)
+        self.status = status
+        self.message = message
 
-    /*
-     * Match a tracker leg to exactly one plausible fixture.
-     *
-     * The home/away order must match.
-     * The fixture date must be within one day.
-     * Ambiguous matches are rejected rather than guessed.
-     */
-    function matchFixture(leg) {
-        if (!leg || !leg.home || !leg.away || !leg.date) {
-            return null;
-        }
 
-        const candidates = [];
+def _build_fixtures(matches):
+    """Convert football-data.org matches into the tracker shape."""
+    fixtures = []
 
-        for (const fixture of fixtures) {
-            if (!fixture || !fixture.home || !fixture.away) {
-                continue;
-            }
+    for match in matches:
+        home_team = match.get("homeTeam") or {}
+        away_team = match.get("awayTeam") or {}
 
-            if (
-                dayDifference(
-                    leg.date,
-                    fixture.date
-                ) > 1
-            ) {
-                continue;
-            }
+        home_name = home_team.get("name")
+        away_name = away_team.get("name")
 
-            const homeScore = similarity(
-                leg.home,
-                fixture.home
-            );
+        if not home_name or not away_name:
+            continue
 
-            const awayScore = similarity(
-                leg.away,
-                fixture.away
-            );
+        competition = match.get("competition") or {}
+        score = match.get("score") or {}
 
-            if (
-                homeScore < 0.68
-                || awayScore < 0.68
-            ) {
-                continue;
-            }
+        # Full-time score: present only when the match finished.
+        full_time = score.get("fullTime") or {}
 
-            const score = (homeScore + awayScore) / 2;
+        home_score = full_time.get("home")
+        away_score = full_time.get("away")
 
-            if (score >= 0.80) {
-                candidates.push({
-                    fixture,
-                    score
-                });
-            }
-        }
+        # Sanity-check the score values before serving them.
+        if home_score is not None:
+            home_score = int(home_score)
+        if away_score is not None:
+            away_score = int(away_score)
 
-        candidates.sort(
-            (a, b) => b.score - a.score
-        );
+        status_code, status_text = _map_status(match.get("status"))
 
-        if (!candidates.length) {
-            return null;
-        }
+        kickoff = match.get("utcDate") or ""
 
-        if (
-            candidates.length > 1
-            && candidates[0].score - candidates[1].score < 0.08
-        ) {
-            return null;
-        }
-
-        return candidates[0].fixture;
-    }
-
-
-    function formatScore(fixture) {
-        if (
-            !fixture
-            || fixture.homeScore == null
-            || fixture.awayScore == null
-        ) {
-            return "";
-        }
-
-        return `${fixture.homeScore} - ${fixture.awayScore}`;
-    }
-
-
-    function getMatchStatus(fixture) {
-        if (FINISHED.has(fixture.status)) {
-            if (fixture.status === "FT") {
-                return "FULL TIME";
-            }
-
-            return (
-                fixture.statusText || "FINISHED"
-            ).toUpperCase();
-        }
-
-        if (PLAYING.has(fixture.status)) {
-            if (fixture.status === "HT") {
-                return "HALF TIME";
-            }
-
-            const minute = fixture.elapsed == null
-                ? ""
-                : ` · ${fixture.elapsed}′`;
-
-            return `LIVE${minute}`;
-        }
-
-        if (
-            ["PST", "CANC", "ABD", "SUSP"]
-                .includes(fixture.status)
-        ) {
-            return (
-                fixture.statusText
-                || fixture.status
-            ).toUpperCase();
-        }
-
-        return "SCHEDULED";
-    }
-
-
-    /*
-     * Determine a leg outcome from confirmed final scores.
-     */
-    function getOutcome(leg, fixture) {
-        if (
-            !fixture
-            || !FINISHED.has(fixture.status)
-            || fixture.homeScore == null
-            || fixture.awayScore == null
-        ) {
-            return null;
-        }
-
-        const homeScore = Number(fixture.homeScore);
-        const awayScore = Number(fixture.awayScore);
-
-        if (
-            !Number.isFinite(homeScore)
-            || !Number.isFinite(awayScore)
-            || homeScore < 0
-            || awayScore < 0
-        ) {
-            return null;
-        }
-
-        const total = homeScore + awayScore;
-
-        const market = String(
-            leg.market || ""
-        ).toUpperCase();
-
-        if (market.includes("OVER 1.5")) {
-            return total >= 2;
-        }
-
-        if (market.includes("UNDER 3.5")) {
-            return total <= 3;
-        }
-
-        return null;
-    }
-
-
-    function stampLeg(leg, fixture) {
-        let changed = false;
-
-        const score = formatScore(fixture);
-
-        if (score && leg.liveScore !== score) {
-            leg.liveScore = score;
-            changed = true;
-        }
-
-        const statusText = getMatchStatus(fixture);
-
-        if (leg.fixtureStatus !== statusText) {
-            leg.fixtureStatus = statusText;
-            changed = true;
-        }
-
-        const outcome = getOutcome(leg, fixture);
-
-        const result =
-            outcome === true
-                ? "WON"
-                : outcome === false
-                    ? "LOST"
-                    : (leg.result || "PENDING");
-
-        if (leg.result !== result) {
-            leg.result = result;
-            changed = true;
-        }
-
-        return changed;
-    }
-
-
-    function getLegState(leg, fixture) {
-        if (!fixture) {
-            return [
-                "FIXTURE NOT MATCHED",
-                "live-wait"
-            ];
-        }
-
-        const hasScore =
-            fixture.homeScore != null
-            && fixture.awayScore != null;
-
-        const total = hasScore
-            ? Number(fixture.homeScore) + Number(fixture.awayScore)
-            : null;
-
-        if (FINISHED.has(fixture.status)) {
-            const outcome = getOutcome(leg, fixture);
-
-            if (outcome === true) {
-                return ["WON", "live-good"];
-            }
-
-            if (outcome === false) {
-                return ["LOST", "live-bad"];
-            }
-
-            return [
-                "RESULT UNAVAILABLE",
-                "live-wait"
-            ];
-        }
-
-        if (
-            ["PST", "CANC", "ABD", "SUSP"]
-                .includes(fixture.status)
-        ) {
-            return [
-                getMatchStatus(fixture),
-                "live-wait"
-            ];
-        }
-
-        if (total === null) {
-            return [
-                "NOT STARTED",
-                "live-wait"
-            ];
-        }
-
-        const market = String(
-            leg.market || ""
-        ).toUpperCase();
-
-        if (market.includes("OVER 1.5")) {
-            if (total >= 2) {
-                return [
-                    "TARGET REACHED · NOT FINAL",
-                    "live-good"
-                ];
-            }
-
-            const needed = 2 - total;
-
-            return [
-                `NEEDS ${needed} MORE GOAL`
-                + (needed === 1 ? "" : "S"),
-                "live-wait"
-            ];
-        }
-
-        if (market.includes("UNDER 3.5")) {
-            if (total >= 4) {
-                return [
-                    "LINE CROSSED · NOT FINAL",
-                    "live-bad"
-                ];
-            }
-
-            const room = 3 - total;
-
-            return [
-                `CURRENTLY UNDER · ${room} GOAL`
-                + (room === 1 ? "" : "S")
-                + " ROOM",
-                "live-good"
-            ];
-        }
-
-        return [
-            "IN PLAY",
-            "live-wait"
-        ];
-    }
-
-
-    /*
-     * Capture final scores in either the active tracker or archive.
-     */
-    function captureCollectionScores(slips) {
-        if (!Array.isArray(slips)) {
-            return false;
-        }
-
-        let changed = false;
-
-        for (const slip of slips) {
-            if (!Array.isArray(slip.legs)) {
-                continue;
-            }
-
-            for (const leg of slip.legs) {
-                const fixture = matchFixture(leg);
-
-                if (
-                    !fixture
-                    || !FINISHED.has(fixture.status)
-                    || !formatScore(fixture)
-                ) {
-                    continue;
-                }
-
-                if (stampLeg(leg, fixture)) {
-                    changed = true;
-                }
-            }
-        }
-
-        return changed;
-    }
-
-
-    /*
-     * Grade only when all four legs map to four distinct finished fixtures.
-     */
-    function gradeCollection(slips) {
-        if (!Array.isArray(slips)) {
-            return false;
-        }
-
-        let changed = false;
-
-        for (const slip of slips) {
-            if (
-                String(slip.status || "PENDING").toUpperCase() !== "PENDING"
-                || !Array.isArray(slip.legs)
-                || slip.legs.length !== 4
-            ) {
-                continue;
-            }
-
-            const matchedLegs = slip.legs.map(leg => ({
-                leg,
-                fixture: matchFixture(leg)
-            }));
-
-            const identity = fixture => {
-                if (fixture && fixture.id != null) {
-                    return "id:" + String(fixture.id);
-                }
-
-                if (!fixture) {
-                    return "";
-                }
-
-                return [
-                    String(fixture.date || ""),
-                    String(fixture.home || "").toLowerCase(),
-                    String(fixture.away || "").toLowerCase()
-                ].join("|");
-            };
-
-            const identities = matchedLegs.map(
-                item => identity(item.fixture)
-            );
-
-            if (
-                identities.some(value => !value)
-                || new Set(identities).size !== 4
-            ) {
-                continue;
-            }
-
-            const everyFixtureFinished = matchedLegs.every(
-                item =>
-                    item.fixture
-                    && FINISHED.has(item.fixture.status)
-            );
-
-            if (!everyFixtureFinished) {
-                continue;
-            }
-
-            const outcomes = matchedLegs.map(
-                item => getOutcome(item.leg, item.fixture)
-            );
-
-            if (outcomes.some(outcome => outcome === null)) {
-                continue;
-            }
-
-            matchedLegs.forEach(item => {
-                stampLeg(item.leg, item.fixture);
-            });
-
-            slip.status = outcomes.every(Boolean)
-                ? "WON"
-                : "LOST";
-
-            slip.gradedAt = new Date().toISOString();
-            slip.gradingSource = "FOOTBALL_DATA_ORG";
-            slip.autoGraded = true;
-
-            changed = true;
-        }
-
-        return changed;
-    }
-
-
-    function captureScores() {
-        if (
-            typeof readTracker !== "function"
-            || typeof saveTracker !== "function"
-        ) {
-            return false;
-        }
-
-        const slips = readTracker();
-
-        if (!Array.isArray(slips)) {
-            return false;
-        }
-
-        const changed = captureCollectionScores(slips);
-
-        if (changed) {
-            saveTracker(slips);
-        }
-
-        return changed;
-    }
-
-
-    function autoGradeSlips() {
-        if (
-            typeof readTracker !== "function"
-            || typeof saveTracker !== "function"
-        ) {
-            return false;
-        }
-
-        const slips = readTracker();
-
-        if (!Array.isArray(slips)) {
-            return false;
-        }
-
-        const changed = gradeCollection(slips);
-
-        if (changed) {
-            saveTracker(slips);
-        }
-
-        return changed;
-    }
-
-
-    function captureArchiveScores() {
-        const archive = readArchive();
-        const changed = captureCollectionScores(archive);
-
-        if (changed) {
-            writeArchive(archive);
-        }
-
-        return changed;
-    }
-
-
-    function autoGradeArchive() {
-        const archive = readArchive();
-
-        if (!archive.length) {
-            return false;
-        }
-
-        const changed = gradeCollection(archive);
-
-        if (changed) {
-            writeArchive(archive);
-        }
-
-        return changed;
-    }
-
-
-    /*
-     * Ask the backend for dates represented by pending slips.
-     * Includes archived slips that are no longer visible in the tracker.
-     */
-    function pendingMatchDates() {
-        const dates = new Set();
-        const collections = [];
-
-        if (typeof readTracker === "function") {
-            const tracker = readTracker();
-
-            if (Array.isArray(tracker)) {
-                collections.push(tracker);
-            }
-        }
-
-        const archive = readArchive();
-
-        if (Array.isArray(archive)) {
-            collections.push(archive);
-        }
-
-        for (const collection of collections) {
-            for (const slip of collection) {
-                if (
-                    String(slip.status || "PENDING").toUpperCase()
-                    !== "PENDING"
-                ) {
-                    continue;
-                }
-
-                for (const leg of (
-                    Array.isArray(slip.legs) ? slip.legs : []
-                )) {
-                    const date = String(leg.date || "").slice(0, 10);
-
-                    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-                        dates.add(date);
-                    }
-                }
-            }
-        }
-
-        return [...dates].sort();
-    }
-
-
-    /*
-     * Fix slip generation without requiring a rewrite of console.html.
-     * A slip can start its seven-day window on any of its four fixtures.
-     */
-    function installSlipBuilderFixes() {
-        if (typeof window.pendingFixtureKeys === "function") {
-            window.pendingFixtureKeys = function pendingFixtureKeysSafe() {
-                const keys = new Set();
-                const collections = [
-                    typeof readTracker === "function" ? readTracker() : []
-                ];
-
-                const archive = readArchive();
-
-                if (Array.isArray(archive)) {
-                    collections.push(archive);
-                }
-
-                const settled = new Set([
-                    "WON",
-                    "LOST",
-                    "HIT",
-                    "HIT / WON",
-                    "FAILED",
-                    "FAILED / LOST",
-                    "MISS",
-                    "VOID",
-                    "CANCELLED"
-                ]);
-
-                for (const collection of collections) {
-                    for (const slip of (
-                        Array.isArray(collection) ? collection : []
-                    )) {
-                        if (
-                            settled.has(
-                                String(slip.status || "PENDING").toUpperCase()
-                            )
-                        ) {
-                            continue;
-                        }
-
-                        for (const leg of (
-                            Array.isArray(slip.legs) ? slip.legs : []
-                        )) {
-                            if (typeof fixtureKey === "function") {
-                                keys.add(fixtureKey(leg));
-                            }
-                        }
-                    }
-                }
-
-                return keys;
-            };
-        }
-
-        if (typeof window.buildSlips === "function") {
-            window.buildSlips = function buildSlipsSafe() {
-                const now = Date.now();
-
-                const taken = typeof pendingFixtureKeys === "function"
-                    ? pendingFixtureKeys()
-                    : new Set();
-
-                const future = fixture => {
-                    const time = kickoffMs(fixture);
-
-                    return Number.isFinite(time)
-                        && time > now + 30 * 60000;
-                };
-
-                const dedupe = (rows, score) => {
-                    const byKey = new Map();
-
-                    for (const fixture of rows) {
-                        const key = fixtureKey(fixture);
-                        const previous = byKey.get(key);
-
-                        if (
-                            !previous
-                            || score(fixture) > score(previous)
-                        ) {
-                            byKey.set(key, fixture);
-                        }
-                    }
-
-                    return [...byKey.values()];
-                };
-
-                const overs = dedupe(
-                    (
-                        snap && Array.isArray(snap.fixtures)
-                            ? snap.fixtures
-                            : []
-                    ).filter(
-                        fixture =>
-                            qualifiedOver(fixture, now)
-                            && future(fixture)
-                            && !taken.has(fixtureKey(fixture))
-                    ),
-                    overProb
-                ).sort(
-                    (a, b) => overProb(b) - overProb(a)
-                );
-
-                const underRows = dedupe(
-                    (
-                        underSnap && Array.isArray(underSnap.fixtures)
-                            ? underSnap.fixtures
-                            : []
-                    ).filter(
-                        fixture =>
-                            qualifiedUnder(fixture, now)
-                            && future(fixture)
-                            && !taken.has(fixtureKey(fixture))
-                    ),
-                    fixture => Number(fixture.p_final) || 0
-                ).sort(
-                    (a, b) =>
-                        (Number(b.p_final) || 0)
-                        - (Number(a.p_final) || 0)
-                );
-
-                const used = new Set(taken);
-                const list = [];
-
-                const windowMs = 7 * 24 * 60 * 60 * 1000;
-                const kickoffBufferMs = 30 * 60 * 1000;
-
-                while (true) {
-                    const availableOvers = overs.filter(
-                        fixture =>
-                            !used.has(fixtureKey(fixture))
-                            && future(fixture)
-                    );
-
-                    const availableUnders = underRows.filter(
-                        fixture =>
-                            !used.has(fixtureKey(fixture))
-                            && future(fixture)
-                    );
-
-                    if (
-                        availableOvers.length < 3
-                        || !availableUnders.length
-                    ) {
-                        break;
-                    }
-
-                    const anchors = [...new Set(
-                        [...availableOvers, ...availableUnders]
-                            .map(kickoffMs)
-                            .filter(Number.isFinite)
-                    )].sort((a, b) => a - b);
-
-                    let chosen = null;
-
-                    for (const anchor of anchors) {
-                        const inWindow = fixture => {
-                            const time = kickoffMs(fixture);
-
-                            return Number.isFinite(time)
-                                && time >= anchor
-                                && time <= anchor + windowMs
-                                && time > now + kickoffBufferMs
-                                && !used.has(fixtureKey(fixture));
-                        };
-
-                        const windowOvers = availableOvers.filter(inWindow);
-
-                        if (windowOvers.length < 3) {
-                            continue;
-                        }
-
-                        for (const under of availableUnders.filter(inWindow)) {
-                            const underKey = fixtureKey(under);
-
-                            const trio = windowOvers
-                                .filter(
-                                    fixture =>
-                                        fixtureKey(fixture) !== underKey
-                                )
-                                .slice(0, 3);
-
-                            if (trio.length === 3) {
-                                chosen = {
-                                    over: trio,
-                                    under
-                                };
-
-                                break;
-                            }
-                        }
-
-                        if (chosen) {
-                            break;
-                        }
-                    }
-
-                    if (!chosen) {
-                        break;
-                    }
-
-                    const keys = [
-                        ...chosen.over,
-                        chosen.under
-                    ].map(fixtureKey);
-
-                    if (new Set(keys).size !== 4) {
-                        throw new Error(
-                            "Slip builder refused a repeated fixture."
-                        );
-                    }
-
-                    keys.forEach(key => used.add(key));
-                    list.push(chosen);
-                }
-
-                return {
-                    list,
-                    overFree: overs.filter(
-                        fixture => !used.has(fixtureKey(fixture))
-                    ).length,
-                    underFree: underRows.filter(
-                        fixture => !used.has(fixtureKey(fixture))
-                    ).length
-                };
-            };
-        }
-
-        /*
-         * Remove obsolete manual-grading buttons from the UI.
-         * Observe rerenders so the buttons do not reappear.
-         */
-        const removeManualControls = () => {
-            document.querySelectorAll(
-                "#trackerList [data-grade]"
-            ).forEach(button => {
-                const actionRow = button.closest(".slip-actions");
-
-                if (actionRow) {
-                    actionRow.remove();
-                } else {
-                    button.remove();
-                }
-            });
-
-            document.querySelectorAll(".status").forEach(element => {
-                if (
-                    element.textContent.includes(
-                        "Manual grading remains available."
-                    )
-                ) {
-                    element.textContent = element.textContent.replace(
-                        "Manual grading remains available.",
-                        "Manual grading is disabled; confirmed full-time scores settle slips automatically."
-                    );
-                }
-            });
-        };
-
-        removeManualControls();
-
-        const tracker = $("trackerList");
-
-        if (
-            tracker
-            && typeof MutationObserver !== "undefined"
-        ) {
-            const observer = new MutationObserver(removeManualControls);
-
-            observer.observe(
-                tracker,
-                {
-                    childList: true,
-                    subtree: true
-                }
-            );
-        }
-    }
-
-
-    /*
-     * Render scores beneath each slip's existing legs.
-     */
-    function renderLiveScores() {
-        addUI();
-
-        const banner = $("liveScoreBanner");
-
-        if (banner) {
-            if (message) {
-                banner.textContent = message;
-            } else if (updatedAt) {
-                banner.textContent =
-                    "LIVE SCORES · Provider updated "
-                    + new Date(updatedAt).toLocaleTimeString()
-                    + " · Page checks every 60 seconds.";
-            } else {
-                banner.textContent = "Waiting for score data…";
-            }
-        }
-
-        if (typeof readTracker !== "function") {
-            return;
-        }
-
-        const filter = $("trackerFilter")?.value || "ALL";
-        const allSlips = readTracker();
-
-        if (!Array.isArray(allSlips)) {
-            return;
-        }
-
-        const visibleSlips = allSlips.filter(
-            slip => filter === "ALL" || slip.status === filter
-        );
-
-        const slipElements = document.querySelectorAll(
-            "#trackerList .sliprow"
-        );
-
-        slipElements.forEach((element, slipIndex) => {
-            const slip = visibleSlips[slipIndex];
-
-            if (!slip || !Array.isArray(slip.legs)) {
-                return;
-            }
-
-            const target = element.querySelector(".legs");
-
-            if (!target) {
-                return;
-            }
-
-            target.innerHTML = slip.legs.map((leg, legIndex) => {
-                const fixture = matchFixture(leg);
-                const legState = getLegState(leg, fixture);
-
-                const score =
-                    fixture
-                    && fixture.homeScore != null
-                    && fixture.awayScore != null
-                        ? `${fixture.homeScore} – ${fixture.awayScore}`
-                        : "— : —";
-
-                const probability =
-                    typeof pct === "function"
-                        ? pct(leg.probability)
-                        : `${Math.round(Number(leg.probability || 0) * 100)}%`;
-
-                const fixtureStatus = fixture
-                    ? getMatchStatus(fixture)
-                    : "Fixture not matched";
-
-                const league = fixture?.league
-                    ? ` · ${escapeHTML(fixture.league)}`
-                    : "";
-
-                return `
-                    <div class="live-leg">
-                        <div>
-                            <div>
-                                ${legIndex + 1}.
-                                ${escapeHTML(leg.home)}
-                                vs
-                                ${escapeHTML(leg.away)}
-
-                                <span class="live-detail">
-                                    —
-                                    ${escapeHTML(leg.market)}
-                                    (${escapeHTML(probability)})
-                                </span>
-                            </div>
-
-                            <div class="live-detail">
-                                ${escapeHTML(fixtureStatus)}
-                                ${league}
-                            </div>
-                        </div>
-
-                        <div style="text-align:right">
-                            <div class="live-score">
-                                ${escapeHTML(score)}
-                            </div>
-
-                            <div class="live-detail ${legState[1]}">
-                                ${escapeHTML(legState[0])}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join("");
-        });
-    }
-
-
-    /*
-     * Request score data from the backend and grade safely matched slips.
-     */
-    async function refreshLiveScores() {
-        addUI();
-
-        try {
-            const response = await fetch(
-                "/api/live-scores",
-                {
-                    method: "POST",
-                    cache: "no-store",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        dates: pendingMatchDates()
-                    })
-                }
-            );
-
-            const payload = await response.json();
-
-            if (!payload.configured) {
-                fixtures = [];
-
-                message =
-                    "LIVE SCORES NOT CONFIGURED · "
-                    + "Add FOOTBALL_DATA_KEY in Render → "
-                    + "Environment. Scores come from football-data.org.";
-
-            } else if (!response.ok || !payload.ok) {
-                message =
-                    "LIVE SCORE ERROR · "
-                    + (
-                        payload.message
-                        || payload.error
-                        || `HTTP ${response.status}`
-                    );
-
-            } else {
-                fixtures = Array.isArray(payload.fixtures)
-                    ? payload.fixtures
-                    : [];
-
-                updatedAt = payload.updatedAt
-                    || new Date().toISOString();
-
-                message = (
-                    Array.isArray(payload.historyWarnings)
-                    && payload.historyWarnings.length
+        fixtures.append({
+            "id": match.get("id"),
+            "date": kickoff[:10],
+            "kickoff": kickoff,
+            "timestamp": (
+                int(
+                    datetime.fromisoformat(
+                        kickoff.replace("Z", "+00:00")
+                    ).timestamp()
                 )
-                    ? "SCORE DATA PARTIAL · " + payload.historyWarnings[0]
-                    : "";
+                if kickoff
+                else None
+            ),
 
-                /* Capture confirmed final scores on the active tracker. */
-                const scoresChanged = captureScores();
+            "league": competition.get("name", ""),
 
-                /* Grade active slips only when all four fixtures are confirmed. */
-                const trackerGraded = autoGradeSlips();
+            "home": home_name,
+            "away": away_name,
 
-                /* Capture and persist confirmed scores for archived slips. */
-                const archiveScoresChanged = captureArchiveScores();
+            "homeScore": home_score,
+            "awayScore": away_score,
 
-                /* Grade archived slips, even after they leave the active tracker. */
-                const archiveGraded = autoGradeArchive();
+            "status": status_code,
+            "statusText": status_text,
 
-                if (archiveScoresChanged || archiveGraded) {
-                    syncArchiveToServer(readArchive());
+            # football-data.org does not provide the live minute.
+            "elapsed": None,
+        })
 
-                    document.dispatchEvent(
-                        new CustomEvent("barbadox:history-updated")
-                    );
-                }
+    return fixtures
 
-                if (
-                    trackerGraded
-                    || scoresChanged
-                ) {
-                    if (typeof renderTracker === "function") {
-                        renderTracker();
-                    }
-                }
-            }
 
-        } catch (error) {
-            message =
-                "LIVE SCORES UNAVAILABLE · "
-                + (
-                    error.message
-                    || "Network error"
-                );
+@live_scores_bp.get("/live_scores.js")
+def live_scores_script():
+    """Serve the frontend live-score script."""
+    return send_from_directory(
+        str(ROOT),
+        "live_scores.js",
+        mimetype="application/javascript",
+    )
+
+
+@live_scores_bp.get("/api/live-scores")
+def live_scores():
+    """
+    Return football fixtures, scores and match statuses.
+
+    The API key remains on the server and is never sent to the
+    browser.
+    """
+
+    api_key = _api_key()
+
+    if not api_key:
+        return jsonify({
+            "ok": False,
+            "configured": False,
+            "message": (
+                "Add FOOTBALL_DATA_KEY in Render → Environment."
+            ),
+            "fixtures": [],
+        })
+
+    now = time.time()
+
+    # Reuse cached results to reduce API requests.
+    if (
+        CACHE["payload"] is not None
+        and now - CACHE["at"] < CACHE["ttl"]
+    ):
+        return jsonify(CACHE["payload"])
+
+    today = datetime.now(timezone.utc).date()
+
+    # 11-day window split into two legal <=10-day requests.
+    windows = [
+        (
+            (today - timedelta(days=LOOKBACK_DAYS)).isoformat(),
+            (today + timedelta(days=3)).isoformat(),
+        ),
+        (
+            (today + timedelta(days=4)).isoformat(),
+            (today + timedelta(days=LOOKAHEAD_DAYS)).isoformat(),
+        ),
+    ]
+
+    try:
+        collected = []
+
+        for date_from, date_to in windows:
+            collected.extend(
+                _fetch_window(api_key, date_from, date_to)
+            )
+
+        fixtures = _build_fixtures(collected)
+
+        payload = {
+            "ok": True,
+            "configured": True,
+            "updatedAt": datetime.now(
+                timezone.utc
+            ).isoformat(),
+
+            "cacheSeconds": CACHE_SECONDS,
+            "fixtures": fixtures,
         }
 
-        renderLiveScores();
-    }
+        CACHE["at"] = now
+        CACHE["ttl"] = CACHE_SECONDS
+        CACHE["payload"] = payload
 
+        return jsonify(payload)
 
-    /*
-     * Repaint score rows when the tracker filter changes.
-     */
-    document.addEventListener("change", event => {
-        if (event.target?.id === "trackerFilter") {
-            setTimeout(renderLiveScores, 0);
+    except ProviderError as error:
+        # Hold errors longer so the quota is not burned on retries.
+        CACHE["at"] = time.time()
+        CACHE["ttl"] = ERROR_CACHE_SECONDS
+        CACHE["payload"] = {
+            "ok": False,
+            "configured": True,
+            "message": error.message,
+            "fixtures": [],
         }
-    });
 
+        return jsonify(CACHE["payload"]), error.status
 
-    /*
-     * Install the safe slip builder and remove the old manual controls.
-     */
-    installSlipBuilderFixes();
-
-
-    /*
-     * Start the tracker.
-     */
-    addUI();
-    renderLiveScores();
-    refreshLiveScores();
-
-    setInterval(
-        refreshLiveScores,
-        60000
-    );
-
-})();
+    except (
+        requests.RequestException,
+        ValueError,
+        TypeError,
+    ) as error:
+        return jsonify({
+            "ok": False,
+            "configured": True,
+            "message": (
+                f"Live-score request failed: {error}"
+            ),
+            "fixtures": [],
+        }), 502
