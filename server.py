@@ -9,15 +9,13 @@ Includes:
 - Core 1 and Core 2 execution.
 - Five-minute review window for new context rows.
 - Existing dashboard API routes.
-- Live fixtures and scores from API-Football.
-- Nigeria-time fixture requests.
+- Live fixtures and scores from football-data.org.
 - Cached live-score results.
 - Safe handling of provider errors.
 - Persistent slips history backed by CSV and GitHub.
 
 Required Render environment variables:
     FOOTBALL_DATA_KEY
-    API_FOOTBALL_KEY
     GITHUB_TOKEN
     GITHUB_REPO
     GITHUB_BRANCH
@@ -34,7 +32,7 @@ import requests
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
-from flask import Flask, jsonify, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 
 import gh_sync
 import slips_tracker
@@ -59,20 +57,18 @@ CORE1_TIMEOUT = 1200
 CORE2_TIMEOUT = 900
 SCAN_DAYS = 7
 
-LIVE_API_URL = "https://v3.football.api-sports.io/fixtures"
-# Free API-Football tiers are typically ~100 req/day. 15-minute cache
-# keeps upstream calls under ~96/day even with continuous client polling.
-LIVE_CACHE_SECONDS = 900
-# When the provider returns a rate-limit or hard error, hold that result
-# longer so we do not burn the remaining quota on retries.
-LIVE_ERROR_CACHE_SECONDS = 3600
-LIVE_TIMEZONE = "Africa/Lagos"
+# football-data.org is the active live-score provider.
+FOOTBALL_DATA_URL = "https://api.football-data.org/v4/matches"
+LIVE_COMPETITIONS = "PL,PD,FL1,BL1,SA"
 
-_live_cache = {
-    "time": 0,
-    "data": None,
-    "ttl": LIVE_CACHE_SECONDS,
-}
+LIVE_CACHE_SECONDS = 900
+LIVE_ERROR_CACHE_SECONDS = 3600
+
+# Process no more than three stale/new weekly score windows per request.
+# Older windows are gradually processed by subsequent polls.
+LIVE_MAX_FETCHES_PER_REQUEST = 3
+
+LIVE_MATCH_CACHE = {}
 
 _live_lock = threading.Lock()
 
@@ -90,57 +86,6 @@ def read_json(path):
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return None
-
-
-def _api_error_text(payload):
-    """Extract a readable error without exposing credentials."""
-    if not isinstance(payload, dict):
-        return "The provider returned an invalid response."
-
-    errors = payload.get("errors")
-
-    if not errors:
-        return None
-
-    if isinstance(errors, dict):
-        parts = [
-            f"{name}: {value}"
-            for name, value in errors.items()
-            if value not in (None, "", [], {})
-        ]
-
-        return "; ".join(parts) or "Unspecified API-Football error."
-
-    if isinstance(errors, list):
-        parts = [str(value) for value in errors if value]
-
-        return "; ".join(parts) or "Unspecified API-Football error."
-
-    return str(errors)
-
-
-def _is_date_parameter_error(message):
-    """
-    Detect provider date-parameter errors.
-
-    If a range request is rejected because of its date parameters,
-    the live-score code can retry using individual dates.
-    """
-    if not message:
-        return False
-
-    value = message.lower()
-
-    date_fields = (
-        "from:",
-        "to:",
-        "timezone:",
-        "the from field",
-        "the to field",
-        "the timezone field",
-    )
-
-    return any(field in value for field in date_fields)
 
 
 # ---------------------------------------------------------
@@ -593,354 +538,390 @@ _startup_restore()
 
 
 # ---------------------------------------------------------
-# LIVE SCORES
+# LIVE SCORES — FOOTBALL-DATA.ORG
 # ---------------------------------------------------------
 
-def _request_api_football(key, params):
-    """Make one API-Football request and validate its JSON response."""
-    response = requests.get(
-        LIVE_API_URL,
-        headers={"x-apisports-key": key},
-        params=params,
-        timeout=20,
+def _football_data_key():
+    """Read the server-side football-data.org token."""
+    for name in (
+        "FOOTBALL_DATA_KEY",
+        "FOOTBALL_DATA_TOKEN",
+        "FOOTBALL_DATA_API_KEY",
+        "FOOTBALL_API_KEY",
+    ):
+        value = os.getenv(name, "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _football_status(status):
+    mapping = {
+        "FINISHED": ("FT", "Full Time"),
+        "AWARDED": ("AWD", "Awarded"),
+        "IN_PLAY": ("LIVE", "In Play"),
+        "PAUSED": ("HT", "Halftime"),
+        "SUSPENDED": ("SUSP", "Suspended"),
+        "POSTPONED": ("PST", "Postponed"),
+        "CANCELLED": ("CANC", "Cancelled"),
+        "TIMED": ("NS", "Not Started"),
+        "SCHEDULED": ("NS", "Not Started"),
+        "TBD": ("NS", "Not Started"),
+    }
+    return mapping.get(
+        str(status or "").upper(),
+        ("NS", "Not Started"),
     )
 
-    response.raise_for_status()
+
+def _football_fixture(match):
+    """Normalize a football-data.org match without inventing scores."""
+    home_team = match.get("homeTeam") or {}
+    away_team = match.get("awayTeam") or {}
+
+    home = home_team.get("name")
+    away = away_team.get("name")
+
+    if not home or not away:
+        return None
+
+    competition = match.get("competition") or {}
+    score = match.get("score") or {}
+    full_time = score.get("fullTime") or {}
+
+    home_score = full_time.get("home")
+    away_score = full_time.get("away")
+
+    try:
+        if home_score is not None:
+            home_score = int(home_score)
+
+        if away_score is not None:
+            away_score = int(away_score)
+
+    except (TypeError, ValueError):
+        home_score = None
+        away_score = None
+
+    kickoff = str(match.get("utcDate") or "")
+    timestamp = None
+
+    if kickoff:
+        try:
+            timestamp = int(
+                datetime.fromisoformat(
+                    kickoff.replace("Z", "+00:00")
+                ).timestamp()
+            )
+        except (TypeError, ValueError, OverflowError):
+            timestamp = None
+
+    status, status_text = _football_status(match.get("status"))
+
+    return {
+        "id": match.get("id"),
+        "date": kickoff[:10],
+        "kickoff": kickoff,
+        "timestamp": timestamp,
+        "home": home,
+        "away": away,
+        "homeScore": home_score,
+        "awayScore": away_score,
+        "status": status,
+        "statusText": status_text,
+        "league": competition.get("name", ""),
+        "elapsed": None,
+    }
+
+
+def _football_data_fetch(date_from, date_to, api_key):
+    """Fetch one seven-day range from football-data.org."""
+    response = requests.get(
+        FOOTBALL_DATA_URL,
+        params={
+            "dateFrom": date_from,
+            "dateTo": date_to,
+            "competitions": LIVE_COMPETITIONS,
+        },
+        headers={"X-Auth-Token": api_key},
+        timeout=18,
+    )
+
+    if response.status_code != 200:
+        messages = {
+            401: (
+                "Authentication failed. Check FOOTBALL_DATA_KEY "
+                "in Render."
+            ),
+            403: (
+                "football-data.org denied this date range or "
+                "competition on the current plan."
+            ),
+            429: (
+                "football-data.org rate limit reached; score "
+                "refresh is paused temporarily."
+            ),
+        }
+
+        raise RuntimeError(
+            messages.get(
+                response.status_code,
+                "football-data.org returned HTTP "
+                + str(response.status_code)
+                + ".",
+            )
+        )
 
     payload = response.json()
+    matches = payload.get("matches") if isinstance(payload, dict) else None
 
-    if not isinstance(payload, dict):
-        raise ValueError("API-Football response was not a JSON object.")
+    if not isinstance(matches, list):
+        raise ValueError(
+            "football-data.org returned an unexpected response shape."
+        )
 
-    return payload
-
-
-def _normalise_fixtures(payload):
-    """Convert API-Football fixtures to the console's expected format."""
     fixtures = []
 
-    for item in payload.get("response", []):
-        if not isinstance(item, dict):
-            continue
+    for match in matches:
+        if isinstance(match, dict):
+            fixture = _football_fixture(match)
 
-        fixture = item.get("fixture") or {}
-        teams = item.get("teams") or {}
-        goals = item.get("goals") or {}
-        status = fixture.get("status") or {}
-
-        home = teams.get("home") or {}
-        away = teams.get("away") or {}
-
-        short_status = status.get("short")
-
-        fixtures.append({
-            "id": fixture.get("id"),
-            "date": fixture.get("date"),
-            "timestamp": fixture.get("timestamp"),
-            "home": home.get("name"),
-            "away": away.get("name"),
-            "home_goals": goals.get("home"),
-            "away_goals": goals.get("away"),
-            "status": short_status,
-            "status_long": status.get("long"),
-            "elapsed": status.get("elapsed"),
-            "finished": short_status in ("FT", "AET", "PEN"),
-        })
+            if fixture:
+                fixtures.append(fixture)
 
     return fixtures
 
 
-def _fetch_fixtures_by_date(key, start_date, end_date):
+def _date_from_client(value):
+    """Validate an ISO calendar date received from the browser."""
+    if not isinstance(value, str) or len(value) != 10:
+        return None
+
+    try:
+        parsed = datetime.strptime(value, "%Y-%m-%d").date()
+    except ValueError:
+        return None
+
+    return parsed if parsed.isoformat() == value else None
+
+
+@app.route("/api/live-scores", methods=["GET", "POST"])
+def live_scores():
     """
-    Fallback method: query one calendar date at a time.
+    Return current fixtures and historical windows required by pending slips.
 
-    This is used only if the provider rejects the date-range request
-    with a parameter error.
-
-    The primary request is preferred because it uses fewer API
-    requests. The fallback merges results by fixture ID to avoid
-    duplicate fixtures.
+    The browser sends leg dates from the active tracker and permanent archive.
+    Each week is cached independently. At most three stale/new weeks are
+    fetched per poll to protect the provider quota; later polls handle backlog.
     """
-    merged = {}
-    errors = []
+    api_key = _football_data_key()
 
-    current_date = start_date
-
-    while current_date <= end_date:
-        params = {
-            "date": current_date.isoformat(),
-            "timezone": LIVE_TIMEZONE,
-        }
-
-        try:
-            payload = _request_api_football(key, params)
-
-            provider_error = _api_error_text(payload)
-
-            if provider_error:
-                # If the provider also rejects timezone, retry without it.
-                if "timezone" in provider_error.lower():
-                    payload = _request_api_football(
-                        key,
-                        {"date": current_date.isoformat()},
-                    )
-
-                    provider_error = _api_error_text(payload)
-
-            if provider_error:
-                errors.append(
-                    current_date.isoformat() + ": " + provider_error
-                )
-
-            else:
-                for item in _normalise_fixtures(payload):
-                    fixture_id = item.get("id")
-
-                    if fixture_id is not None:
-                        merged[str(fixture_id)] = item
-
-        except requests.RequestException as exc:
-            errors.append(
-                current_date.isoformat()
-                + ": request failed ("
-                + type(exc).__name__
-                + ")"
-            )
-
-        except (ValueError, TypeError, AttributeError) as exc:
-            errors.append(
-                current_date.isoformat()
-                + ": invalid response ("
-                + type(exc).__name__
-                + ")"
-            )
-
-        current_date += timedelta(days=1)
-
-    if errors and not merged:
-        return {
-            "ok": False,
-            "configured": True,
-            "error": (
-                "API-Football date-by-date fallback failed. "
-                + " | ".join(errors[:3])
-            ),
-            "fixtures": [],
-            "updated_at": utc_now(),
-        }
-
-    return {
-        "ok": True,
-        "configured": True,
-        "error": None,
-        "fixtures": sorted(
-            merged.values(),
-            key=lambda item: (
-                item.get("timestamp")
-                if isinstance(item.get("timestamp"), (int, float))
-                else 0
-            ),
-        ),
-        "updated_at": utc_now(),
-        "fallback_used": True,
-        "fallback_warnings": errors[:5],
-    }
-
-
-def _api_football_request():
-    """
-    Fetch upcoming, live, and recently finished fixtures.
-
-    The API key stays on the server. If the range query is rejected
-    for date-parameter validation, retry by calendar date.
-    """
-    key = (
-        os.getenv("API_FOOTBALL_KEY")
-        or os.getenv("APIFOOTBALL_KEY")
-        or ""
-    ).strip()
-
-    if not key:
-        return {
+    if not api_key:
+        return jsonify({
             "ok": False,
             "configured": False,
-            "error": (
-                "API_FOOTBALL_KEY (or APIFOOTBALL_KEY) is not configured "
-                "in Render. Add the environment variable and redeploy."
+            "message": (
+                "Add FOOTBALL_DATA_KEY in Render → Environment."
             ),
             "fixtures": [],
-            "updated_at": utc_now(),
-        }
+            "updatedAt": utc_now(),
+        }), 200
+
+    body = (
+        request.get_json(silent=True)
+        if request.method == "POST"
+        else {}
+    )
+    body = body if isinstance(body, dict) else {}
+
+    raw_dates = body.get("dates", [])
+
+    if not isinstance(raw_dates, list):
+        raw_dates = []
 
     today = datetime.now(timezone.utc).date()
 
-    start_date = today - timedelta(days=2)
-    end_date = today + timedelta(days=SCAN_DAYS)
-
-    params = {
-        "from": start_date.isoformat(),
-        "to": end_date.isoformat(),
-        "timezone": LIVE_TIMEZONE,
+    # Keep current/recent/upcoming fixtures available for the UI.
+    current_days = {
+        today + timedelta(days=n)
+        for n in range(-2, 8)
     }
 
-    try:
-        payload = _request_api_football(key, params)
+    requested_days = set()
 
-        provider_error = _api_error_text(payload)
+    for raw in raw_dates[:500]:
+        parsed = _date_from_client(raw)
 
-        if provider_error:
-            print(
-                "API-Football provider error:",
-                provider_error[:1000],
-            )
+        if parsed:
+            requested_days.add(parsed)
 
-            if _is_date_parameter_error(provider_error):
-                print(
-                    "Retrying API-Football by date because "
-                    "the date-range parameters were rejected."
-                )
+    def week_start(day):
+        return day - timedelta(days=day.weekday())
 
-                return _fetch_fixtures_by_date(
-                    key,
-                    start_date,
-                    end_date,
-                )
+    current_weeks = {
+        week_start(day)
+        for day in current_days
+    }
 
-            return {
-                "ok": False,
-                "configured": True,
-                "error": "API-Football error: " + provider_error[:350],
-                "provider_error": provider_error[:1000],
-                "fixtures": [],
-                "updated_at": utc_now(),
-            }
+    requested_weeks = {
+        week_start(day)
+        for day in requested_days
+    }
 
-        fixtures = _normalise_fixtures(payload)
+    ordered_weeks = (
+        sorted(current_weeks)
+        + sorted(requested_weeks - current_weeks)
+    )
 
-        return {
-            "ok": True,
-            "configured": True,
-            "error": None,
-            "fixtures": fixtures,
-            "updated_at": utc_now(),
-        }
+    warnings = []
+    fixtures_by_id = {}
 
-    except requests.HTTPError as exc:
-        response = getattr(exc, "response", None)
-
-        status_code = (
-            getattr(response, "status_code", None)
-            if response is not None
-            else None
-        )
-
-        # HTTP 4xx/5xx errors are not silently presented as valid scores.
-        detail = (
-            f"API-Football returned HTTP {status_code}."
-            if status_code
-            else "API-Football rejected the request."
-        )
-
-        print("Live-score HTTP error:", detail)
-
-        return {
-            "ok": False,
-            "configured": True,
-            "error": detail,
-            "fixtures": [],
-            "updated_at": utc_now(),
-        }
-
-    except requests.RequestException as exc:
-        print(
-            "Live-score network failure:",
-            type(exc).__name__,
-            str(exc)[:500],
-        )
-
-        return {
-            "ok": False,
-            "configured": True,
-            "error": (
-                "Network timeout or connection error "
-                "while contacting API-Football."
-            ),
-            "fixtures": [],
-            "updated_at": utc_now(),
-        }
-
-    except (ValueError, TypeError, AttributeError) as exc:
-        print(
-            "Invalid live-score response:",
-            type(exc).__name__,
-            str(exc)[:500],
-        )
-
-        return {
-            "ok": False,
-            "configured": True,
-            "error": "The live-score provider returned invalid data.",
-            "fixtures": [],
-            "updated_at": utc_now(),
-        }
-
-
-@app.get("/api/live-scores")
-def live_scores():
-    """
-    Cached live-score endpoint.
-
-    Successful payloads are refreshed at most once per LIVE_CACHE_SECONDS.
-    Rate-limit and other provider errors are held for LIVE_ERROR_CACHE_SECONDS
-    so the free daily quota is not exhausted by client polls.
-    """
-    now = time.time()
+    fetched_this_request = 0
+    successful_windows = 0
 
     with _live_lock:
-        cached = _live_cache["data"]
-        ttl = _live_cache.get("ttl") or LIVE_CACHE_SECONDS
+        now = time.time()
 
-        if cached is not None and now - _live_cache["time"] < ttl:
-            status_code = 200 if cached.get("ok") else 502
-            return jsonify(cached), status_code
+        for week in ordered_weeks:
+            date_from = week.isoformat()
+            date_to = (week + timedelta(days=6)).isoformat()
 
-        data = _api_football_request()
+            cache_key = date_from + ":" + date_to
+            cached = LIVE_MATCH_CACHE.get(cache_key)
 
-        # Detect rate-limit / quota messages and back off hard.
-        err_text = str(
-            data.get("error")
-            or data.get("provider_error")
-            or data.get("message")
-            or ""
-        ).lower()
-        is_rate_limited = (
-            not data.get("ok")
-            and (
-                "rate" in err_text
-                or "limit" in err_text
-                or "quota" in err_text
-                or "reached the request" in err_text
+            valid = (
+                cached is not None
+                and now - cached.get("at", 0)
+                < cached.get("ttl", LIVE_CACHE_SECONDS)
             )
+
+            if (
+                not valid
+                and fetched_this_request < LIVE_MAX_FETCHES_PER_REQUEST
+            ):
+                fetched_this_request += 1
+
+                try:
+                    cached = {
+                        "at": time.time(),
+                        "ttl": LIVE_CACHE_SECONDS,
+                        "fixtures": _football_data_fetch(
+                            date_from,
+                            date_to,
+                            api_key,
+                        ),
+                        "error": None,
+                        "ok": True,
+                    }
+
+                except (
+                    requests.RequestException,
+                    ValueError,
+                    TypeError,
+                    RuntimeError,
+                ) as exc:
+                    cached = {
+                        "at": time.time(),
+                        "ttl": LIVE_ERROR_CACHE_SECONDS,
+                        "fixtures": [],
+                        "error": str(exc)[:350],
+                        "ok": False,
+                    }
+
+                LIVE_MATCH_CACHE[cache_key] = cached
+                valid = True
+
+            elif not valid:
+                # Leave remaining ranges queued for a subsequent poll.
+                cached = None
+
+            if not valid or cached is None:
+                continue
+
+            if cached.get("ok"):
+                successful_windows += 1
+
+                for fixture in cached.get("fixtures", []):
+                    ident = fixture.get("id")
+
+                    if ident is None:
+                        ident = "|".join((
+                            str(fixture.get("date") or ""),
+                            str(
+                                fixture.get("home") or ""
+                            ).casefold(),
+                            str(
+                                fixture.get("away") or ""
+                            ).casefold(),
+                        ))
+
+                    fixtures_by_id[str(ident)] = fixture
+
+            elif cached.get("error"):
+                warnings.append(
+                    date_from
+                    + "–"
+                    + date_to
+                    + ": "
+                    + cached["error"]
+                )
+
+        waiting = 0
+
+        for week in ordered_weeks:
+            key = (
+                week.isoformat()
+                + ":"
+                + (week + timedelta(days=6)).isoformat()
+            )
+
+            entry = LIVE_MATCH_CACHE.get(key)
+
+            if (
+                entry is None
+                or time.time() - entry.get("at", 0)
+                >= entry.get("ttl", LIVE_CACHE_SECONDS)
+            ):
+                waiting += 1
+
+    fixtures = sorted(
+        fixtures_by_id.values(),
+        key=lambda item: (
+            item.get("timestamp")
+            if isinstance(item.get("timestamp"), (int, float))
+            else 0
+        ),
+    )
+
+    if waiting:
+        warnings.append(
+            str(waiting)
+            + " score window(s) are queued for the next refresh "
+            "to protect the API quota."
         )
 
-        _live_cache["time"] = time.time()
-        _live_cache["data"] = data
-        _live_cache["ttl"] = (
-            LIVE_ERROR_CACHE_SECONDS
-            if (not data.get("ok"))
-            else LIVE_CACHE_SECONDS
-        )
-        if is_rate_limited:
-            _live_cache["ttl"] = LIVE_ERROR_CACHE_SECONDS
+    payload = {
+        "ok": bool(successful_windows) or not warnings,
+        "configured": True,
+        "error": None,
+        "message": (
+            warnings[0]
+            if warnings and not successful_windows
+            else None
+        ),
+        "updatedAt": utc_now(),
+        "cacheSeconds": LIVE_CACHE_SECONDS,
+        "provider": "football-data.org",
+        "fixtures": fixtures,
+        "historyWarnings": warnings[:8],
+        "queuedWindows": waiting,
+    }
 
-        # Surface how long the client should wait before asking again.
-        data = dict(data)
-        data["cacheSeconds"] = _live_cache["ttl"]
-        data["rateLimited"] = bool(is_rate_limited)
+    if not successful_windows and warnings and not waiting:
+        payload["ok"] = False
+        return jsonify(payload), 502
 
-        status_code = 200 if data.get("ok") else 502
-
-        return jsonify(data), status_code
+    return jsonify(payload), 200
 
 
 # ---------------------------------------------------------
@@ -961,7 +942,11 @@ def slips_page():
 @app.get("/live_scores.js")
 def live_scores_script():
     """Serve the client-side live-score + archive-grading script."""
-    return send_from_directory(str(BASE), "live_scores.js", mimetype="application/javascript")
+    return send_from_directory(
+        str(BASE),
+        "live_scores.js",
+        mimetype="application/javascript",
+    )
 
 
 @app.get("/api/slipstracker")
