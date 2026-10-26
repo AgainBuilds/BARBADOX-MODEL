@@ -100,6 +100,52 @@
     }
 
 
+    /* Merge leg lists without losing captured scores.
+       The incoming list wins for identity fields, but final
+       scores, fixture statuses and leg results are kept from
+       the previous copy when the incoming legs lack them. */
+    function mergeLegs(previousLegs, incomingLegs) {
+        if (
+            !Array.isArray(incomingLegs)
+            || !Array.isArray(previousLegs)
+            || previousLegs.length !== incomingLegs.length
+        ) {
+            return incomingLegs;
+        }
+
+        return incomingLegs.map((leg, index) => {
+            const old = previousLegs[index];
+
+            if (!leg || typeof leg !== "object") {
+                return leg;
+            }
+
+            const merged = Object.assign({}, leg);
+
+            if (!merged.liveScore && old.liveScore) {
+                merged.liveScore = old.liveScore;
+            }
+
+            if (
+                !merged.fixtureStatus
+                && old.fixtureStatus
+            ) {
+                merged.fixtureStatus = old.fixtureStatus;
+            }
+
+            if (
+                (!merged.result || merged.result === "PENDING")
+                && old.result
+                && old.result !== "PENDING"
+            ) {
+                merged.result = old.result;
+            }
+
+            return merged;
+        });
+    }
+
+
     /* -------------------------------------------------------
        LOCAL ARCHIVE
     ------------------------------------------------------- */
@@ -141,22 +187,28 @@
 
             const previous = byId.get(id) || {};
 
-            byId.set(
-                id,
-                protectGraded(
+            const merged = protectGraded(
+                previous,
+                Object.assign(
+                    {},
                     previous,
-                    Object.assign(
-                        {},
-                        previous,
-                        slip,
-                        {
-                            archivedAt:
-                                previous.archivedAt ||
-                                new Date().toISOString()
-                        }
-                    )
+                    slip,
+                    {
+                        archivedAt:
+                            previous.archivedAt ||
+                            new Date().toISOString()
+                    }
                 )
             );
+
+            /* Keep any scores already captured on archived
+               legs when the tracker copy has none yet. */
+            merged.legs = mergeLegs(
+                previous.legs,
+                merged.legs
+            );
+
+            byId.set(id, merged);
         }
 
         const merged = [...byId.values()];
@@ -244,17 +296,21 @@
 
                     const previous = byId.get(id) || {};
 
-                    byId.set(
-                        id,
-                        protectGraded(
+                    const merged = protectGraded(
+                        previous,
+                        Object.assign(
+                            {},
                             previous,
-                            Object.assign(
-                                {},
-                                previous,
-                                normalized
-                            )
+                            normalized
                         )
                     );
+
+                    merged.legs = mergeLegs(
+                        previous.legs,
+                        merged.legs
+                    );
+
+                    byId.set(id, merged);
                 }
 
                 const merged = [...byId.values()];
@@ -735,6 +791,16 @@
     ------------------------------------------------------- */
 
     addUI();
+
+    /* live_scores.js grades archived slips in the background.
+       Re-render and re-sync whenever that happens. */
+    document.addEventListener(
+        "barbadox:history-updated",
+        () => {
+            renderHistory();
+            queueServerSync();
+        }
+    );
 
     /* Archive whatever already sits in the tracker,
        then hydrate from the server and mirror everything back. */
