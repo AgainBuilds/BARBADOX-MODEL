@@ -2434,8 +2434,8 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-10-11,SA,Cagliari Calcio,Juventus FC,3.5,0.7096,0.7318,,,,Core 2 Under 3.5 walk-forward,2026-10-21T17:57:15.547540+00:00,1,1,HIT,CORE2_UNDER35|HISTORICAL
 2026-10-18,PD,RC Celta de Vigo,Deportivo Alavés,3.5,0.7165,0.7253,,,,Core 2 Under 3.5 walk-forward,2026-10-21T17:57:15.547550+00:00,2,1,HIT,CORE2_UNDER35|HISTORICAL
 2026-10-24,SA,Cagliari Calcio,Bologna FC 1909,3.5,0.7230,0.7230,,,,Core 2 Under 3.5 walk-forward,2026-10-21T17:57:15.547557+00:00,,,,CORE2_UNDER35|UPCOMING
-2026-10-28,SA,Venezia FC,FC Internazionale Milano,1.5,0.8760,0.8760,0.8447,0.9013,,core 87.6 | form 87 | base 81,2026-10-22T11:31:41.960853+00:00,,,,
-2026-10-28,SA,AC Monza,SSC Napoli,1.5,0.8090,0.8090,0.7708,0.8414,,core 80.9 | form 82 | base 68,2026-10-22T11:31:41.960853+00:00,,,,
+2026-10-28,SA,Venezia FC,FC Internazionale Milano,1.5,0.8760,0.8760,0.8447,0.9013,,core 87.6 | form 87 | base 81,2026-10-22T11:31:41.960853+00:00,0,2,HIT,
+2026-10-28,SA,AC Monza,SSC Napoli,1.5,0.8090,0.8090,0.7708,0.8414,,core 80.9 | form 82 | base 68,2026-10-22T11:31:41.960853+00:00,1,4,HIT,
 2026-10-30,BL1,SV 07 Elversberg,1. FSV Mainz 05,1.5,0.8904,0.8904,0.8612,0.9139,,core 89.0 | form 93 | base 80,2026-10-23T23:50:28.762322+00:00,,,,
 2026-10-30,PD,Villarreal CF,RCD Espanyol de Barcelona,1.5,0.8113,0.8113,0.7733,0.8435,,core 81.1 | form 77 | base 85,2026-10-23T23:50:28.762322+00:00,,,,
 2026-10-31,PL,Chelsea FC,Manchester United FC,1.5,0.8413,0.8413,0.8061,0.8706,12,core 84.1 | form 89 | base 80,2026-10-25T00:05:44.659695+00:00,,,,
@@ -2463,3 +2463,6 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-03,CL,Club Atlético de Madrid,FC Bayern München,1.5,0.8713,0.8913,0.8422,0.9147,,core 89.1 | form 86 | base 92,2026-10-28T12:30:59.062698+00:00,,,,
 2026-11-03,CL,Villarreal CF,Paris Saint-Germain FC,1.5,0.8880,0.9080,0.8615,0.9289,,core 90.8 | form 91 | base 90,2026-10-28T12:30:59.062698+00:00,,,,
 2026-11-03,CL,Manchester United FC,AS Roma,1.5,0.8915,0.9115,0.8656,0.9319,,core 91.2 | form 93 | base 90,2026-10-28T12:30:59.062698+00:00,,,,
+2026-11-04,CL,RB Leipzig,Manchester City FC,1.5,0.8747,0.8947,0.8460,0.9175,,core 89.5 | form 92 | base 87,2026-10-29T12:41:54.169600+00:00,,,,
+2026-11-04,CL,Borussia Dortmund,Real Betis Balompié,1.5,0.8332,0.8532,0.7992,0.8812,,core 85.3 | form 82 | base 87,2026-10-29T12:41:54.169600+00:00,,,,
+2026-11-04,CL,Racing Club de Lens,Como 1907,1.5,0.8516,0.8716,0.8198,0.8975,,core 87.2 | form 93 | base 79,2026-10-29T12:41:54.169600+00:00,,,,
