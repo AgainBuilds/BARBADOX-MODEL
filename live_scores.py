@@ -2,9 +2,15 @@
 """BARBADOX live-score API backed by football-data.org v4.
 
 The endpoint accepts every date required by unsettled archived slips. It
-refreshes one stale seven-day window per request, prioritises the current
+refreshes stale seven-day windows per request, prioritises the current
 week, retains the last good response through provider failures, and returns
 provider IDs, scores, status, minute, kickoff and refresh timestamps.
+
+October 2026 fixes:
+- Champions League (CL) added to LIVE_COMPETITIONS so CL legs are matched
+  and graded.
+- LIVE_MAX_FETCHES_PER_REQUEST raised 1 -> 6 so multi-week backlogs clear
+  in a single request instead of crawling one window per call.
 """
 
 import os
@@ -17,13 +23,13 @@ from flask import Blueprint, jsonify, request
 
 live_scores_bp = Blueprint("barbadox_live_scores", __name__)
 FOOTBALL_DATA_URL = "https://api.football-data.org/v4/matches"
-LIVE_COMPETITIONS = "PL,PD,FL1,BL1,SA"
+LIVE_COMPETITIONS = "PL,PD,FL1,BL1,SA,CL"
 
 LIVE_CACHE_SECONDS = 45
 HISTORY_CACHE_SECONDS = 900
 UPCOMING_CACHE_SECONDS = 300
 ERROR_CACHE_SECONDS = 90
-LIVE_MAX_FETCHES_PER_REQUEST = 1
+LIVE_MAX_FETCHES_PER_REQUEST = 6
 
 LIVE_MATCH_CACHE = {}
 _LAST_GOOD_FIXTURES = {}
