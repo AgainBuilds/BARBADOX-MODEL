@@ -1,3 +1,4 @@
+
 /*
  * BARBADOX LIVE-SCORE TRACKER
  *
@@ -637,7 +638,12 @@
 
 
     /*
-     * Grade only when all four legs map to four distinct finished fixtures.
+     * Grade slips using confirmed final scores.
+     *
+     * A single confirmed losing leg settles the entire slip as LOST.
+     * A slip is WON only when all four legs are confirmed winners.
+     * Fixture identity checks remain in place to prevent duplicate
+     * or ambiguous fixture matches from grading a slip.
      */
     function gradeCollection(slips) {
         if (!Array.isArray(slips)) {
@@ -687,37 +693,49 @@
                 continue;
             }
 
-            const everyFixtureFinished = matchedLegs.every(
-                item =>
-                    item.fixture
-                    && FINISHED.has(item.fixture.status)
-            );
+            const outcomes = matchedLegs.map(item => {
+                if (
+                    !item.fixture
+                    || !FINISHED.has(item.fixture.status)
+                ) {
+                    return null;
+                }
 
-            if (!everyFixtureFinished) {
-                continue;
-            }
-
-            const outcomes = matchedLegs.map(
-                item => getOutcome(item.leg, item.fixture)
-            );
-
-            if (outcomes.some(outcome => outcome === null)) {
-                continue;
-            }
-
-            matchedLegs.forEach(item => {
-                stampLeg(item.leg, item.fixture);
+                return getOutcome(item.leg, item.fixture);
             });
 
-            slip.status = outcomes.every(Boolean)
-                ? "WON"
-                : "LOST";
+            matchedLegs.forEach((item, index) => {
+                if (outcomes[index] !== null) {
+                    stampLeg(item.leg, item.fixture);
+                }
+            });
 
-            slip.gradedAt = new Date().toISOString();
-            slip.gradingSource = "FOOTBALL_DATA_ORG";
-            slip.autoGraded = true;
+            /*
+             * One confirmed losing leg is enough to lose
+             * the entire accumulator.
+             */
+            if (outcomes.some(outcome => outcome === false)) {
+                slip.status = "LOST";
+                slip.gradedAt = new Date().toISOString();
+                slip.gradingSource = "FOOTBALL_DATA_ORG";
+                slip.autoGraded = true;
 
-            changed = true;
+                changed = true;
+                continue;
+            }
+
+            /*
+             * All four selections must have confirmed final
+             * winning outcomes before the slip is marked WON.
+             */
+            if (outcomes.every(outcome => outcome === true)) {
+                slip.status = "WON";
+                slip.gradedAt = new Date().toISOString();
+                slip.gradingSource = "FOOTBALL_DATA_ORG";
+                slip.autoGraded = true;
+
+                changed = true;
+            }
         }
 
         return changed;
@@ -1021,7 +1039,7 @@
                 /* Capture confirmed final scores on the active tracker. */
                 const scoresChanged = captureScores();
 
-                /* Grade active slips only when all four fixtures are confirmed. */
+                /* Grade active slips using confirmed results. */
                 const trackerGraded = autoGradeSlips();
 
                 /* Capture and persist confirmed scores for archived slips. */
