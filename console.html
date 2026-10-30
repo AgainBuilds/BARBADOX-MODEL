@@ -391,32 +391,7 @@ button{cursor:pointer}
 .reason.r{color:var(--amber)}
 .reason.n{color:var(--dim2)}
 
-/* ---------- SLIPS TRACKER ---------- */
-
-.tracker-controls {
-  display:flex;gap:10px;flex-wrap:wrap;margin:16px 0;
-}
-
-.tracker-controls select {
-  background:var(--panel2);border:1px solid var(--line2);
-  color:var(--ink);border-radius:12px;padding:10px 14px;
-}
-
-.tracker-list {
-  display:flex;flex-direction:column;gap:14px;
-}
-
-.sliprow {
-  border:1px solid var(--line);
-  background:var(--panel2);
-  border-radius:18px;
-  padding:18px;
-}
-
-.sliprowhead {
-  display:flex;align-items:center;justify-content:space-between;
-  gap:10px;flex-wrap:wrap;margin-bottom:12px;
-}
+/* ---------- SLIP STATUS CHIPS (history + modal) ---------- */
 
 .chip {
   font-size:10px;font-weight:800;letter-spacing:.14em;
@@ -439,25 +414,6 @@ button{cursor:pointer}
 }
 
 .chip.VOID{color:var(--dim);background:rgba(139,150,184,.08);border:1px solid var(--line2)}
-
-.legs{font-size:12px;color:var(--dim);line-height:1.8}
-
-.slip-actions {
-  display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;
-}
-
-.smallbtn {
-  font-size:10px;font-weight:800;letter-spacing:.1em;
-  padding:7px 12px;border-radius:10px;
-  border:1px solid var(--line2);
-  background:transparent;color:var(--ink);
-  transition:all .15s;
-}
-
-.smallbtn.win{color:var(--green);border-color:rgba(61,255,158,.4)}
-.smallbtn.loss{color:var(--pink);border-color:rgba(255,61,113,.4)}
-.smallbtn.pending{color:var(--amber);border-color:rgba(255,177,61,.4)}
-.smallbtn:hover{background:rgba(255,255,255,.05)}
 
 /* ---------- HISTORY ---------- */
 
@@ -579,6 +535,8 @@ footer {
     <div class="actions" style="margin-top:0">
       <button id="btnRun" class="btn">▶ RUN MODEL</button>
       <button id="btnSlip" class="btn secondary">GENERATE SLIPS</button>
+      <a id="btnOpenTracker" class="btn secondary" href="/slips-tracker"
+         style="text-decoration:none">OPEN SLIPS TRACKER ↗</a>
     </div>
 
     <div id="runStatus" class="status">Idle. Nothing is loaded until you run the model or load the last snapshot.</div>
@@ -609,37 +567,6 @@ footer {
     <div id="under35Status" class="status"></div>
     <div id="under35Cards" class="cards"></div>
     <div id="under35Foot" class="muted" style="font-size:11px;margin-top:12px"></div>
-  </section>
-
-  <section class="panel">
-    <div class="panelhead">
-      <h2>SLIPS TRACKER <em>· LIVE SCORE TRACKING</em></h2>
-      <span class="tag" id="trackerTag">—</span>
-    </div>
-
-    <div class="kpis" id="trackerKpis"></div>
-
-    <div class="tracker-controls">
-      <select id="trackerFilter" aria-label="Filter slips">
-        <option value="ALL">ALL SLIPS</option>
-        <option value="PENDING">PENDING</option>
-        <option value="WON">HIT / WON</option>
-        <option value="LOST">FAILED / LOST</option>
-      </select>
-      <button id="exportTracker" class="btn secondary small">EXPORT CSV</button>
-      <button id="clearTracker" class="btn danger small">CLEAR TRACKER</button>
-    </div>
-
-    <div id="trackerList" class="tracker-list"></div>
-
-    <div class="status">
-      Slips are graded automatically only when all four fixtures are uniquely
-      matched, finished, and have confirmed scores — including slips that were
-      cleared from this tracker (they stay in the permanent archive and are
-      still graded there). Manual grading is disabled; confirmed full-time
-      scores settle slips automatically. Clearing this tracker never deletes
-      the archive.
-    </div>
   </section>
 
   <section class="panel">
@@ -723,23 +650,39 @@ let MARKET = 1.5;
 const UNDER_BAR = .60;
 
 /* -------------------------------------------------------
-   TRACKER STORAGE (shared contract with the JS modules)
+   PERMANENT SLIP ARCHIVE (server-side, shared with
+   /slips-tracker). New slips are reserved atomically by
+   the server via /api/slip-history/generate.
 ------------------------------------------------------- */
 
 const TRACK_KEY = "barbadox.slips.tracker.v1";
 
-function readTracker() {
-  try {
-    const v = JSON.parse(localStorage.getItem(TRACK_KEY) || "[]");
-    return Array.isArray(v) ? v : [];
-  } catch {
-    return [];
-  }
-}
+let archiveSlips = [];
 
-function saveTracker(rows) {
-  localStorage.setItem(TRACK_KEY, JSON.stringify(rows));
-  renderTracker();
+async function loadArchive() {
+  const r = await fetch("/api/slip-history", {cache:"no-store"});
+
+  if (!r.ok) {
+    throw Error("permanent archive returned HTTP " + r.status);
+  }
+
+  const data = await r.json();
+
+  if (!data.ok || !Array.isArray(data.slips)) {
+    throw Error("permanent archive response is invalid.");
+  }
+
+  archiveSlips = data.slips;
+
+  /* Optional localStorage mirror kept for backwards
+     compatibility with any device still running an old
+     cached script. The server CSV remains the source of
+     truth for the permanent archive. */
+  try {
+    localStorage.setItem(TRACK_KEY, JSON.stringify(archiveSlips));
+  } catch {}
+
+  return archiveSlips;
 }
 
 function normTeam(name) {
@@ -841,22 +784,13 @@ function qualifiedUnder(f, now = Date.now()) {
     isUpcoming(f, now);
 }
 
-/* Fixtures inside any unsettled slip are never reused. */
+/* Fixtures inside any unsettled (PENDING) archive slip are
+   never reused — same reservation rule as the server. */
 function pendingFixtureKeys() {
   const keys = new Set();
 
-  readTracker().forEach(slip => {
-    const status = String(slip.status || "PENDING").toUpperCase();
-
-    const settled =
-      (status === "HIT" || status === "HIT / WON" || status === "WON") &&
-      slip.autoGraded === true;
-
-    const failed =
-      status === "FAILED" || status === "FAILED / LOST" ||
-      status === "MISS" || status === "LOST";
-
-    if (settled || failed) return;
+  archiveSlips.forEach(slip => {
+    if (String(slip.status || "PENDING").toUpperCase() !== "PENDING") return;
 
     (slip.legs || []).forEach(leg => keys.add(fixtureKey(leg)));
   });
@@ -1068,127 +1002,9 @@ function renderHistory() {
 }
 
 /* -------------------------------------------------------
-   SLIPS TRACKER
+   SLIP GENERATION (saved straight to the permanent archive)
    Live scores, leg scores and archive grading are handled
-   by live_scores.js; this renders the slip shells + grading.
-------------------------------------------------------- */
-
-function renderTracker() {
-  const all = readTracker();
-  const filter = $("trackerFilter").value;
-
-  const rows = all.filter(s => filter === "ALL" || s.status === filter);
-
-  const won = all.filter(s => s.status === "WON").length;
-  const lost = all.filter(s => s.status === "LOST").length;
-  const pend = all.filter(s => s.status === "PENDING").length;
-  const graded = won + lost;
-
-  $("trackerTag").textContent = all.length + " SLIP(S)";
-
-  $("trackerKpis").innerHTML = `
-    <div class="kpi"><strong>${all.length}</strong><span>SLIPS GENERATED</span></div>
-    <div class="kpi"><strong>${won}</strong><span>HIT / WON</span></div>
-    <div class="kpi"><strong>${lost}</strong><span>FAILED / LOST</span></div>
-    <div class="kpi"><strong>${pend}</strong><span>PENDING</span></div>
-    <div class="kpi"><strong>${graded ? pct(won / graded) : "—"}</strong><span>GRADED HIT RATE</span></div>`;
-
-  $("trackerList").innerHTML = rows.map(s => {
-    const legs = Array.isArray(s.legs) ? s.legs : [];
-
-    return `
-      <article class="sliprow">
-        <div class="sliprowhead">
-          <strong>SLIP #${esc(s.number)} · ${esc(s.createdAt)}</strong>
-          <span class="chip ${
-            s.status === "WON" ? "hit" :
-            s.status === "LOST" ? "miss" : "pending"
-          }">${
-            s.status === "WON" ? "HIT / WON" :
-            s.status === "LOST" ? "FAILED / LOST" : "PENDING"
-          }</span>
-        </div>
-
-        <div class="legs">
-          ${legs.map((l, i) => `
-            <div>
-              ${i + 1}. ${esc(l.home)} vs ${esc(l.away)}
-              — ${esc(l.market)} (${pct(l.probability)})
-              ${l.liveScore ? " · " + esc(l.liveScore) : ""}
-              ${l.result === "WON" ? " · LEG WON" :
-                l.result === "LOST" ? " · LEG LOST" : ""}
-            </div>
-          `).join("")}
-        </div>
-
-        ${
-          s.gradedAt
-            ? `<div class="status ${s.autoGraded ? "ok" : "warn"}" style="margin-top:8px">
-                 Graded ${esc(s.gradedAt)} · ${s.autoGraded ? "AUTOMATIC" : "MANUAL"}
-               </div>`
-            : ""
-        }
-      </article>`;
-  }).join("") ||
-    '<div class="empty">No slips here yet. Tap GENERATE SLIPS to build and save slips.</div>';
-}
-
-$("trackerFilter").addEventListener("change", renderTracker);
-
-$("clearTracker").addEventListener("click", () => {
-  if (!confirm(
-    "Clear the active slips tracker? The permanent slips history stays archived and keeps being graded there."
-  )) {
-    return;
-  }
-
-  saveTracker([]);
-});
-
-/* CSV export */
-
-$("exportTracker").addEventListener("click", () => {
-  const rows = readTracker();
-
-  const head = ["number","createdAt","status","gradedAt","autoGraded","legs"];
-
-  const csv = [
-    head.join(","),
-
-    ...rows.map(s => {
-      const legs = Array.isArray(s.legs)
-        ? s.legs.map(l =>
-            l.home + " vs " + l.away + " (" + l.market + ")" +
-            (l.liveScore ? " [" + l.liveScore + "]" : "")
-          ).join(" | ")
-        : "";
-
-      return [
-        s.number, s.createdAt, s.status, s.gradedAt || "",
-        s.autoGraded ? "YES" : "NO", legs
-      ].map(v =>
-        '"' + String(v ?? "").replace(/"/g, '""') + '"'
-      ).join(",");
-    })
-  ].join("\r\n");
-
-  const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
-
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-
-  a.href = url;
-  a.download = "barbadox-slips-tracker.csv";
-
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-});
-
-/* -------------------------------------------------------
-   SLIP GENERATION (with full diagnostics)
+   by live_scores.js and the /slips-tracker page.
 ------------------------------------------------------- */
 
 /* Explain exactly why a fixture is unusable, so
@@ -1321,20 +1137,41 @@ function renderDiag(diag) {
     </div>`;
 }
 
+function renderSavedSlip(slip) {
+  const legs = Array.isArray(slip.legs) ? slip.legs : [];
+
+  return `
+    <article class="card">
+      <div class="league">
+        <span>SLIP #${esc(slip.number)} · 4 MATCHES</span>
+        <span class="reason q">SAVED</span>
+      </div>
+
+      ${legs.map(l => `
+        <div class="teams" style="font-size:13.5px;margin-top:9px">
+          ${esc(l.home)} <span class="vs">VS</span> ${esc(l.away)}
+        </div>
+        <div class="meta">
+          <span class="market-chip ${
+            String(l.market || "").toUpperCase().includes("UNDER") ? "u" : ""
+          }">${esc(l.market)}</span>
+          <span>${pct(l.probability)}</span>
+        </div>
+      `).join("")}
+    </article>`;
+}
+
 async function generateSlips() {
   $("slipModal").style.display = "block";
 
   $("slipCards").innerHTML =
     '<div class="empty skeleton" style="height:120px">Building slips…</div>';
 
-  $("slipStatus").textContent = "";
-  $("slipDiag").innerHTML = "";
+  $("slipStatus").className = "status";
+  $("slipStatus").textContent =
+    "Checking the permanent archive and reserving fixtures…";
 
-  if (!underSnap) {
-    try {
-      underSnap = await api("/api/under35");
-    } catch {}
-  }
+  $("slipDiag").innerHTML = "";
 
   if (!snap) {
     $("slipCards").innerHTML =
@@ -1342,143 +1179,156 @@ async function generateSlips() {
     return;
   }
 
-  const {list, overFree, underFree} = buildSlips();
-  const diag = slipDiagnostics();
-
-  $("slipDiag").innerHTML = renderDiag(diag);
-
-  if (!list.length) {
-    $("slipCards").innerHTML = `
-      <div class="empty">
-        No complete slip can be made right now.<br>
-        Each slip needs 3 free Core 1 Over picks + 1 free Core 2 Under pick,
-        all upcoming and starting within one week of each other.
-      </div>`;
-
-    const hints = [];
-
-    if (diag.over.used > 0 && diag.over.free === 0) {
-      hints.push(
-        "Every qualified Over pick is already sitting in one of your pending " +
-        "slips. A fixture is never placed in two unsettled slips — that is the " +
-        "model's protection against one wrong match sinking several slips. " +
-        "Once those slips are graded (automatically after the matches finish) " +
-        "their fixtures are released."
-      );
-    }
-
-    if (diag.over.nokickoff > 0) {
-      hints.push(
-        diag.over.nokickoff + " qualified pick(s) carry no kickoff timestamp " +
-        "and can never enter a slip — the model never guesses whether a " +
-        "match has started."
-      );
-    }
-
-    if (overFree >= 3 && underFree === 0) {
-      hints.push(
-        "There are Over picks available, but no free Under 3.5 pick inside " +
-        "their one-week window. Slip building stops instead of padding."
-      );
-    }
-
-    if (!snap) {
-      hints.push("Core 1 data is not loaded.");
-    }
-
-    $("slipStatus").innerHTML =
-      `0 slips generated · ${overFree} free Over picks · ` +
-      `${underFree} free Under picks.` +
-      (hints.length
-        ? `<div class="diag-hint">${hints.map(esc).join("<br><br>")}</div>`
-        : "");
-
-    return;
+  if (!underSnap) {
+    try {
+      underSnap = await api("/api/under35");
+    } catch {}
   }
 
-  const saved = readTracker();
-  const now = new Date().toISOString();
+  try {
+    try {
+      await loadArchive();
+    } catch (e) {
+      $("slipCards").innerHTML =
+        '<div class="empty">The permanent archive could not be reached (' +
+        esc(e.message) + '). No slips were created — the archive was not bypassed.</div>';
+      $("slipStatus").className = "status err";
+      return;
+    }
 
-  const additions = list.map((s, i) => ({
-    id: Date.now() + "-" + i + "-" + Math.random().toString(36).slice(2, 8),
+    const {list, overFree, underFree} = buildSlips();
+    const diag = slipDiagnostics();
 
-    number: saved.length + i + 1,
+    $("slipDiag").innerHTML = renderDiag(diag);
 
-    createdAt: now.slice(0, 16).replace("T", " ") + " UTC",
+    if (!list.length) {
+      $("slipCards").innerHTML = `
+        <div class="empty">
+          No complete slip can be made right now.<br>
+          Each slip needs 3 free Core 1 Over picks + 1 free Core 2 Under pick,
+          all upcoming and starting within one week of each other.
+        </div>`;
 
-    status: "PENDING",
-    gradedAt: null,
-    autoGraded: false,
+      const hints = [];
 
-    legs: [
-      ...s.over.map(f => ({
-        home: f.home,
-        away: f.away,
-        date: f.date,
-        league: f.league,
-        market: "OVER " + MARKET,
-        probability: overProb(f),
-        kickoff: kickoffIso(f)
-      })),
-
-      {
-        home: s.under.home,
-        away: s.under.away,
-        date: s.under.date,
-        league: s.under.league,
-        market: "UNDER 3.5",
-        probability: s.under.p_final,
-        kickoff: kickoffIso(s.under)
+      if (diag.over.used > 0 && diag.over.free === 0) {
+        hints.push(
+          "Every qualified Over pick is already sitting in one of your pending " +
+          "slips in the permanent archive. A fixture is never placed in two " +
+          "unsettled slips. Once those slips are graded automatically after " +
+          "the matches finish, their fixtures are released."
+        );
       }
-    ]
-  }));
 
-  const signature = x =>
-    x.legs.map(l => [l.date, l.home, l.away, l.market].join("|")).join("::");
+      if (diag.over.nokickoff > 0) {
+        hints.push(
+          diag.over.nokickoff + " qualified pick(s) carry no kickoff timestamp " +
+          "and can never enter a slip — the model never guesses whether a " +
+          "match has started."
+        );
+      }
 
-  const known = new Set(saved.map(signature));
+      if (overFree >= 3 && underFree === 0) {
+        hints.push(
+          "There are Over picks available, but no free Under 3.5 pick inside " +
+          "their one-week window. Slip building stops instead of padding."
+        );
+      }
 
-  const fresh = additions.filter(s => !known.has(signature(s)));
+      $("slipStatus").innerHTML =
+        `0 slips generated · ${overFree} free Over picks · ` +
+        `${underFree} free Under picks.` +
+        (hints.length
+          ? `<div class="diag-hint">${hints.map(esc).join("<br><br>")}</div>`
+          : "");
 
-  const nextNumber = saved.reduce(
-    (max, s) => Math.max(max, Number(s.number) || 0),
-    0
-  );
+      return;
+    }
 
-  fresh.forEach((s, i) => {
-    s.number = nextNumber + i + 1;
-  });
+    const createdAt = new Date().toISOString();
 
-  saveTracker([...saved, ...fresh]);
+    const candidates = list.map(item => ({
+      createdAt,
+      status: "PENDING",
+      autoGraded: false,
 
-  $("slipCards").innerHTML = list.map((s, i) => `
-    <article class="card">
-      <div class="league"><span>SLIP ${i + 1} · 4 MATCHES</span>
-        <span class="reason q">SAVED</span></div>
+      legs: [
+        ...item.over.map(f => ({
+          home: f.home,
+          away: f.away,
+          date: f.date,
+          league: f.league,
+          market: "OVER " + MARKET,
+          probability: overProb(f),
+          kickoff: kickoffIso(f),
+          footballDataId: f.id ?? f.fixture_id ?? f.match_id ?? null
+        })),
 
-      ${s.over.map(f => `
-        <div class="teams" style="font-size:13.5px">
-          ${esc(f.home)} <span class="vs">VS</span> ${esc(f.away)}
-        </div>
-        <div class="meta">
-          <span class="market-chip">OVER ${MARKET}</span>
-          <span>${pct(overProb(f))}</span>
-        </div>
-      `).join("")}
+        {
+          home: item.under.home,
+          away: item.under.away,
+          date: item.under.date,
+          league: item.under.league,
+          market: "UNDER 3.5",
+          probability: Number(item.under.p_final),
+          kickoff: kickoffIso(item.under),
+          footballDataId: item.under.id ?? item.under.fixture_id ?? item.under.match_id ?? null
+        }
+      ]
+    }));
 
-      <div class="teams" style="font-size:13.5px;margin-top:10px">
-        ${esc(s.under.home)} <span class="vs">VS</span> ${esc(s.under.away)}
-      </div>
-      <div class="meta">
-        <span class="market-chip u">UNDER 3.5</span>
-        <span>${pct(s.under.p_final)}</span>
-      </div>
-    </article>
-  `).join("");
+    const r = await fetch("/api/slip-history/generate", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({slips: candidates})
+    });
 
-  $("slipStatus").textContent =
-    list.length + " slip(s) built: 3 Over 1.5 + 1 Under 3.5 each. " +
-    fresh.length + " new record(s) added to the tracker.";
+    if (!r.ok) {
+      throw Error("server rejected the generation request (HTTP " + r.status + ")");
+    }
+
+    const saved = await r.json();
+
+    if (!saved.ok) {
+      throw Error(saved.error || "The server could not reserve these slips.");
+    }
+
+    const accepted = Array.isArray(saved.accepted) ? saved.accepted : [];
+    const rejected = Array.isArray(saved.rejected) ? saved.rejected : [];
+
+    $("slipCards").innerHTML = accepted.length
+      ? accepted.map(renderSavedSlip).join("")
+      : `<div class="empty">
+          No new slip was accepted. ${rejected.length} candidate(s) were blocked
+          because their fixtures are reserved by an unsettled slip or the exact
+          combination already exists in the permanent archive.<br>
+          Open the slips tracker to follow your existing slips.
+        </div>`;
+
+    $("slipStatus").textContent =
+      (accepted.length
+        ? accepted.length + " new slip(s) saved to the permanent archive with " +
+          "server-assigned numbers. " + rejected.length +
+          " duplicate or conflicting candidate(s) were skipped."
+        : "No new slip was created.") +
+      " Grading is automatic once all four legs finish. " +
+      "Visit OPEN SLIPS TRACKER to view playable, ongoing, won and lost slips with live scores.";
+
+    if (saved.backupStatus && !/backed up to github/i.test(saved.backupStatus)) {
+      $("slipStatus").textContent += " Archive backup: " + saved.backupStatus;
+    }
+
+    /* Re-sync so pending fixtures stay reserved and the
+       localStorage mirror used by live_scores.js is fresh. */
+    loadArchive().catch(() => {});
+
+  } catch (error) {
+    $("slipCards").innerHTML =
+      '<div class="empty">No new slips were created. The archive was not bypassed.</div>';
+
+    $("slipStatus").textContent = error.message || "Slip generation failed.";
+    $("slipStatus").className = "status err";
+  }
 }
 
 $("btnSlip").addEventListener("click", generateSlips);
@@ -1529,7 +1379,8 @@ async function refreshData() {
   renderCore2();
   renderPerformance();
   renderHistory();
-  renderTracker();
+
+  loadArchive().catch(() => {});
 }
 
 function enterDashboard() {
@@ -1640,78 +1491,17 @@ $("gateLoad").addEventListener("click", async () => {
 
   try {
     await refreshData();
-    await refreshLiveScores();
-    startLivePolling();
   } catch (e) {
     setStatus("Load failed: " + e.message, "err");
   }
 });
 
 /* -------------------------------------------------------
-   LIVE-SCORE POLLING (server cache respected)
-   Matching, score capture, slip + archive grading live in
-   live_scores.js — the client just paces the requests.
-------------------------------------------------------- */
-
-let liveTimer = null;
-let livePollMs = 300000;
-const LIVE_MIN = 120000;
-const LIVE_MAX = 3600000;
-
-function scheduleLive(ms) {
-  if (liveTimer) clearInterval(liveTimer);
-
-  livePollMs = Math.max(LIVE_MIN, Math.min(LIVE_MAX, Number(ms) || 300000));
-
-  liveTimer = setInterval(refreshLiveScores, livePollMs);
-}
-
-async function refreshLiveScores() {
-  try {
-    const r = await fetch("/api/live-scores", {cache:"no-store"});
-    let data = null;
-
-    try {
-      data = await r.json();
-    } catch {}
-
-    const cacheSec = data && Number(data.cacheSeconds);
-
-    if (data && data.ok === true) {
-      if (Number.isFinite(cacheSec) && cacheSec > 0) {
-        scheduleLive(Math.max(LIVE_MIN, cacheSec * 1000));
-      }
-    } else if (
-      data &&
-      (data.rateLimited ||
-       /limit|quota|rate/i.test(String(data.error || data.message || "")))
-    ) {
-      scheduleLive(
-        Number.isFinite(cacheSec)
-          ? cacheSec * 1000
-          : Math.min(LIVE_MAX, livePollMs * 2)
-      );
-    }
-
-    /* live_scores.js reads the feed itself and updates the
-       tracker, the archive and the displayed legs. */
-
-  } catch {
-    scheduleLive(Math.min(LIVE_MAX, livePollMs * 2));
-  }
-}
-
-function startLivePolling() {
-  refreshLiveScores();
-  scheduleLive(livePollMs);
-}
-
-/* -------------------------------------------------------
    INIT — nothing loads until the owner acts
 ------------------------------------------------------- */
 
 (async function init() {
-  renderTracker();
+  loadArchive().catch(() => {});
 
   try {
     const s = await api("/api/status");
@@ -1759,12 +1549,6 @@ function startLivePolling() {
   }
 })();
 </script>
-
-<!-- Permanent archive: SLIPS HISTORY button + server sync -->
-<script src="/slips_history.js"></script>
-
-<!-- Live scores: leg scores, tracker + ARCHIVE auto-grading -->
-<script src="/live_scores.js"></script>
 
 </body>
 </html>
