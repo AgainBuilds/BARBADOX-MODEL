@@ -19,9 +19,6 @@ live_scores_bp = Blueprint("barbadox_live_scores", __name__)
 FOOTBALL_DATA_URL = "https://api.football-data.org/v4/matches"
 LIVE_COMPETITIONS = "PL,PD,FL1,BL1,SA"
 
-# One API fetch per browser poll. Current week: near-live refresh. Historical
-# weeks are revisited too, but less often, so missing old results can catch up
-# without spending a live-match request budget on every old date.
 LIVE_CACHE_SECONDS = 45
 HISTORY_CACHE_SECONDS = 900
 UPCOMING_CACHE_SECONDS = 300
@@ -112,11 +109,6 @@ def _football_fixture(match, refreshed_at=None):
             if ht_home is not None and ht_away is not None:
                 home_score, away_score = ht_home, ht_away
 
-    # football-data.org documents fullTime as the running score and sets it
-    # to 0-0 when a match enters IN_PLAY. Keep this explicit fallback for
-    # provider responses that omit the pair, but never show 0-0 for a fixture
-    # that has not started. A full-time status alone is NOT enough to grade:
-    # the provider must also return a complete final score pair.
     provisional = False
     if state == "LIVE" and (home_score is None or away_score is None):
         home_score, away_score = 0, 0
@@ -174,8 +166,7 @@ def _merge_fixture(new, old):
     for key, value in new.items():
         if value is not None and value != "":
             merged[key] = value
-    # A provider can temporarily omit its score node while still returning
-    # the same fixture. Keep the last populated score pair in that case.
+
     if old.get("homeScore") is not None and old.get("awayScore") is not None:
         if (
             new.get("homeScore") is None
@@ -185,10 +176,9 @@ def _merge_fixture(new, old):
             merged["homeScore"] = old["homeScore"]
             merged["awayScore"] = old["awayScore"]
             merged["scoreProvisional"] = old.get("scoreProvisional", False)
+
     old_state = str(old.get("state") or "UNKNOWN").upper()
     new_state = str(new.get("state") or "UNKNOWN").upper()
-    # A stale provider response must not move a fixture backwards from
-    # in-play/finished to scheduled or unknown. Terminal scores remain final.
     if (
         old_state == "FINISHED" and new_state != "FINISHED"
     ) or (
@@ -199,10 +189,9 @@ def _merge_fixture(new, old):
     elif old_state != "UNKNOWN" and new_state == "UNKNOWN":
         for key in ("status", "statusCode", "providerStatus", "statusText", "state"):
             merged[key] = old.get(key)
-    # A confirmed final pair cannot be downgraded by an incomplete response.
+
     if old.get("scoreFinalConfirmed") is True and new.get("scoreFinalConfirmed") is not True:
         merged["scoreFinalConfirmed"] = True
-    # A provisional 0-0 must be replaced by any later real provider score.
     if new.get("scoreProvisional") is False:
         merged["scoreProvisional"] = False
     merged["scoreUnconfirmed"] = (
@@ -345,7 +334,6 @@ def live_scores():
             for fixture in cached.get("fixtures", []):
                 ident = str(fixture.get("id") or "")
                 if ident:
-                    # Last good global version wins over an older week copy.
                     fixture = _LAST_GOOD_FIXTURES.get(ident, fixture)
                     fixtures_by_id[ident] = _merge_fixture(
                         fixture, fixtures_by_id.get(ident)
