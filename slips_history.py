@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""BARBADOX permanent slip archive and dedicated tracker routes.
-
-The CSV archive is authoritative. Generation is atomic, IDs/numbers are
-server-assigned, fixture reuse is blocked across unsettled slips, and an
-identical four-leg combination can never be inserted a second time even
-when its earlier record has settled.
-"""
+"""BARBADOX permanent slip archive and dedicated tracker routes."""
 
 import csv
 import hashlib
@@ -79,8 +73,6 @@ def _should_keep(existing, incoming):
     new_status = str(incoming.get("status") or "PENDING").upper()
     if _is_graded(old_status) and not _is_graded(new_status):
         return True
-    # A settled accumulator is immutable. In particular, LOST cannot later
-    # become WON just because another browser copy was stale or incomplete.
     if _is_graded(old_status) and _is_graded(new_status):
         return True
     return False
@@ -103,9 +95,6 @@ def _merge_leg_scores(existing, incoming):
         old_result = str(old_leg.get("result") or "PENDING").upper()
         incoming_result = str(new_leg.get("result") or "PENDING").upper()
         if old_result in {"WON", "LOST"}:
-            # A final leg never reopens because of a later stale/live feed.
-            # Keep its original score/status unless a confirmed final update
-            # agrees with its already-recorded outcome.
             incoming_is_final = str(new_leg.get("fixtureState") or "").upper() == "FINISHED"
             outcome_agrees = incoming_result == old_result
             if not incoming_is_final or not outcome_agrees:
@@ -187,10 +176,12 @@ def _normalize(slip):
 
 
 def _derived_settlement(legs):
-    """Derive accumulator settlement from independently confirmed leg results."""
     if not isinstance(legs, list) or len(legs) != 4:
         return None
-    results = [str(leg.get("result") or "PENDING").upper() for leg in legs if isinstance(leg, dict)]
+    results = [
+        str(leg.get("result") or "PENDING").upper()
+        for leg in legs if isinstance(leg, dict)
+    ]
     if len(results) != 4:
         return None
     if "LOST" in results:
@@ -455,8 +446,6 @@ def generate_history_slips():
                 })
                 continue
 
-            # Deterministic server ID: the same four selections always resolve
-            # to the same ID, even after a prior record has been settled.
             record = _normalize(candidate)
             record["id"] = "slip-" + signature[:24]
             record["number"] = next_number
