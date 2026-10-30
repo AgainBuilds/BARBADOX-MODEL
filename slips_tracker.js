@@ -1,4 +1,10 @@
-/* BARBADOX dedicated slips tracker. The server CSV is the source of truth. */
+/* BARBADOX dedicated slips tracker. The server CSV is the source of truth.
+ *
+ * October 2026 fix: tolerant fixture matching. Near-exact club names
+ * (both team similarities >= 0.9) tolerate +/- 2 days of kickoff drift,
+ * all other accepted matches require +/- 1 day. Ambiguous matches are
+ * rejected and never graded.
+ */
 (() => {
   "use strict";
 
@@ -7,6 +13,9 @@
   const LIVE = new Set(["LIVE", "HT", "ET", "P"]);
   const VOID_OR_DELAYED = new Set(["PST", "CANC", "SUSP", "ABD"]);
   const POLL_MS = 25000;
+  const MATCH_THRESHOLD = 0.62;
+  const NEAR_EXACT = 0.9;
+  const AMBIGUITY_MARGIN = 0.02;
   let archive = [];
   let activeView = "ALL";
   let pollBusy = false;
@@ -29,6 +38,37 @@
       .toLowerCase().replace(/&/g, " and ")
       .replace(/\b(football club|soccer club|football|calcio|fc|sc|afc|cf|ac|ssc|club)\b/g, " ")
       .replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
+  }
+
+  /* Word-prefix equivalence: two tokens count as the same word when
+     one is at least 4 characters and the other starts with it (or
+     vice versa), so "manchester" ~ "manchester utd" style variants
+     survive provider naming drift. */
+  function tokenMatches(a, b) {
+    if (a === b) return true;
+    if (a.length >= 4 && b.startsWith(a)) return true;
+    if (b.length >= 4 && a.startsWith(b)) return true;
+    return false;
+  }
+
+  function similarity(a, b) {
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+
+    const at = a.split(" ");
+    const bt = b.split(" ");
+
+    let matched = 0;
+    for (const token of at) {
+      if (bt.some(other => tokenMatches(token, other))) matched++;
+    }
+
+    const shorter = Math.min(at.length, bt.length);
+    const longer = Math.max(at.length, bt.length);
+    if (matched === shorter && shorter > 0) return 0.9;
+    if (matched === 0) return 0;
+
+    return matched / longer;
   }
 
   function dayDiff(a, b) {
@@ -64,7 +104,12 @@
     }).format(new Date(stamp)) + " WAT";
   }
 
-  function fixtureForLeg(leg, fixtures) {
+  /* Tolerant matcher (October 2026):
+     - provider fixture ID wins when unique;
+     - near-exact names (both >= 0.9) tolerate +/- 2 days drift;
+     - other accepted matches (both >= 0.62) require +/- 1 day;
+     - ambiguous candidates are rejected — never graded. */
+  function matchFixture(leg, fixtures) {
     const savedId = leg.footballDataId ?? leg.fixtureId ?? leg.providerId;
     if (savedId != null && savedId !== "") {
       const byId = fixtures.filter(f => String(f.id ?? f.providerId) === String(savedId));
@@ -75,19 +120,35 @@
     const away = teamKey(leg.away);
     if (!home || !away || !leg.date) return null;
 
-    const candidates = fixtures.filter(f =>
-      teamKey(f.home) === home &&
-      teamKey(f.away) === away &&
-      dayDiff(leg.date, f.date) <= 1
-    );
+    const candidates = [];
+    for (const fixture of fixtures) {
+      const homeScore = similarity(home, teamKey(fixture.home));
+      const awayScore = similarity(away, teamKey(fixture.away));
+      if (homeScore < MATCH_THRESHOLD || awayScore < MATCH_THRESHOLD) continue;
 
-    if (candidates.length !== 1) return null;
-    const candidate = candidates[0];
-    const legKickoff = kickoffMs(leg);
-    if (Number.isFinite(legKickoff) && Number.isFinite(candidate.timestamp)) {
-      if (Math.abs(legKickoff - Number(candidate.timestamp) * 1000) > 36 * 3600000) return null;
+      const nearExact = homeScore >= NEAR_EXACT && awayScore >= NEAR_EXACT;
+      const maxDrift = nearExact ? 2 : 1;
+      const drift = dayDiff(leg.date, fixture.date);
+      if (drift > maxDrift) continue;
+
+      const legKickoff = kickoffMs(leg);
+      if (Number.isFinite(legKickoff) && Number.isFinite(fixture.timestamp)) {
+        if (Math.abs(legKickoff - Number(fixture.timestamp) * 1000) > (maxDrift + 0.5) * 86400000) continue;
+      }
+
+      candidates.push({
+        fixture,
+        score: Math.min(homeScore, awayScore)
+      });
     }
-    return candidate;
+
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => b.score - a.score);
+    if (candidates.length > 1 &&
+        candidates[0].score - candidates[1].score < AMBIGUITY_MARGIN) {
+      return null;
+    }
+    return candidates[0].fixture;
   }
 
   function displayStatus(fixture) {
@@ -185,7 +246,7 @@
     let changed = false;
     for (const slip of slips) {
       if (!Array.isArray(slip.legs)) continue;
-      const matches = slip.legs.map(leg => ({ leg, fixture: fixtureForLeg(leg, fixtures) }));
+      const matches = slip.legs.map(leg => ({ leg, fixture: matchFixture(leg, fixtures) }));
       const ids = new Map();
       for (const item of matches) {
         if (!item.fixture) continue;
@@ -312,7 +373,7 @@
         <div class="meta"><span class="market ${market.includes("UNDER") ? "under" : ""}">${esc(market)}</span> · ${esc(pct(leg.probability))}</div></div>
       <div class="meta">${esc(formatKickoff(kickoff))}<br>${esc(status)}</div>
       <div class="score ${scoreClass}">${esc(scoreForLeg(leg))}</div>
-      <div class="leg-status"><span>${scoreNote}</span><span class="refresh">LAST REFRESH: ${esc(lastRefresh)}</span></div>
+      <div class="leg-status"><span>${esc(scoreNote)}</span><span class="refresh">LAST REFRESH: ${esc(lastRefresh)}</span></div>
     </div>`;
   }
 
@@ -419,7 +480,7 @@
       $("trackerNotice").textContent = notes.length
         ? notes.join(" · ")
         : dates.length
-          ? `Updated ${formatRefresh(feed.updatedAt || new Date().toISOString())}. Scores are matched by provider fixture ID or exact club names; ambiguous matches are never graded.`
+          ? `Updated ${formatRefresh(feed.updatedAt || new Date().toISOString())}. Scores are matched by provider fixture ID or tolerant club-name matching; ambiguous matches are never graded.`
           : "All archived legs are settled. Live-score requests are paused to conserve the provider quota.";
       $("trackerNotice").classList.toggle("error", feed.configured === false);
       render();
