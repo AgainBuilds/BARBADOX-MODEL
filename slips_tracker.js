@@ -4,6 +4,11 @@
  * (both team similarities >= 0.9) tolerate +/- 2 days of kickoff drift,
  * all other accepted matches require +/- 1 day. Ambiguous matches are
  * rejected and never graded.
+ *
+ * October 2026 settlement-integrity fix: a leg whose scheduled kickoff is
+ * still in the future can never receive a score, a status, or a grade.
+ * This stops finished fixtures from wrong-match binding onto not-yet-
+ * played legs (e.g. a "FULL TIME 5-2" stamped on a leg dated tomorrow).
  */
 (() => {
   "use strict";
@@ -85,6 +90,12 @@
     return Number.isFinite(stamp) ? stamp : NaN;
   }
 
+  /* A leg that has not kicked off yet cannot have a score or a result. */
+  function legNotYetKickedOff(leg) {
+    const kick = kickoffMs(leg);
+    return Number.isFinite(kick) && kick > Date.now() + 3600000;
+  }
+
   function formatKickoff(value) {
     if (!value) return "Kickoff unavailable";
     const stamp = Date.parse(value);
@@ -108,12 +119,19 @@
      - provider fixture ID wins when unique;
      - near-exact names (both >= 0.9) tolerate +/- 2 days drift;
      - other accepted matches (both >= 0.62) require +/- 1 day;
-     - ambiguous candidates are rejected — never graded. */
+     - ambiguous matches are rejected — never graded;
+     - a finished/live fixture is never bound to a future-kickoff leg. */
   function matchFixture(leg, fixtures) {
     const savedId = leg.footballDataId ?? leg.fixtureId ?? leg.providerId;
     if (savedId != null && savedId !== "") {
       const byId = fixtures.filter(f => String(f.id ?? f.providerId) === String(savedId));
-      return byId.length === 1 ? byId[0] : null;
+      if (byId.length !== 1) return null;
+      /* Future-kickoff safety net for the saved-ID path too. */
+      if (legNotYetKickedOff(leg) &&
+          ["FINISHED", "LIVE"].includes(fixtureState(byId[0]))) {
+        return null;
+      }
+      return byId[0];
     }
 
     const home = teamKey(leg.home);
@@ -148,7 +166,15 @@
         candidates[0].score - candidates[1].score < AMBIGUITY_MARGIN) {
       return null;
     }
-    return candidates[0].fixture;
+    /* Never bind a finished/live fixture to a leg whose scheduled kickoff
+       is still in the future: that is a wrong fixture (schedule data
+       mismatch), not this match. */
+    const chosen = candidates[0].fixture;
+    if (legNotYetKickedOff(leg) &&
+        ["FINISHED", "LIVE"].includes(fixtureState(chosen))) {
+      return null;
+    }
+    return chosen;
   }
 
   function displayStatus(fixture) {
@@ -184,6 +210,10 @@
   }
 
   function stampLeg(leg, fixture) {
+    /* Future-kickoff safety net: nothing may be stamped on a leg whose
+       scheduled kickoff is still more than an hour away. */
+    if (legNotYetKickedOff(leg)) return false;
+
     const priorResult = String(leg.result || "PENDING").toUpperCase();
     if (priorResult === "WON" || priorResult === "LOST") {
       const refreshedOutcome = marketOutcome(leg, fixture);
