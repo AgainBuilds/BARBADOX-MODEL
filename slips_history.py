@@ -5,6 +5,10 @@ October 2026 settlement-integrity fix: every WON/LOST grade is verified
 on read, on merge, and at boot. A grade is kept only when it is
 auto-graded, timestamped after the last leg kickoff, and re-derivable
 from the stored leg results. Manual grading is fully disabled.
+
+October 31, 2026 archive cleanup: at boot the archive merges exact
+duplicate slips and renumbers all slips 1..N in creation order, because
+old generation batches restarted the slip counter on every run.
 """
 
 import csv
@@ -151,6 +155,64 @@ def _startup_sanitize():
             print("Settlement sanitizer: server CSV purged of bogus grades at boot.")
     except Exception as exc:
         print("Settlement sanitizer failed at boot: " + str(exc))
+
+
+def _slip_order_key(row):
+    """Deterministic archive order: creation time, then archived time, then id."""
+    created = _parse_utc(row.get("created_at"))
+    return (
+        created.isoformat() if created else "9999-12-31T00:00:00+00:00",
+        str(row.get("created_at") or ""),
+        str(row.get("archived_at") or ""),
+        str(row.get("id") or ""),
+    )
+
+
+def _startup_renumber():
+    """Boot-time archive cleanup (October 31, 2026):
+
+    1. Exact-duplicate slips (same four-leg signature) generated twice by
+       old batches are merged into a single record; a graded duplicate
+       passes its grade to the keeper.
+    2. All slips are renumbered 1..N in creation order. Old generation
+       batches restarted the counter at 1 on every run, so the archive
+       held up to three different slips all numbered "8".
+    Idempotent: when nothing changes, nothing is written.
+    """
+    try:
+        rows = _read_rows_unsanitized()
+        seen = {}
+        deduped = []
+        removed = 0
+        for row in rows:
+            signature = _slip_signature(row.get("legs"))
+            if signature and signature in seen:
+                keeper = seen[signature]
+                if not _is_graded(keeper.get("status")) and _is_graded(row.get("status")):
+                    keeper["status"] = str(row.get("status") or "").upper()
+                    keeper["graded_at"] = row.get("graded_at") or ""
+                    keeper["auto_graded"] = row.get("auto_graded") or "YES"
+                removed += 1
+                continue
+            if signature:
+                seen[signature] = row
+            deduped.append(row)
+
+        ordered = sorted(deduped, key=_slip_order_key)
+        renumbered = False
+        for index, row in enumerate(ordered, 1):
+            if str(row.get("number") or "") != str(index):
+                row["number"] = str(index)
+                renumbered = True
+
+        if removed or renumbered:
+            _write_rows(ordered)
+            print(
+                "Archive cleanup: merged " + str(removed)
+                + " exact duplicate slip(s), renumbered 1.." + str(len(ordered)) + "."
+            )
+    except Exception as exc:
+        print("Archive cleanup failed at boot: " + str(exc))
 
 
 def _read_rows_unsanitized():
@@ -440,10 +502,13 @@ def _startup_restore():
         print("Could not restore slips history: " + str(exc))
 
 
+_startup_restore()
+
+
 _startup_sanitize()
 
 
-_startup_restore()
+_startup_renumber()
 
 
 @slips_history_bp.get("/slips-tracker")
@@ -605,4 +670,3 @@ def generate_history_slips():
         "count": len(accepted),
         "backupStatus": backup,
     })
-
