@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""BARBADOX permanent slip archive and dedicated tracker routes."""
+"""BARBADOX permanent slip archive and dedicated tracker routes.
+
+October 2026 settlement-integrity fix: every WON/LOST grade is verified
+on read, on merge, and at boot. A grade is kept only when it is
+auto-graded, timestamped after the last leg kickoff, and re-derivable
+from the stored leg results. Manual grading is fully disabled.
+"""
 
 import csv
 import hashlib
@@ -32,7 +38,122 @@ def _now():
     return datetime.now(timezone.utc).isoformat()
 
 
-def _read_rows():
+# ---------------------------------------------------------
+# SETTLEMENT INTEGRITY (October 2026 fix pack)
+#
+# A WON/LOST grade is only trustworthy when ALL of the
+# following hold:
+#   1. auto_graded == "YES"            (manual grading is dead)
+#   2. graded_at parses and is AFTER   (kills pre-kickoff
+#      the last leg's kickoff           "MANUAL WON" grades)
+#   3. the grade can be re-derived     (kills grades stamped
+#      from the leg results             mid-match / wrong-
+#                                       fixture matches)
+# Anything else is reset to PENDING.
+# ---------------------------------------------------------
+
+def _parse_utc(value):
+    """Parse an ISO timestamp or YYYY-MM-DD date; None if unusable."""
+    text = str(value or "").strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        match = re.match(r"^(\d{4}-\d{2}-\d{2})", text)
+        if not match:
+            return None
+        try:
+            parsed = datetime.fromisoformat(match.group(1) + "T00:00:00+00:00")
+        except ValueError:
+            return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _leg_kickoff_max(legs):
+    """Latest kickoff across a slip's legs, or None."""
+    latest = None
+    if not isinstance(legs, list):
+        return None
+    for leg in legs:
+        if not isinstance(leg, dict):
+            continue
+        raw = (
+            leg.get("kickoff")
+            or leg.get("kickoffAt")
+            or leg.get("kickoff_at")
+            or leg.get("date")
+            or ""
+        )
+        parsed = _parse_utc(raw)
+        if parsed is not None and (latest is None or parsed > latest):
+            latest = parsed
+    return latest
+
+
+def _sanitize_grade(row):
+    """Purge any WON/LOST grade that cannot be trusted. In place."""
+    status = str(row.get("status") or "").upper()
+    if status not in {"WON", "LOST"}:
+        return row
+    auto = str(row.get("auto_graded") or "").upper() == "YES"
+    graded_at = _parse_utc(row.get("graded_at"))
+    kickoff = _leg_kickoff_max(row.get("legs"))
+    derived = _derived_settlement(row.get("legs"))
+    trustworthy = (
+        auto
+        and graded_at is not None
+        and kickoff is not None
+        and graded_at > kickoff
+        and derived == status
+    )
+    if trustworthy:
+        return row
+    print(
+        "Settlement sanitizer: purged bogus "
+        + status
+        + " grade on slip "
+        + str(row.get("id") or row.get("number") or "?")
+    )
+    row["status"] = "PENDING"
+    row["graded_at"] = ""
+    row["auto_graded"] = "NO"
+    legs = row.get("legs")
+    if isinstance(legs, list):
+        for leg in legs:
+            if not isinstance(leg, dict):
+                continue
+            if str(leg.get("result") or "").upper() in {"WON", "LOST"}:
+                leg_state = str(leg.get("fixtureState") or "").upper()
+                status_text = str(
+                    leg.get("fixtureStatusCode") or leg.get("fixtureStatus") or ""
+                ).upper()
+                finished = (
+                    leg_state == "FINISHED"
+                    or "FULL TIME" in status_text
+                    or "FINISHED" in status_text
+                    or "AWARDED" in status_text
+                )
+                if not finished:
+                    leg["result"] = "PENDING"
+    return row
+
+
+def _startup_sanitize():
+    """Boot-time purge: clean slips_browser.csv before it serves anything."""
+    try:
+        rows = _read_rows_unsanitized()
+        cleaned = [_sanitize_grade(row) for row in rows]
+        if cleaned != rows:
+            _write_rows(cleaned)
+            print("Settlement sanitizer: server CSV purged of bogus grades at boot.")
+    except Exception as exc:
+        print("Settlement sanitizer failed at boot: " + str(exc))
+
+
+def _read_rows_unsanitized():
     if not HISTORY_CSV.exists():
         return []
     rows = []
@@ -47,6 +168,11 @@ def _read_rows():
             row["status"] = str(row.get("status") or "PENDING").upper()
             rows.append(row)
     return rows
+
+
+def _read_rows():
+    """Read the CSV and purge any grade that fails the trust checks."""
+    return [_sanitize_grade(row) for row in _read_rows_unsanitized()]
 
 
 def _write_rows(rows):
@@ -314,6 +440,9 @@ def _startup_restore():
         print("Could not restore slips history: " + str(exc))
 
 
+_startup_sanitize()
+
+
 _startup_restore()
 
 
@@ -360,6 +489,7 @@ def save_history():
             if not isinstance(slip, dict):
                 continue
             record = _normalize(slip)
+            _sanitize_grade(record)
             if not record["id"]:
                 continue
             existing = by_id.get(record["id"])
@@ -369,6 +499,7 @@ def save_history():
                     record["status"] = derived
                     record["graded_at"] = record.get("graded_at") or _now()
                     record["auto_graded"] = "YES"
+                _sanitize_grade(record)
                 by_id[record["id"]] = record
                 changed = True
                 important_change = True
@@ -390,6 +521,7 @@ def save_history():
                     merged["graded_at"] = merged.get("graded_at") or _now()
                     merged["auto_graded"] = "YES"
                     important_change = True
+            _sanitize_grade(merged)
             merged["id"] = existing["id"]
             merged["number"] = existing.get("number")
             merged["created_at"] = existing.get("created_at") or record.get("created_at")
@@ -473,3 +605,4 @@ def generate_history_slips():
         "count": len(accepted),
         "backupStatus": backup,
     })
+
