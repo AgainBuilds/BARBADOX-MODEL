@@ -9,6 +9,13 @@
  * still in the future can never receive a score, a status, or a grade.
  * This stops finished fixtures from wrong-match binding onto not-yet-
  * played legs (e.g. a "FULL TIME 5-2" stamped on a leg dated tomorrow).
+ *
+ * October 31, 2026 labelling fix: a leg that simply has no provider
+ * fixture yet is shown as "SCHEDULED · AWAITING SCORE FEED" (future) or
+ * "AWAITING RESULT FROM PROVIDER" (past) instead of the alarming
+ * "FIXTURE STATUS NOT MATCHED" — the score feed rotates windows and a
+ * missing fixture this cycle is not an error. Slips whose legs are all
+ * in the future count as PLAYABLE even before the feed picks them up.
  */
 (() => {
   "use strict";
@@ -361,12 +368,23 @@
     const now = Date.now();
     const allScheduledFuture = legs.length === 4 && legs.every(leg => {
       const state = String(leg.fixtureState || "").toUpperCase();
-      const kick = kickoffMs({ kickoff: leg.providerKickoff || leg.kickoff });
-      return state === "SCHEDULED" && Number.isFinite(kick) && kick > now;
+      const day = legDayMs(leg);
+      /* Unmatched future legs count as playable too: they simply have
+         not entered the score feed yet. */
+      return (state === "SCHEDULED" || state === "")
+        && Number.isFinite(day) && day > now
+        && leg.homeScore == null;
     });
     if (allScheduledFuture) return "PLAYABLE";
 
     return "ONGOING";
+  }
+
+  function legDayMs(leg) {
+    const kick = kickoffMs(leg);
+    if (Number.isFinite(kick)) return kick;
+    const day = Date.parse(String(leg && leg.date || "").slice(0, 10) + "T12:00:00Z");
+    return Number.isFinite(day) ? day : NaN;
   }
 
   function statusForLeg(leg) {
@@ -374,9 +392,12 @@
     const state = String(leg.fixtureState || "").toUpperCase();
     if (leg.fixtureStatus) return leg.fixtureStatus;
     if (state === "SCHEDULED" || code === "NS") return "SCHEDULED";
-    const kick = kickoffMs(leg);
-    if (Number.isFinite(kick) && kick <= Date.now()) return "AWAITING PROVIDER CONFIRMATION";
-    return "FIXTURE STATUS NOT MATCHED";
+    /* No provider fixture yet: keep the wording neutral. A future leg
+       simply is not in the score feed this cycle; a past leg is waiting
+       on its result. Neither is an error state. */
+    const day = legDayMs(leg);
+    if (Number.isFinite(day) && day > Date.now()) return "SCHEDULED · AWAITING SCORE FEED";
+    return "AWAITING RESULT FROM PROVIDER";
   }
 
   function scoreForLeg(leg) {
@@ -393,7 +414,8 @@
       LIVE.has(String(leg.fixtureStatusCode || "").toUpperCase()) ? "live" : "";
     const status = statusForLeg(leg);
     const lastRefresh = leg.lastRefresh ? formatRefresh(leg.lastRefresh) : "Awaiting score refresh";
-    const kickoff = leg.providerKickoff || leg.kickoff;
+    const kickoff = leg.providerKickoff || leg.kickoff
+      || (leg.date ? leg.date + "T12:00:00Z" : null);
     const scoreNote = outcome === "WON" ? "LEG WON" : outcome === "LOST" ? "LEG LOST" :
       leg.scoreProvisional ? "LIVE SCORE AWAITING PROVIDER UPDATE" :
       leg.scoreUnconfirmed ? "FINAL SCORE AWAITING PROVIDER CONFIRMATION" :
