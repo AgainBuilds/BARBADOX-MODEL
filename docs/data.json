@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-10-31T15:21:45.341242+00:00",
+ "generated_at": "2026-10-31T15:37:35.834114+00:00",
  "window": {
   "from": "2026-10-31",
   "to": "2026-11-06"
@@ -16,17 +16,6 @@
   "SAUDI": "Saudi League"
  },
  "fixtures": [
-  {
-   "date": "2026-10-31",
-   "time": "16:15",
-   "league": "PD",
-   "home": "Rayo Vallecano de Madrid",
-   "away": "RC Celta de Vigo",
-   "checked": false,
-   "kickoff_utc": "2026-10-31T15:15:00+00:00",
-   "decision": "started",
-   "reason": "Kickoff has passed or is inside the buffer."
-  },
   {
    "date": "2026-10-31",
    "time": "18:00",
@@ -45966,7 +45955,7 @@
   }
  ],
  "context_added": 0,
- "scanned": 53,
+ "scanned": 52,
  "leagues_empty": [
   "SAUDI"
  ],
