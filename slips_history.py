@@ -3,12 +3,20 @@
 
 October 2026 settlement-integrity fix: every WON/LOST grade is verified
 on read, on merge, and at boot. A grade is kept only when it is
-auto-graded, timestamped after the last leg kickoff, and re-derivable
-from the stored leg results. Manual grading is fully disabled.
+auto-graded, timestamped after the kickoff that settles the slip, and
+re-derivable from the stored leg results. Manual grading is fully
+disabled.
 
 October 31, 2026 archive cleanup: at boot the archive merges exact
 duplicate slips and renumbers all slips 1..N in creation order, because
 old generation batches restarted the slip counter on every run.
+
+October 31, 2026 settlement-consistency fix: an accumulator is LOST as
+soon as one leg is conclusively lost, so LOST grades are validated
+against the earliest kickoff of the confirmed losing legs (WON still
+uses the latest kickoff of all four legs), boot-time reconciliation
+grades PENDING slips whose stored legs already settle them, and fixture
+reservation releases slips whose legs already settle them.
 """
 
 import csv
@@ -49,11 +57,20 @@ def _now():
 # following hold:
 #   1. auto_graded == "YES"            (manual grading is dead)
 #   2. graded_at parses and is AFTER   (kills pre-kickoff
-#      the last leg's kickoff           "MANUAL WON" grades)
+#      the kickoff that settles the     "MANUAL WON" grades)
+#      slip — see _sanitize_grade
 #   3. the grade can be re-derived     (kills grades stamped
 #      from the leg results             mid-match / wrong-
 #                                       fixture matches)
 # Anything else is reset to PENDING.
+#
+# October 31, 2026 settlement-consistency fix: a four-leg
+# accumulator is LOST as soon as ONE leg is conclusively lost,
+# so a LOST grade is validated against the earliest kickoff of
+# the confirmed losing legs, not the latest kickoff of all four
+# legs (which would include fixtures that were never needed).
+# WON still requires all four legs, so it stays validated
+# against the latest kickoff of all legs.
 # ---------------------------------------------------------
 
 def _parse_utc(value):
@@ -97,6 +114,51 @@ def _leg_kickoff_max(legs):
     return latest
 
 
+def _losing_leg_kickoff_min(legs):
+    """Earliest kickoff among the confirmed losing legs, or None.
+
+    A four-leg accumulator is settled by its FIRST losing leg, so a
+    LOST grade only has to postdate that leg's kickoff. Later losing
+    legs — or fixtures that were never needed — cannot invalidate the
+    original loss.
+    """
+    earliest = None
+    if not isinstance(legs, list):
+        return None
+    for leg in legs:
+        if not isinstance(leg, dict):
+            continue
+        if str(leg.get("result") or "").upper() != "LOST":
+            continue
+        raw = (
+            leg.get("kickoff")
+            or leg.get("kickoffAt")
+            or leg.get("kickoff_at")
+            or leg.get("date")
+            or ""
+        )
+        parsed = _parse_utc(raw)
+        if parsed is not None and (earliest is None or parsed < earliest):
+            earliest = parsed
+    return earliest
+
+
+def _leg_result_final(leg):
+    """True when a leg's WON/LOST result is backed by a finished fixture."""
+    if not isinstance(leg, dict):
+        return False
+    leg_state = str(leg.get("fixtureState") or "").upper()
+    status_text = str(
+        leg.get("fixtureStatusCode") or leg.get("fixtureStatus") or ""
+    ).upper()
+    return (
+        leg_state == "FINISHED"
+        or "FULL TIME" in status_text
+        or "FINISHED" in status_text
+        or "AWARDED" in status_text
+    )
+
+
 def _sanitize_grade(row):
     """Purge any WON/LOST grade that cannot be trusted. In place."""
     status = str(row.get("status") or "").upper()
@@ -104,8 +166,16 @@ def _sanitize_grade(row):
         return row
     auto = str(row.get("auto_graded") or "").upper() == "YES"
     graded_at = _parse_utc(row.get("graded_at"))
-    kickoff = _leg_kickoff_max(row.get("legs"))
     derived = _derived_settlement(row.get("legs"))
+    if status == "LOST":
+        # A lost accumulator is settled by its FIRST confirmed losing
+        # leg: the grade must postdate that leg's kickoff, not the
+        # kickoffs of legs the slip never needed.
+        kickoff = _losing_leg_kickoff_min(row.get("legs"))
+    else:
+        # A won accumulator needs all four legs confirmed, so the
+        # grade must postdate the latest kickoff of all legs.
+        kickoff = _leg_kickoff_max(row.get("legs"))
     trustworthy = (
         auto
         and graded_at is not None
@@ -145,14 +215,59 @@ def _sanitize_grade(row):
     return row
 
 
+def _reconcile_pending(row):
+    """Grade a PENDING slip whose stored legs already settle it.
+
+    Settlement rule: LOST as soon as one leg is conclusively lost,
+    WON only when all four legs are conclusively won. The grade is
+    stamped only when every WON/LOST leg result is backed by a
+    finished fixture, and it must still pass the same trust checks
+    as _sanitize_grade; otherwise the slip stays PENDING.
+    In place.
+    """
+    if str(row.get("status") or "PENDING").upper() != "PENDING":
+        return
+    derived = _derived_settlement(row.get("legs"))
+    if derived not in {"WON", "LOST"}:
+        return
+    legs = row.get("legs") or []
+    if not isinstance(legs, list):
+        return
+    if not all(
+        _leg_result_final(leg)
+        for leg in legs
+        if isinstance(leg, dict)
+        and str(leg.get("result") or "").upper() in {"WON", "LOST"}
+    ):
+        return
+    row["status"] = derived
+    row["graded_at"] = _now()
+    row["auto_graded"] = "YES"
+    _sanitize_grade(row)
+
+
 def _startup_sanitize():
-    """Boot-time purge: clean slips_browser.csv before it serves anything."""
+    """Boot-time purge: clean slips_browser.csv before it serves anything.
+
+    October 31, 2026 settlement-consistency fix:
+    1. The purge now actually persists. _sanitize_grade mutates rows
+       in place, so the previous cleaned/rows comparison always saw
+       identical objects and never wrote the file.
+    2. A slip whose stored legs already settle it conclusively (a
+       confirmed losing leg, or four confirmed winning legs) is
+       graded at boot under the same trust rule instead of staying
+       PENDING forever with its fixtures reserved.
+    """
     try:
         rows = _read_rows_unsanitized()
-        cleaned = [_sanitize_grade(row) for row in rows]
-        if cleaned != rows:
-            _write_rows(cleaned)
-            print("Settlement sanitizer: server CSV purged of bogus grades at boot.")
+        before = [json.dumps(row, sort_keys=True, default=str) for row in rows]
+        for row in rows:
+            _sanitize_grade(row)
+            _reconcile_pending(row)
+        after = [json.dumps(row, sort_keys=True, default=str) for row in rows]
+        if before != after:
+            _write_rows(rows)
+            print("Settlement sanitizer: server CSV purged/reconciled at boot.")
     except Exception as exc:
         print("Settlement sanitizer failed at boot: " + str(exc))
 
@@ -448,6 +563,12 @@ def _pending_fixture_keys(rows):
     used = set()
     for row in rows:
         if str(row.get("status") or "PENDING").upper() != "PENDING":
+            continue
+        # Settlement rule: a slip whose stored legs already settle it
+        # (a confirmed losing leg, or four confirmed winning legs) is
+        # no longer genuinely pending and must not keep its fixtures
+        # reserved, even when its top-level grade still says PENDING.
+        if _derived_settlement(row.get("legs")) in {"WON", "LOST"}:
             continue
         legs = row.get("legs") or []
         if isinstance(legs, list):
