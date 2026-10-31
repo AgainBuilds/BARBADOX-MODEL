@@ -9,8 +9,11 @@ provider IDs, scores, status, minute, kickoff and refresh timestamps.
 October 2026 fixes:
 - Champions League (CL) added to LIVE_COMPETITIONS so CL legs are matched
   and graded.
-- LIVE_MAX_FETCHES_PER_REQUEST raised 1 -> 6 so multi-week backlogs clear
-  in a single request instead of crawling one window per call.
+- LIVE_MAX_FETCHES_PER_REQUEST paced to 3 with a global 8-calls/minute
+  provider limiter. The previous value (6) combined with the 25-second
+  client poll exceeded football-data's free-tier 10 calls/minute limit,
+  producing constant 429s that starved older score windows — the root
+  cause of legs staying "FIXTURE STATUS NOT MATCHED" forever.
 """
 
 import os
@@ -29,11 +32,23 @@ LIVE_CACHE_SECONDS = 45
 HISTORY_CACHE_SECONDS = 900
 UPCOMING_CACHE_SECONDS = 300
 ERROR_CACHE_SECONDS = 90
-LIVE_MAX_FETCHES_PER_REQUEST = 6
+LIVE_MAX_FETCHES_PER_REQUEST = 3
 
 LIVE_MATCH_CACHE = {}
 _LAST_GOOD_FIXTURES = {}
 _live_lock = threading.RLock()
+
+_PROVIDER_FETCH_TIMES = []
+PROVIDER_CALLS_PER_MINUTE = 8  # football-data free tier allows 10; keep a margin.
+
+
+def _provider_slots():
+    """Count of provider calls still available in the current 60s window."""
+    with _live_lock:
+        now = time.time()
+        while _PROVIDER_FETCH_TIMES and now - _PROVIDER_FETCH_TIMES[0] > 60:
+            _PROVIDER_FETCH_TIMES.pop(0)
+        return max(0, PROVIDER_CALLS_PER_MINUTE - len(_PROVIDER_FETCH_TIMES))
 
 
 def _utc_now():
@@ -306,8 +321,11 @@ def live_scores():
             ttl = _ttl_for_week(week, current_week)
             fresh = cached is not None and now - cached.get("at", 0) < cached.get("ttl", ttl)
 
-            if not fresh and fetched_this_request < LIVE_MAX_FETCHES_PER_REQUEST:
+            if not fresh and fetched_this_request < LIVE_MAX_FETCHES_PER_REQUEST \
+                    and _provider_slots() > 0:
                 fetched_this_request += 1
+                with _live_lock:
+                    _PROVIDER_FETCH_TIMES.append(time.time())
                 try:
                     incoming = _football_data_fetch(date_from, date_to, api_key)
                     merged_items = []
