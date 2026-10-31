@@ -9,11 +9,20 @@ provider IDs, scores, status, minute, kickoff and refresh timestamps.
 October 2026 fixes:
 - Champions League (CL) added to LIVE_COMPETITIONS so CL legs are matched
   and graded.
-- LIVE_MAX_FETCHES_PER_REQUEST paced to 3 with a global 8-calls/minute
-  provider limiter. The previous value (6) combined with the 25-second
-  client poll exceeded football-data's free-tier 10 calls/minute limit,
-  producing constant 429s that starved older score windows — the root
-  cause of legs staying "FIXTURE STATUS NOT MATCHED" forever.
+- LIVE_MAX_FETCHES_PER_REQUEST paced with a global 8-calls/minute provider
+  limiter to stay under football-data's free-tier 10 calls/minute limit.
+
+October 31, 2026 boundary fix (the real root cause of every
+"FIXTURE STATUS NOT MATCHED" leg):
+- Week windows used to be Mon..Sun with dateTo = week + 6 days. The v4
+  changelog states it plainly: "elements from the specified dateTo-date
+  are excluded". So every Sunday fixture fell out of its own week and out
+  of the next week's range too — Sunday matches (Oct 25, Nov 1, ...) never
+  entered the feed at all. Confirmed against the archive: every unmatched
+  leg was a Sunday fixture and no Sunday fixture was ever matched.
+- Windows now run [week, week + 7 days) (WINDOW_DAYS): under the
+  provider's exclusive dateTo this tiles Mon..Sun exactly, so the final
+  Sunday is always inside its own window.
 """
 
 import os
@@ -32,7 +41,8 @@ LIVE_CACHE_SECONDS = 45
 HISTORY_CACHE_SECONDS = 900
 UPCOMING_CACHE_SECONDS = 300
 ERROR_CACHE_SECONDS = 90
-LIVE_MAX_FETCHES_PER_REQUEST = 3
+LIVE_MAX_FETCHES_PER_REQUEST = 4
+WINDOW_DAYS = 7  # dateTo is exclusive in v4: [Mon, Mon+7) = Mon..Sun incl. Sunday
 
 LIVE_MATCH_CACHE = {}
 _LAST_GOOD_FIXTURES = {}
@@ -276,6 +286,15 @@ def _ttl_for_week(week, current_week):
     return HISTORY_CACHE_SECONDS
 
 
+def _window_range(week):
+    """Fetch window for a week. v4 excludes the dateTo date, so
+    [week, week + 7 days) covers Monday through Sunday exactly and
+    adjacent windows tile without overlap or gaps."""
+    date_from = week.isoformat()
+    date_to = (week + timedelta(days=WINDOW_DAYS)).isoformat()
+    return date_from, date_to, date_from + ":" + date_to
+
+
 @live_scores_bp.route("/api/live-scores", methods=["GET", "POST"])
 def live_scores():
     api_key = _football_data_key()
@@ -314,9 +333,7 @@ def live_scores():
 
     with _live_lock:
         for week in ordered_weeks:
-            date_from = week.isoformat()
-            date_to = (week + timedelta(days=6)).isoformat()
-            cache_key = date_from + ":" + date_to
+            date_from, date_to, cache_key = _window_range(week)
             cached = LIVE_MATCH_CACHE.get(cache_key)
             ttl = _ttl_for_week(week, current_week)
             fresh = cached is not None and now - cached.get("at", 0) < cached.get("ttl", ttl)
@@ -366,7 +383,7 @@ def live_scores():
         waiting = 0
         now = time.time()
         for week in ordered_weeks:
-            key = week.isoformat() + ":" + (week + timedelta(days=6)).isoformat()
+            key = _window_range(week)[2]
             entry = LIVE_MATCH_CACHE.get(key)
             ttl = entry.get("ttl", _ttl_for_week(week, current_week)) if entry else 0
             if entry is None or now - entry.get("at", 0) >= ttl:
