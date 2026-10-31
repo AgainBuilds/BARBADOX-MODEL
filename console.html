@@ -784,13 +784,23 @@ function qualifiedUnder(f, now = Date.now()) {
     isUpcoming(f, now);
 }
 
-/* Fixtures inside any unsettled (PENDING) archive slip are
+/* Fixtures inside any genuinely unsettled (PENDING) archive slip are
    never reused — same reservation rule as the server. */
 function pendingFixtureKeys() {
   const keys = new Set();
 
   archiveSlips.forEach(slip => {
     if (String(slip.status || "PENDING").toUpperCase() !== "PENDING") return;
+
+    /* Same settlement rule as the server: a slip whose stored legs
+       already settle it — a confirmed losing leg, or all four legs
+       won — is not genuinely pending, even when its top-level grade
+       still says PENDING, and must not keep its fixtures reserved. */
+    const legs = Array.isArray(slip.legs) ? slip.legs : [];
+    if (legs.length === 4) {
+      const results = legs.map(l => String((l && l.result) || "PENDING").toUpperCase());
+      if (results.includes("LOST") || results.every(r => r === "WON")) return;
+    }
 
     (slip.legs || []).forEach(leg => keys.add(fixtureKey(leg)));
   });
@@ -1529,8 +1539,7 @@ $("gateLoad").addEventListener("click", async () => {
     } else if (s.finished_at) {
       $("gateMeta").textContent =
         "Last run finished " +
-        String(s.finished_at).slice(0, 16).replace("T", " ") +
-        "Z. LOAD LAST SNAPSHOT shows its picks.";
+        String(s.finished_at).slice(0, 16).replace("T", " ") + "Z. LOAD LAST SNAPSHOT shows its picks.";
 
     } else {
       $("gateMeta").textContent =
