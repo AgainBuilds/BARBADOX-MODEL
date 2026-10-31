@@ -33,7 +33,6 @@ from pathlib import Path
 from flask import Flask, jsonify, send_from_directory
 
 import gh_sync
-import slips_tracker
 import slips_history
 import live_scores
 
@@ -532,11 +531,6 @@ def index():
     return send_from_directory(str(BASE), "console.html")
 
 
-@app.get("/slips")
-def slips_page():
-    return send_from_directory(str(BASE), "slips.html")
-
-
 @app.get("/live_scores.js")
 def live_scores_script():
     """Serve the client-side live-score + archive-grading script."""
@@ -545,40 +539,6 @@ def live_scores_script():
         "live_scores.js",
         mimetype="application/javascript",
     )
-
-
-@app.get("/api/slipstracker")
-def slipstracker():
-    if gh_sync.enabled():
-        try:
-            gh_sync.pull("picks.csv")
-
-        except Exception as exc:
-            return jsonify({
-                "ok": False,
-                "error": "Could not read picks from GitHub: " + str(exc),
-            }), 500
-
-    try:
-        subprocess.run(
-            ["python", "barbadox_slips.py"],
-            cwd=str(BASE),
-            capture_output=True,
-            text=True,
-            timeout=300,
-            check=False,
-        )
-
-    except Exception as exc:
-        return jsonify({
-            "ok": False,
-            "error": "Slip tracking refresh failed: " + str(exc),
-        }), 500
-
-    return jsonify({
-        "ok": True,
-        **slips_tracker.tracker_data(),
-    })
 
 
 @app.get("/api/data")
@@ -734,3 +694,4 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 5000)),
     )
+
