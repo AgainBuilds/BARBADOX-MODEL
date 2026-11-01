@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-01T10:19:21.464691+00:00",
+ "generated_at": "2026-11-01T13:08:57.378262+00:00",
  "window": {
   "from": "2026-11-01",
   "to": "2026-11-07"
@@ -16,74 +16,6 @@
   "SAUDI": "Saudi League"
  },
  "fixtures": [
-  {
-   "date": "2026-11-01",
-   "time": "12:30",
-   "league": "SA",
-   "home": "Como 1907",
-   "away": "Venezia FC",
-   "checked": true,
-   "kickoff_utc": "2026-11-01T11:30:00+00:00",
-   "decision": "below-line",
-   "lam_h": 2.3132,
-   "lam_a": 0.6429,
-   "core": 0.7942,
-   "p_form": 0.777,
-   "p_base": 0.731,
-   "point": 0.7942,
-   "low": 0.7549,
-   "high": 0.8278,
-   "upper": 0.8713,
-   "factors": "core 79.4 | form 78 | base 73",
-   "notes": [
-    "partial: only 38/0 baseline games",
-    "low/high are a rough xG sensitivity band, not a confidence interval"
-   ],
-   "sheet": [
-    "1 form since season start: 77.7% | games 9/9",
-    "2 historical baseline:     73.1% | games 38/0",
-    "  core (blended):          79.4%",
-    "3 formation effect: home +0 | away +0",
-    "4 home absences: none | goals -0% / opp +0% | rotation 0",
-    "  away absences: none | goals -0% / opp +0% | rotation 0",
-    "5 derby: no",
-    "  field temperature: 14C (logged only)"
-   ]
-  },
-  {
-   "date": "2026-11-01",
-   "time": "14:00",
-   "league": "PD",
-   "home": "Getafe CF",
-   "away": "Sevilla FC",
-   "checked": false,
-   "kickoff_utc": "2026-11-01T13:00:00+00:00",
-   "decision": "below-line",
-   "lam_h": 1.1612,
-   "lam_a": 1.0266,
-   "core": 0.6425,
-   "p_form": 0.69,
-   "p_base": 0.593,
-   "point": 0.6425,
-   "low": 0.5974,
-   "high": 0.6834,
-   "upper": 0.7406,
-   "factors": "core 64.2 | form 69 | base 59",
-   "notes": [
-    "checks 1 and 2 disagree by 10 pts",
-    "low/high are a rough xG sensitivity band, not a confidence interval"
-   ],
-   "sheet": [
-    "1 form since season start: 69.0% | games 10/10",
-    "2 historical baseline:     59.3% | games 38/38",
-    "  core (blended):          64.2%",
-    "3 formation effect: home +0 | away +0",
-    "4 home absences: none | goals -0% / opp +0% | rotation 0",
-    "  away absences: none | goals -0% / opp +0% | rotation 0",
-    "5 derby: no",
-    "  field temperature: not entered (logged only)"
-   ]
-  },
   {
    "date": "2026-11-01",
    "time": "15:00",
@@ -45819,9 +45751,9 @@
    "field_temp_c": "12",
    "factors": "core 84.1 | form 89 | base 80",
    "logged_at": "2026-10-25T00:05:44.659695+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "2",
+   "ag": "0",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -45837,9 +45769,9 @@
    "field_temp_c": "16",
    "factors": "core 83.6 | form 89 | base 76",
    "logged_at": "2026-10-25T00:05:44.659695+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "0",
+   "ag": "2",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -45855,9 +45787,9 @@
    "field_temp_c": "15",
    "factors": "core 83.7 | form 85 | base 68",
    "logged_at": "2026-10-25T00:05:44.659695+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "2",
+   "ag": "1",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -45873,9 +45805,9 @@
    "field_temp_c": "11",
    "factors": "core 82.9 | form 87 | base 79",
    "logged_at": "2026-10-25T00:05:44.659695+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "1",
+   "ag": "2",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -45891,9 +45823,9 @@
    "field_temp_c": "11",
    "factors": "core 86.4 | form 92 | base 83",
    "logged_at": "2026-10-25T00:05:44.659695+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "2",
+   "ag": "0",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -45909,9 +45841,9 @@
    "field_temp_c": "11",
    "factors": "core 88.5 | form 86 | base 90",
    "logged_at": "2026-10-25T00:05:44.659695+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "2",
+   "ag": "4",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -45927,9 +45859,9 @@
    "field_temp_c": "12",
    "factors": "core 82.9 | form 91 | base 77",
    "logged_at": "2026-10-25T00:05:44.659695+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "0",
+   "ag": "1",
+   "result": "MISS",
    "note": ""
   },
   {
@@ -45945,9 +45877,9 @@
    "field_temp_c": "12",
    "factors": "core 80.4 | form 80 | base 76",
    "logged_at": "2026-10-25T00:05:44.659695+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "2",
+   "ag": "2",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -45981,9 +45913,9 @@
    "field_temp_c": "11",
    "factors": "core 87.4 | form 85 | base 88",
    "logged_at": "2026-10-25T00:05:44.659695+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "2",
+   "ag": "2",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -45999,9 +45931,9 @@
    "field_temp_c": "13",
    "factors": "core 84.6 | form 85 | base 78",
    "logged_at": "2026-10-25T00:05:44.659695+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "2",
+   "ag": "0",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -46017,9 +45949,9 @@
    "field_temp_c": "15",
    "factors": "core 80.1 | form 84 | base 77 | derby",
    "logged_at": "2026-10-25T00:05:44.659695+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "3",
+   "ag": "1",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -46035,9 +45967,9 @@
    "field_temp_c": "17",
    "factors": "core 88.6 | form 91 | base 86",
    "logged_at": "2026-10-25T00:05:44.659695+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "6",
+   "ag": "1",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -46456,7 +46388,7 @@
   }
  ],
  "context_added": 0,
- "scanned": 63,
+ "scanned": 61,
  "leagues_empty": [
   "SAUDI"
  ],
