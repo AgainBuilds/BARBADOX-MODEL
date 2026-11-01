@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-01T10:19:26.967919+00:00",
+ "generated_at": "2026-11-01T13:09:02.388316+00:00",
  "window": {
   "from": "2026-11-01",
   "to": "2026-11-07"
@@ -9,37 +9,9 @@
  "threshold": 0.6,
  "status": "ok",
  "reason": "",
- "scanned": 45,
+ "scanned": 43,
  "leagues_empty": [],
  "fixtures": [
-  {
-   "date": "2026-11-01",
-   "time": "12:30",
-   "league": "SA",
-   "home": "Como 1907",
-   "away": "Venezia FC",
-   "kickoff_utc": "2026-11-01T11:30:00+00:00",
-   "decision": "below-line",
-   "p_raw": 0.6231,
-   "p_cal": 0.6233,
-   "p_final": 0.5527,
-   "lambda_total": 3.108,
-   "threshold": 0.6
-  },
-  {
-   "date": "2026-11-01",
-   "time": "14:00",
-   "league": "PD",
-   "home": "Getafe CF",
-   "away": "Sevilla FC",
-   "kickoff_utc": "2026-11-01T13:00:00+00:00",
-   "decision": "qualified",
-   "p_raw": 0.6745,
-   "p_cal": 0.6744,
-   "p_final": 0.6744,
-   "lambda_total": 2.878,
-   "threshold": 0.6
-  },
   {
    "date": "2026-11-01",
    "time": "15:00",
