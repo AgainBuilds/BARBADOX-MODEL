@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: barbadox-xgboost-observer
+  cancel-in-progress: false
+
 jobs:
   observe:
     runs-on: ubuntu-latest
@@ -17,8 +21,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          ref: main
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,14 +29,11 @@ jobs:
 
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install -r requirements-observer.txt
 
       - name: Run observer
-        env:
-          BARBADOX_SLIP_HISTORY_URL: ${{ secrets.BARBADOX_SLIP_HISTORY_URL }}
-          BARBADOX_SLIP_HISTORY_TOKEN: ${{ secrets.BARBADOX_SLIP_HISTORY_TOKEN }}
-        run: |
-          python xgboost_observer.py
+        run: python xgboost_observer.py
 
       - name: Save observer reports
         run: |
@@ -43,9 +42,9 @@ jobs:
 
           git add reports/xgboost_observer/
 
-          if ! git diff --cached --quiet; then
-            git commit -m "Update XGBoost observer report"
-            git push
-          else
+          if git diff --cached --quiet; then
             echo "No report changes to commit."
+          else
+            git commit -m "Update Barbadox XGBoost observer report"
+            git push
           fi
