@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-03T16:04:04.915131+00:00",
+ "generated_at": "2026-11-03T17:17:52.475244+00:00",
  "window": {
   "from": "2026-11-03",
   "to": "2026-11-09"
@@ -24,8 +24,8 @@
    "away": "Sporting Clube de Portugal",
    "checked": false,
    "kickoff_utc": "2026-11-03T17:45:00+00:00",
-   "decision": "skipped",
-   "reason": "no domestic league identity found for a CL team"
+   "decision": "started",
+   "reason": "Kickoff has passed or is inside the buffer."
   },
   {
    "date": "2026-11-03",
@@ -35,8 +35,8 @@
    "away": "VfB Stuttgart",
    "checked": false,
    "kickoff_utc": "2026-11-03T17:45:00+00:00",
-   "decision": "skipped",
-   "reason": "no domestic league identity found for a CL team"
+   "decision": "started",
+   "reason": "Kickoff has passed or is inside the buffer."
   },
   {
    "date": "2026-11-03",
