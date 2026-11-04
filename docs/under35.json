@@ -1,8 +1,8 @@
 {
- "generated_at": "2026-11-03T20:11:42.771450+00:00",
+ "generated_at": "2026-11-04T20:21:15.865261+00:00",
  "window": {
-  "from": "2026-11-03",
-  "to": "2026-11-09"
+  "from": "2026-11-04",
+  "to": "2026-11-10"
  },
  "model": "Core 2 - Under 3.5",
  "market": 3.5,
@@ -238,20 +238,6 @@
   },
   {
    "date": "2026-11-07",
-   "time": "17:15",
-   "league": "FL1",
-   "home": "AJ Auxerre",
-   "away": "Paris FC",
-   "kickoff_utc": "2026-11-07T16:15:00+00:00",
-   "decision": "below-line",
-   "p_raw": 0.6208,
-   "p_cal": 0.6215,
-   "p_final": 0.5595,
-   "lambda_total": 3.1181,
-   "threshold": 0.6
-  },
-  {
-   "date": "2026-11-07",
    "time": "18:00",
    "league": "SA",
    "home": "Parma Calcio 1913",
@@ -308,16 +294,16 @@
   },
   {
    "date": "2026-11-07",
-   "time": "20:45",
+   "time": "19:00",
    "league": "FL1",
-   "home": "Paris Saint-Germain FC",
-   "away": "ES Troyes AC",
-   "kickoff_utc": "2026-11-07T19:45:00+00:00",
+   "home": "AJ Auxerre",
+   "away": "Paris FC",
+   "kickoff_utc": "2026-11-07T18:00:00+00:00",
    "decision": "below-line",
-   "p_raw": 0.6319,
-   "p_cal": 0.6324,
-   "p_final": 0.546,
-   "lambda_total": 3.0683,
+   "p_raw": 0.6208,
+   "p_cal": 0.6215,
+   "p_final": 0.5595,
+   "lambda_total": 3.1181,
    "threshold": 0.6
   },
   {
@@ -346,6 +332,20 @@
    "p_cal": 0.6646,
    "p_final": 0.6408,
    "lambda_total": 2.922,
+   "threshold": 0.6
+  },
+  {
+   "date": "2026-11-07",
+   "time": "21:05",
+   "league": "FL1",
+   "home": "Paris Saint-Germain FC",
+   "away": "ES Troyes AC",
+   "kickoff_utc": "2026-11-07T20:05:00+00:00",
+   "decision": "below-line",
+   "p_raw": 0.6319,
+   "p_cal": 0.6324,
+   "p_final": 0.546,
+   "lambda_total": 3.0683,
    "threshold": 0.6
   },
   {
