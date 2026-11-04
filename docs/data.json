@@ -1,8 +1,8 @@
 {
- "generated_at": "2026-11-03T20:11:37.555298+00:00",
+ "generated_at": "2026-11-04T20:21:10.162097+00:00",
  "window": {
-  "from": "2026-11-03",
-  "to": "2026-11-09"
+  "from": "2026-11-04",
+  "to": "2026-11-10"
  },
  "threshold": 0.8,
  "market": 1.5,
@@ -24,8 +24,8 @@
    "away": "Real Madrid CF",
    "checked": false,
    "kickoff_utc": "2026-11-04T17:45:00+00:00",
-   "decision": "skipped",
-   "reason": "no domestic league identity found for a CL team"
+   "decision": "started",
+   "reason": "Kickoff has passed or is inside the buffer."
   },
   {
    "date": "2026-11-04",
@@ -35,8 +35,8 @@
    "away": "Liverpool FC",
    "checked": false,
    "kickoff_utc": "2026-11-04T17:45:00+00:00",
-   "decision": "skipped",
-   "reason": "no domestic league identity found for a CL team"
+   "decision": "started",
+   "reason": "Kickoff has passed or is inside the buffer."
   },
   {
    "date": "2026-11-04",
@@ -46,31 +46,8 @@
    "away": "Manchester City FC",
    "checked": true,
    "kickoff_utc": "2026-11-04T20:00:00+00:00",
-   "decision": "logged",
-   "lam_h": 2.1979,
-   "lam_a": 1.5862,
-   "core": 0.8913,
-   "p_form": 0.912,
-   "p_base": 0.872,
-   "point": 0.8713,
-   "low": 0.8421,
-   "high": 0.9146,
-   "upper": 0.9223,
-   "factors": "core 89.1 | form 91 | base 87",
-   "notes": [
-    "CL: strengths come from each team's domestic league",
-    "low/high are a rough xG sensitivity band, not a confidence interval"
-   ],
-   "sheet": [
-    "1 form since season start: 91.2% | games 8/9",
-    "2 historical baseline:     87.2% | games 34/38",
-    "  core (blended):          89.1%",
-    "3 formation effect: home +0 | away +0",
-    "4 home absences: none | goals -0% / opp +0% | rotation 0",
-    "  away absences: none | goals -0% / opp +0% | rotation 0",
-    "5 derby: no",
-    "  field temperature: 9C (logged only)"
-   ]
+   "decision": "started",
+   "reason": "Kickoff has passed or is inside the buffer."
   },
   {
    "date": "2026-11-04",
@@ -80,8 +57,8 @@
    "away": "Arsenal FC",
    "checked": false,
    "kickoff_utc": "2026-11-04T20:00:00+00:00",
-   "decision": "skipped",
-   "reason": "no domestic league identity found for a CL team"
+   "decision": "started",
+   "reason": "Kickoff has passed or is inside the buffer."
   },
   {
    "date": "2026-11-04",
@@ -91,8 +68,8 @@
    "away": "Club Brugge KV",
    "checked": false,
    "kickoff_utc": "2026-11-04T20:00:00+00:00",
-   "decision": "skipped",
-   "reason": "no domestic league identity found for a CL team"
+   "decision": "started",
+   "reason": "Kickoff has passed or is inside the buffer."
   },
   {
    "date": "2026-11-04",
@@ -102,31 +79,8 @@
    "away": "Real Betis Balompi\u00e9",
    "checked": true,
    "kickoff_utc": "2026-11-04T20:00:00+00:00",
-   "decision": "logged",
-   "lam_h": 2.2967,
-   "lam_a": 1.0903,
-   "core": 0.8517,
-   "p_form": 0.824,
-   "p_base": 0.871,
-   "point": 0.8317,
-   "low": 0.7975,
-   "high": 0.8799,
-   "upper": 0.8948,
-   "factors": "core 85.2 | form 82 | base 87",
-   "notes": [
-    "CL: strengths come from each team's domestic league",
-    "low/high are a rough xG sensitivity band, not a confidence interval"
-   ],
-   "sheet": [
-    "1 form since season start: 82.4% | games 8/11",
-    "2 historical baseline:     87.1% | games 34/38",
-    "  core (blended):          85.2%",
-    "3 formation effect: home +0 | away +0",
-    "4 home absences: none | goals -0% / opp +0% | rotation 0",
-    "  away absences: none | goals -0% / opp +0% | rotation 0",
-    "5 derby: no",
-    "  field temperature: 9C (logged only)"
-   ]
+   "decision": "started",
+   "reason": "Kickoff has passed or is inside the buffer."
   },
   {
    "date": "2026-11-04",
@@ -136,8 +90,8 @@
    "away": "SSC Napoli",
    "checked": false,
    "kickoff_utc": "2026-11-04T20:00:00+00:00",
-   "decision": "skipped",
-   "reason": "no domestic league identity found for a CL team"
+   "decision": "started",
+   "reason": "Kickoff has passed or is inside the buffer."
   },
   {
    "date": "2026-11-04",
@@ -147,32 +101,8 @@
    "away": "Como 1907",
    "checked": true,
    "kickoff_utc": "2026-11-04T20:00:00+00:00",
-   "decision": "logged",
-   "lam_h": 1.8378,
-   "lam_a": 1.628,
-   "core": 0.8605,
-   "p_form": 0.914,
-   "p_base": 0.781,
-   "point": 0.8405,
-   "low": 0.8073,
-   "high": 0.8877,
-   "upper": 0.9011,
-   "factors": "core 86.0 | form 91 | base 78",
-   "notes": [
-    "CL: strengths come from each team's domestic league",
-    "checks 1 and 2 disagree by 13 pts",
-    "low/high are a rough xG sensitivity band, not a confidence interval"
-   ],
-   "sheet": [
-    "1 form since season start: 91.4% | games 9/10",
-    "2 historical baseline:     78.1% | games 34/38",
-    "  core (blended):          86.0%",
-    "3 formation effect: home +0 | away +0",
-    "4 home absences: none | goals -0% / opp +0% | rotation 0",
-    "  away absences: none | goals -0% / opp +0% | rotation 0",
-    "5 derby: no",
-    "  field temperature: 10C (logged only)"
-   ]
+   "decision": "started",
+   "reason": "Kickoff has passed or is inside the buffer."
   },
   {
    "date": "2026-11-04",
@@ -182,8 +112,8 @@
    "away": "Sabah FK",
    "checked": false,
    "kickoff_utc": "2026-11-04T20:00:00+00:00",
-   "decision": "skipped",
-   "reason": "no domestic league identity found for a CL team"
+   "decision": "started",
+   "reason": "Kickoff has passed or is inside the buffer."
   },
   {
    "date": "2026-11-06",
@@ -734,40 +664,6 @@
   },
   {
    "date": "2026-11-07",
-   "time": "17:15",
-   "league": "FL1",
-   "home": "AJ Auxerre",
-   "away": "Paris FC",
-   "checked": false,
-   "kickoff_utc": "2026-11-07T16:15:00+00:00",
-   "decision": "below-line",
-   "lam_h": 1.1984,
-   "lam_a": 1.2367,
-   "core": 0.6991,
-   "p_form": 0.785,
-   "p_base": 0.602,
-   "point": 0.6991,
-   "low": 0.6551,
-   "high": 0.7383,
-   "upper": 0.7918,
-   "factors": "core 69.9 | form 78 | base 60",
-   "notes": [
-    "checks 1 and 2 disagree by 18 pts",
-    "low/high are a rough xG sensitivity band, not a confidence interval"
-   ],
-   "sheet": [
-    "1 form since season start: 78.5% | games 9/9",
-    "2 historical baseline:     60.2% | games 34/34",
-    "  core (blended):          69.9%",
-    "3 formation effect: home +0 | away +0",
-    "4 home absences: none | goals -0% / opp +0% | rotation 0",
-    "  away absences: none | goals -0% / opp +0% | rotation 0",
-    "5 derby: no",
-    "  field temperature: not entered (logged only)"
-   ]
-  },
-  {
-   "date": "2026-11-07",
    "time": "18:00",
    "league": "SA",
    "home": "Parma Calcio 1913",
@@ -902,36 +798,36 @@
   },
   {
    "date": "2026-11-07",
-   "time": "20:45",
+   "time": "19:00",
    "league": "FL1",
-   "home": "Paris Saint-Germain FC",
-   "away": "ES Troyes AC",
-   "checked": true,
-   "kickoff_utc": "2026-11-07T19:45:00+00:00",
+   "home": "AJ Auxerre",
+   "away": "Paris FC",
+   "checked": false,
+   "kickoff_utc": "2026-11-07T18:00:00+00:00",
    "decision": "below-line",
-   "lam_h": 2.321,
-   "lam_a": 0.6466,
-   "core": 0.796,
-   "p_form": 0.794,
-   "p_base": 0.817,
-   "point": 0.796,
-   "low": 0.7568,
-   "high": 0.8295,
-   "upper": 0.8727,
-   "factors": "core 79.6 | form 79 | base 82",
+   "lam_h": 1.1984,
+   "lam_a": 1.2367,
+   "core": 0.6991,
+   "p_form": 0.785,
+   "p_base": 0.602,
+   "point": 0.6991,
+   "low": 0.6551,
+   "high": 0.7383,
+   "upper": 0.7918,
+   "factors": "core 69.9 | form 78 | base 60",
    "notes": [
-    "partial: only 34/0 baseline games",
+    "checks 1 and 2 disagree by 18 pts",
     "low/high are a rough xG sensitivity band, not a confidence interval"
    ],
    "sheet": [
-    "1 form since season start: 79.4% | games 9/9",
-    "2 historical baseline:     81.7% | games 34/0",
-    "  core (blended):          79.6%",
+    "1 form since season start: 78.5% | games 9/9",
+    "2 historical baseline:     60.2% | games 34/34",
+    "  core (blended):          69.9%",
     "3 formation effect: home +0 | away +0",
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: 13C (logged only)"
+    "  field temperature: not entered (logged only)"
    ]
   },
   {
@@ -999,6 +895,40 @@
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
     "  field temperature: 17C (logged only)"
+   ]
+  },
+  {
+   "date": "2026-11-07",
+   "time": "21:05",
+   "league": "FL1",
+   "home": "Paris Saint-Germain FC",
+   "away": "ES Troyes AC",
+   "checked": true,
+   "kickoff_utc": "2026-11-07T20:05:00+00:00",
+   "decision": "below-line",
+   "lam_h": 2.321,
+   "lam_a": 0.6466,
+   "core": 0.796,
+   "p_form": 0.794,
+   "p_base": 0.817,
+   "point": 0.796,
+   "low": 0.7568,
+   "high": 0.8295,
+   "upper": 0.8727,
+   "factors": "core 79.6 | form 79 | base 82",
+   "notes": [
+    "partial: only 34/0 baseline games",
+    "low/high are a rough xG sensitivity band, not a confidence interval"
+   ],
+   "sheet": [
+    "1 form since season start: 79.4% | games 9/9",
+    "2 historical baseline:     81.7% | games 34/0",
+    "  core (blended):          79.6%",
+    "3 formation effect: home +0 | away +0",
+    "4 home absences: none | goals -0% / opp +0% | rotation 0",
+    "  away absences: none | goals -0% / opp +0% | rotation 0",
+    "5 derby: no",
+    "  field temperature: 13C (logged only)"
    ]
   },
   {
@@ -46102,9 +46032,9 @@
    "field_temp_c": "",
    "factors": "core 95.9 | form 98 | base 93",
    "logged_at": "2026-10-28T12:30:59.062698+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "3",
+   "ag": "0",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -46120,9 +46050,9 @@
    "field_temp_c": "",
    "factors": "core 89.1 | form 86 | base 92",
    "logged_at": "2026-10-28T12:30:59.062698+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "0",
+   "ag": "2",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -46138,9 +46068,9 @@
    "field_temp_c": "",
    "factors": "core 90.8 | form 91 | base 90",
    "logged_at": "2026-10-28T12:30:59.062698+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "0",
+   "ag": "6",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -46156,9 +46086,9 @@
    "field_temp_c": "",
    "factors": "core 91.2 | form 93 | base 90",
    "logged_at": "2026-10-28T12:30:59.062698+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "3",
+   "ag": "2",
+   "result": "HIT",
    "note": ""
   },
   {
