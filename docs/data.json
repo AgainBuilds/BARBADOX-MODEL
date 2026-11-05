@@ -1,8 +1,8 @@
 {
- "generated_at": "2026-11-05T12:34:41.647500+00:00",
+ "generated_at": "2026-11-05T23:34:55.007553+00:00",
  "window": {
-  "from": "2026-11-05",
-  "to": "2026-11-11"
+  "from": "2026-11-06",
+  "to": "2026-11-12"
  },
  "threshold": 0.8,
  "market": 1.5,
@@ -46005,9 +46005,9 @@
    "field_temp_c": "",
    "factors": "core 89.5 | form 92 | base 87",
    "logged_at": "2026-10-29T12:41:54.169600+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "2",
+   "ag": "3",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -46023,9 +46023,9 @@
    "field_temp_c": "",
    "factors": "core 85.3 | form 82 | base 87",
    "logged_at": "2026-10-29T12:41:54.169600+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "2",
+   "ag": "1",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -46041,9 +46041,9 @@
    "field_temp_c": "",
    "factors": "core 87.2 | form 93 | base 79",
    "logged_at": "2026-10-29T12:41:54.169600+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "1",
+   "ag": "9",
+   "result": "HIT",
    "note": ""
   },
   {
