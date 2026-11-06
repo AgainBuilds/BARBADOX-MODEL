@@ -1,0 +1,69 @@
+
+name: BLUE - Python Repository Health
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-syntax:
+    name: Python Syntax Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile all Python source files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import py_compile
+          import sys
+
+          ignored = {
+              ".git",
+              ".venv",
+              "venv",
+              "__pycache__"
+          }
+
+          files = [
+              path
+              for path in Path(".").rglob("*.py")
+              if not any(
+                  part in ignored
+                  for part in path.parts
+              )
+          ]
+
+          failures = []
+
+          for path in files:
+              try:
+                  py_compile.compile(
+                      str(path),
+                      doraise=True
+                  )
+              except py_compile.PyCompileError as exc:
+                  failures.append((str(path), str(exc)))
+
+          print(f"Checked {len(files)} Python files.")
+
+          if failures:
+              for path, error in failures:
+                  print(f"FAIL: {path}")
+                  print(error)
+
+              sys.exit(1)
+
+          print("Python syntax check passed.")
+          PY
