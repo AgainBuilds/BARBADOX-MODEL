@@ -531,16 +531,6 @@ def index():
     return send_from_directory(str(BASE), "console.html")
 
 
-@app.get("/live_scores.js")
-def live_scores_script():
-    """Serve the client-side live-score + archive-grading script."""
-    return send_from_directory(
-        str(BASE),
-        "live_scores.js",
-        mimetype="application/javascript",
-    )
-
-
 @app.get("/api/data")
 def data():
     snapshot = _read_snapshot()
@@ -694,4 +684,3 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 5000)),
     )
-
