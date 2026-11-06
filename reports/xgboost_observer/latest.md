@@ -1,6 +1,6 @@
 # BARBADOX XGBOOST OBSERVER
 
-Generated: 2026-11-06 14:52 UTC
+Generated: 2026-11-06 15:01 UTC
 Current season: 2026/2027
 
 ## DATA COVERAGE
@@ -14,6 +14,7 @@ Current season: 2026/2027
 - Current-season slips represented: 32
 - Current OVER 1.5 legs: 86
 - Current UNDER 3.5 legs: 29
+- Current unrecognized-market legs: 0
 
 ## MARKET DEFINITIONS
 
@@ -21,37 +22,60 @@ Current season: 2026/2027
 - Core 2 = UNDER 3.5 goals.
 - Each market is analysed independently.
 - Combined rankings are retained for comparison.
+- Every current failed leg is listed with its market label.
 
 ## CURRENT-SEASON SLIP ANALYSIS
 
 Only individual legs explicitly marked LOST count as failed legs.
 A winning leg in a lost accumulator is not blamed for the accumulator failure.
 Pending legs are excluded.
+Unknown or unrecognized market labels are not automatically classified as OVER or UNDER.
 
 ## Current-season slip team ranking
 
-| Team | Settled legs | Failed legs | Failed slips | Leg failure rate |
-|---|---:|---:|---:|---:|
-| Brighton & Hove Albion FC | 3 | 3 | 3 | 100.0% |
-| AS Roma | 4 | 3 | 3 | 75.0% |
-| Manchester City FC | 4 | 3 | 3 | 75.0% |
-| Paris FC | 2 | 2 | 2 | 100.0% |
-| Cagliari Calcio | 3 | 2 | 2 | 66.7% |
-| AS Monaco FC | 4 | 2 | 2 | 50.0% |
-| RC Deportivo La Coruña | 1 | 1 | 1 | 100.0% |
-| Coventry City FC | 1 | 1 | 1 | 100.0% |
-| Sunderland AFC | 1 | 1 | 1 | 100.0% |
-| Hull City AFC | 1 | 1 | 1 | 100.0% |
-| Ipswich Town FC | 1 | 1 | 1 | 100.0% |
-| Getafe CF | 1 | 1 | 1 | 100.0% |
-| Sevilla FC | 1 | 1 | 1 | 100.0% |
-| Eintracht Frankfurt | 2 | 1 | 1 | 50.0% |
-| Villarreal CF | 2 | 1 | 1 | 50.0% |
-| RCD Espanyol de Barcelona | 3 | 1 | 1 | 33.3% |
-| Borussia Dortmund | 4 | 1 | 1 | 25.0% |
-| SSC Napoli | 5 | 1 | 1 | 20.0% |
-| Club Atlético de Madrid | 5 | 1 | 1 | 20.0% |
-| FC Internazionale Milano | 8 | 0 | 0 | 0.0% |
+Failures are separated according to the market attached to each individual leg.
+
+| Team | Settled legs | OVER 1.5 failed | UNDER 3.5 failed | Unknown-market failed | Total failed | Failed slips | Total failure rate |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| Brighton & Hove Albion FC | 3 | 3 | 0 | 0 | 3 | 3 | 100.0% |
+| AS Roma | 4 | 0 | 3 | 0 | 3 | 3 | 75.0% |
+| Manchester City FC | 4 | 3 | 0 | 0 | 3 | 3 | 75.0% |
+| Paris FC | 2 | 0 | 2 | 0 | 2 | 2 | 100.0% |
+| Cagliari Calcio | 3 | 0 | 2 | 0 | 2 | 2 | 66.7% |
+| AS Monaco FC | 4 | 0 | 2 | 0 | 2 | 2 | 50.0% |
+| RC Deportivo La Coruña | 1 | 1 | 0 | 0 | 1 | 1 | 100.0% |
+| Coventry City FC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
+| Sunderland AFC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
+| Hull City AFC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
+| Ipswich Town FC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
+| Getafe CF | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
+| Sevilla FC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
+| Eintracht Frankfurt | 2 | 1 | 0 | 0 | 1 | 1 | 50.0% |
+| Villarreal CF | 2 | 1 | 0 | 0 | 1 | 1 | 50.0% |
+| RCD Espanyol de Barcelona | 3 | 1 | 0 | 0 | 1 | 1 | 33.3% |
+| Borussia Dortmund | 4 | 1 | 0 | 0 | 1 | 1 | 25.0% |
+| SSC Napoli | 5 | 0 | 1 | 0 | 1 | 1 | 20.0% |
+| Club Atlético de Madrid | 5 | 1 | 0 | 0 | 1 | 1 | 20.0% |
+| FC Internazionale Milano | 8 | 0 | 0 | 0 | 0 | 0 | 0.0% |
+
+## Current-season failed selections — market identification
+
+| Date | Fixture | Market | Result | Slip ID |
+|---|---|---|---|---|
+| 2026-10-24 | Borussia Dortmund vs Eintracht Frankfurt | OVER 1.5 | LOST | 1792879847664-1-xlclzm |
+| 2026-10-24 | Club Atlético de Madrid vs RC Deportivo La Coruña | OVER 1.5 | LOST | 1792879847664-2-0c7hd6 |
+| 2026-10-24 | SSC Napoli vs AS Roma | UNDER 3.5 | LOST | 1792879847664-5-e65j5q |
+| 2026-10-27 | AS Roma vs Cagliari Calcio | UNDER 3.5 | LOST | 1792872608638-1-g24798 |
+| 2026-10-27 | AS Roma vs Cagliari Calcio | UNDER 3.5 | LOST | 1792879847664-2-0c7hd6 |
+| 2026-10-30 | Villarreal CF vs RCD Espanyol de Barcelona | OVER 1.5 | LOST | 1792879847664-5-e65j5q |
+| 2026-10-31 | Coventry City FC vs Sunderland AFC | UNDER 3.5 | LOST | 1792922304251-2-uig5rj |
+| 2026-10-31 | Hull City AFC vs Ipswich Town FC | UNDER 3.5 | LOST | 1792923104996-0-vzo2ta |
+| 2026-10-31 | Manchester City FC vs Brighton & Hove Albion FC | OVER 1.5 | LOST | 1792923104996-2-tjsen6 |
+| 2026-10-31 | Manchester City FC vs Brighton & Hove Albion FC | OVER 1.5 | LOST | 1793031706902-0-oouo9v |
+| 2026-10-31 | Manchester City FC vs Brighton & Hove Albion FC | OVER 1.5 | LOST | slip-18a8194c33627d66d8c0f984 |
+| 2026-11-01 | Getafe CF vs Sevilla FC | UNDER 3.5 | LOST | 1793228449823-1-ckz8aw |
+| 2026-11-01 | Paris FC vs AS Monaco FC | UNDER 3.5 | LOST | 1793019693767-0-si0stf |
+| 2026-11-01 | Paris FC vs AS Monaco FC | UNDER 3.5 | LOST | 1793032635788-3-fadsnc |
 
 ## Historical backtest team ranking
 
@@ -296,6 +320,7 @@ INTERPRETATION
 - Exact overlap requires the same date, market and fixture.
 - Team association is descriptive, not proof of causation.
 - Pending selections are excluded.
+- Unknown-market selections are reported separately.
 - XGBoost metrics are historical evaluation results, not guarantees.
 - Brier score should be compared with the baseline.
 - No Core 1 or Core 2 prediction logic is modified.
