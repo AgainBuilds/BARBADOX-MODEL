@@ -29,13 +29,18 @@ jobs:
           import re
           import sys
 
+          # live_scores.js was intentionally deleted on 2026-10-30 (commit
+          # e07a550): its capture/grading logic moved into slips_tracker.js.
+          # It is deliberately NOT a deployment requirement. Do not re-add
+          # it to this list unless the file is restored on purpose.
           required_files = [
               "server.py",
               "gh_sync.py",
               "slips_history.py",
               "live_scores.py",
               "console.html",
-              "live_scores.js",
+              "slips_tracker.html",
+              "slips_tracker.js",
               "requirements.txt",
               "render.yaml",
           ]
@@ -177,6 +182,48 @@ jobs:
               sys.exit(1)
 
           print("All deployed Python modules compiled.")
+          PY
+
+      - name: Import the Flask application and verify routes
+        env:
+          FOOTBALL_DATA_KEY: ""
+          API_FOOTBALL_KEY: ""
+          GITHUB_TOKEN: ""
+        run: |
+          pip install flask gunicorn requests
+          python - <<'PY'
+          import sys
+
+          try:
+              import server
+          except Exception as exc:
+              print("FAILED: could not import server:", exc)
+              sys.exit(1)
+
+          app = server.app
+
+          rules = {rule.rule for rule in app.url_map.iter_rules()}
+
+          expected = {
+              "/",
+              "/slips-tracker",
+              "/api/data",
+              "/api/under35",
+              "/api/run",
+              "/api/status",
+              "/api/slip",
+              "/api/slip-history",
+          }
+
+          missing = sorted(expected - rules)
+
+          if missing:
+              print("FAILED: missing expected routes:")
+              for route in missing:
+                  print(f"  - {route}")
+              sys.exit(1)
+
+          print(f"Flask app imported OK; {len(rules)} routes registered.")
           PY
 
       - name: Check patch whitespace
