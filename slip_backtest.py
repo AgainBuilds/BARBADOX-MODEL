@@ -37,8 +37,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 PICKS = ROOT / "picks.csv"
-OUT = ROOT / "reports" / 
-"slip_backtest.md"
+OUT = ROOT / "reports" / "slip_backtest.md"
 
 OVER_T = 0.80
 UNDER_T = 0.60
@@ -134,8 +133,7 @@ def build_slips(picks):
             if len(top) == 3:
                 break
 
-        # Under
- leg must be a fourth, distinct fixture.
+        # Under leg must be a fourth, distinct fixture.
         under = next(
             (u for u in unders if fixture(u) not in seen),
             None,
@@ -214,8 +212,7 @@ def main():
 
     by_season = defaultdict(lambda: [0, 0])
 
-    for 
-s in slips:
+    for s in slips:
         season = season_of(s["date"])
         by_season[season][0] += 1
 
@@ -265,8 +262,7 @@ s in slips:
             if slips else "- Slip hit rate: n/a"
         ),
         (
-            f"- Average product of the four 
-leg probabilities: "
+            f"- Average product of the four leg probabilities: "
             f"**{avg_product:.1%}** "
             f"(model's own expectation of slip hit rate)"
             if slips else ""
@@ -338,7 +334,6 @@ leg probabilities: "
 
     print(
         f"Historical slips reconstructed: {len(slips)} | "
-  
       f"hits: {hits} | misses: {losses}"
     )
 
