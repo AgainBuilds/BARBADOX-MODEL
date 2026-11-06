@@ -17,6 +17,7 @@ Features:
 - Chronological model evaluation.
 - Brier score and baseline comparison.
 - Current versus historical comparison.
+- Individual failed-selection market identification.
 - Markdown report generation.
 
 This observer does not modify the Core 1 or Core 2
@@ -959,7 +960,7 @@ def train_xgboost(rows, target_market):
 
     Each model receives only its own market's data.
 
-    The target is:
+    Target:
         1 = selection won
         0 = selection lost
 
@@ -1356,7 +1357,58 @@ def train_xgboost(rows, target_market):
 # REPORT FORMATTING
 # ============================================================
 
-def format_current_ranking(ranking):
+def format_current_ranking(ranking, rows):
+    """
+    Combined current-season ranking.
+
+    The failed-leg columns are now separated by market.
+    This prevents OVER 1.5 and UNDER 3.5 failures from
+    being mixed together without identification.
+    """
+
+    market_counts = defaultdict(
+        lambda: {
+            "settled": 0,
+            "failed": 0,
+            "failed_slips": set()
+        }
+    )
+
+    # Build market-specific counts for every team.
+    for row in rows:
+
+        market = market_key(
+            row.get("market", "")
+        )
+
+        if market not in MARKETS:
+            market = "UNKNOWN"
+
+        for team in (
+            row["home"],
+            row["away"]
+        ):
+
+            key = team_key(team)
+
+            if not key:
+                continue
+
+            item = market_counts[
+                (key, market)
+            ]
+
+            item["settled"] += 1
+
+            if row["hit"] == 0:
+
+                item["failed"] += 1
+
+                if row.get("slip_id"):
+
+                    item["failed_slips"].add(
+                        row["slip_id"]
+                    )
 
     lines = [
 
@@ -1364,9 +1416,13 @@ def format_current_ranking(ranking):
 
         "",
 
-        "| Team | Settled legs | Failed legs | Failed slips | Leg failure rate |",
+        "Failures are separated according to the market attached to each individual leg.",
 
-        "|---|---:|---:|---:|---:|"
+        "",
+
+        "| Team | Settled legs | OVER 1.5 failed | UNDER 3.5 failed | Unknown-market failed | Total failed | Failed slips | Total failure rate |",
+
+        "|---|---:|---:|---:|---:|---:|---:|---:|"
 
     ]
 
@@ -1384,17 +1440,143 @@ def format_current_ranking(ranking):
 
     for item in ranking[:20]:
 
+        key = item["team_key"]
+
+        over_failed = market_counts[
+            (key, "OVER 1.5")
+        ]["failed"]
+
+        under_failed = market_counts[
+            (key, "UNDER 3.5")
+        ]["failed"]
+
+        unknown_failed = market_counts[
+            (key, "UNKNOWN")
+        ]["failed"]
+
         lines.append(
 
             f"| {item['team']} "
 
             f"| {item['appearances']} "
 
+            f"| {over_failed} "
+
+            f"| {under_failed} "
+
+            f"| {unknown_failed} "
+
             f"| {item['failed_legs']} "
 
             f"| {item['failed_slips']} "
 
             f"| {item['failure_rate']:.1%} |"
+
+        )
+
+    lines.append("")
+
+    return lines
+
+
+# ============================================================
+# INDIVIDUAL FAILED SELECTION REPORT
+# ============================================================
+
+def format_failed_leg_details(rows):
+    """
+    Lists every failed current-season selection.
+
+    Each row explicitly identifies:
+    - Fixture
+    - Date
+    - Market
+    - Result
+    - Slip ID
+
+    Unrecognized market labels are displayed rather than
+    silently being classified as OVER or UNDER.
+    """
+
+    lines = [
+
+        "## Current-season failed selections — market identification",
+
+        "",
+
+        "| Date | Fixture | Market | Result | Slip ID |",
+
+        "|---|---|---|---|---|"
+
+    ]
+
+    failed_rows = [
+
+        row for row in rows
+
+        if row.get("hit") == 0
+
+    ]
+
+    failed_rows.sort(
+        key=lambda row: (
+            row.get("date").isoformat()
+            if row.get("date")
+            else "",
+            row.get("home", ""),
+            row.get("away", "")
+        )
+    )
+
+    if not failed_rows:
+
+        lines.append(
+            "| No failed settled selections | - | - | - | - |"
+        )
+
+    for row in failed_rows:
+
+        date = (
+
+            row["date"].strftime("%Y-%m-%d")
+
+            if row.get("date")
+
+            else "Unknown date"
+
+        )
+
+        market = market_key(
+            row.get("market", "")
+        )
+
+        if not market:
+            market = "UNKNOWN"
+
+        elif market not in MARKETS:
+
+            market = f"UNRECOGNIZED: {market}"
+
+        fixture = (
+            f"{row['home']} vs {row['away']}"
+        )
+
+        slip_id = (
+            row.get("slip_id")
+            or "N/A"
+        )
+
+        lines.append(
+
+            f"| {date} "
+
+            f"| {fixture} "
+
+            f"| {market} "
+
+            f"| LOST "
+
+            f"| {slip_id} |"
 
         )
 
@@ -1533,9 +1715,17 @@ def format_market_rankings(
 
         if not ranking:
 
-            lines.append(
-                "| No settled data available | - | - | - |"
-            )
+            if current:
+
+                lines.append(
+                    "| No settled data available | - | - | - | - |"
+                )
+
+            else:
+
+                lines.append(
+                    "| No settled data available | - | - | - |"
+                )
 
         lines.append("")
 
@@ -1729,13 +1919,19 @@ def main():
     for market in MARKETS:
 
         market_current = [
+
             row for row in current
+
             if market_key(row["market"]) == market
+
         ]
 
         market_historical = [
+
             row for row in historical
+
             if market_key(row["market"]) == market
+
         ]
 
         market_comparisons[market] = (
@@ -1809,6 +2005,14 @@ def main():
 
     )
 
+    current_unknown_count = sum(
+
+        1 for row in current
+
+        if market_key(row["market"]) not in MARKETS
+
+    )
+
     # --------------------------------------------------------
     # REPORT HEADER
     # --------------------------------------------------------
@@ -1847,6 +2051,8 @@ def main():
 
         f"- Current UNDER 3.5 legs: {current_under_count}",
 
+        f"- Current unrecognized-market legs: {current_unknown_count}",
+
         "",
 
         "## MARKET DEFINITIONS",
@@ -1861,6 +2067,8 @@ def main():
 
         "- Combined rankings are retained for comparison.",
 
+        "- Every current failed leg is listed with its market label.",
+
         "",
 
         "## CURRENT-SEASON SLIP ANALYSIS",
@@ -1873,6 +2081,8 @@ def main():
 
         "Pending legs are excluded.",
 
+        "Unknown or unrecognized market labels are not automatically classified as OVER or UNDER.",
+
         ""
 
     ]
@@ -1882,7 +2092,13 @@ def main():
     # --------------------------------------------------------
 
     report += format_current_ranking(
-        current_ranking
+        current_ranking,
+        current
+    )
+
+    # New: list every failed selection and its market.
+    report += format_failed_leg_details(
+        current
     )
 
     report += format_historical_ranking(
@@ -1984,6 +2200,8 @@ def main():
         "- Team association is descriptive, not proof of causation.",
 
         "- Pending selections are excluded.",
+
+        "- Unknown-market selections are reported separately.",
 
         "- XGBoost metrics are historical evaluation results, not guarantees.",
 
