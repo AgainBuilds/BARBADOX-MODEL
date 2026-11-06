@@ -1,7 +1,7 @@
-
 name: BLUE - Python Repository Health
 
 on:
+  push:
   pull_request:
   workflow_dispatch:
 
@@ -9,12 +9,12 @@ permissions:
   contents: read
 
 jobs:
-  python-syntax:
-    name: Python Syntax Validation
+  deployment-health:
+    name: Deployment Configuration and Runtime Health
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Check out repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -22,48 +22,162 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Compile all Python source files
+      - name: Validate required deployment files and dependencies
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          import sys
+
+          required_files = [
+              "server.py",
+              "gh_sync.py",
+              "slips_history.py",
+              "live_scores.py",
+              "console.html",
+              "live_scores.js",
+              "requirements.txt",
+              "render.yaml",
+          ]
+
+          missing = [
+              name for name in required_files
+              if not Path(name).is_file()
+          ]
+
+          if missing:
+              print("Missing deployment files:")
+              for name in missing:
+                  print(f"  - {name}")
+              sys.exit(1)
+
+          requirement_lines = [
+              line.strip()
+              for line in Path("requirements.txt").read_text(
+                  encoding="utf-8"
+              ).splitlines()
+              if line.strip() and not line.lstrip().startswith("#")
+          ]
+
+          package_pattern = re.compile(
+              r"^([A-Za-z0-9][A-Za-z0-9._-]*)"
+              r"(?:\[[A-Za-z0-9_,.-]+\])?"
+              r"(?:\s*(?:===|==|!=|~=|<=|>=|<|>).*)?$"
+          )
+
+          seen = set()
+          invalid = []
+          duplicates = []
+
+          for line in requirement_lines:
+              match = package_pattern.fullmatch(line)
+
+              if not match:
+                  invalid.append(line)
+                  continue
+
+              package = re.sub(
+                  r"[-_.]+",
+                  "-",
+                  match.group(1).lower()
+              )
+
+              if package in seen:
+                  duplicates.append(package)
+
+              seen.add(package)
+
+          if invalid:
+              print("Invalid requirements entries:")
+              for line in invalid:
+                  print(f"  - {line}")
+
+          if duplicates:
+              print("Duplicate dependencies:")
+              for package in sorted(set(duplicates)):
+                  print(f"  - {package}")
+
+          if invalid or duplicates:
+              sys.exit(1)
+
+          print(f"Verified {len(required_files)} deployment files.")
+          print(f"Verified {len(requirement_lines)} dependencies.")
+          PY
+
+      - name: Validate Render deployment configuration
+        run: |
+          ruby -ryaml -e '
+            config = YAML.safe_load_file("render.yaml")
+            services = config.fetch("services")
+
+            abort "services must be a list" unless services.is_a?(Array)
+
+            service = services.find do |item|
+              item.is_a?(Hash) && item["type"] == "web"
+            end
+
+            abort "No web service defined" unless service
+            abort "Runtime must be python" unless service["runtime"] == "python"
+
+            build_command = service.fetch("buildCommand", "")
+            abort "Build command must install requirements.txt" unless build_command.include?("requirements.txt")
+
+            start_command = service.fetch("startCommand", "")
+            match = start_command.match(
+              /\Agunicorn\s+([A-Za-z_][A-Za-z0-9_.]*):([A-Za-z_][A-Za-z0-9_]*)\s*\z/
+            )
+
+            abort "Invalid Gunicorn start command" unless match
+
+            module_path = File.join(*match[1].split(".")) + ".py"
+
+            abort "Missing Gunicorn module: #{module_path}" unless File.file?(module_path)
+
+            puts "Render YAML is valid."
+            puts "Web service: #{service.fetch("name", "(unnamed)")}"
+            puts "Gunicorn target: #{match[1]}:#{match[2]}"
+          '
+
+      - name: Compile deployed Python runtime modules
         run: |
           python - <<'PY'
           from pathlib import Path
           import py_compile
           import sys
 
-          ignored = {
-              ".git",
-              ".venv",
-              "venv",
-              "__pycache__"
-          }
-
-          files = [
-              path
-              for path in Path(".").rglob("*.py")
-              if not any(
-                  part in ignored
-                  for part in path.parts
-              )
+          runtime_modules = [
+              "server.py",
+              "gh_sync.py",
+              "slips_history.py",
+              "live_scores.py",
           ]
 
           failures = []
 
-          for path in files:
+          for name in runtime_modules:
+              path = Path(name)
+
+              if not path.is_file():
+                  failures.append(f"{name}: file not found")
+                  continue
+
               try:
                   py_compile.compile(
                       str(path),
-                      doraise=True
+                      doraise=True,
                   )
+                  print(f"PASS: {name}")
               except py_compile.PyCompileError as exc:
-                  failures.append((str(path), str(exc)))
-
-          print(f"Checked {len(files)} Python files.")
+                  failures.append(f"{name}: {exc}")
 
           if failures:
-              for path, error in failures:
-                  print(f"FAIL: {path}")
-                  print(error)
-
+              print("\nRuntime compilation failures:")
+              for failure in failures:
+                  print(f"  - {failure}")
               sys.exit(1)
 
-          print("Python syntax check passed.")
+          print("All deployed Python modules compiled.")
           PY
+
+      - name: Check patch whitespace
+        run: git diff --check
