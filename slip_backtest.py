@@ -334,6 +334,7 @@ def main():
 
     print(
         f"Historical slips reconstructed: {len(slips)} | "
+  
       f"hits: {hits} | misses: {losses}"
     )
 
@@ -348,3 +349,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
