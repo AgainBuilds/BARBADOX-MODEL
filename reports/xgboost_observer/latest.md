@@ -1,6 +1,6 @@
 # BARBADOX XGBOOST OBSERVER
 
-Generated: 2026-11-05 06:51 UTC
+Generated: 2026-11-06 14:38 UTC
 Current season: 2026/2027
 
 ## DATA COVERAGE
@@ -9,8 +9,8 @@ Current season: 2026/2027
 - Core 2 historical settled selections: 984
 - Historical unique selections: 2249
 - Historical seasons found: 2024/2025, 2025/2026, 2026/2027
-- Current archive: Read 112 settled legs from slips_browser.csv.
-- Current-season settled slip legs: 112
+- Current archive: Read 115 settled legs from slips_browser.csv.
+- Current-season settled slip legs: 115
 - Current-season slips represented: 32
 
 ## CURRENT-SEASON SLIP ANALYSIS
@@ -23,9 +23,9 @@ Pending legs are excluded.
 
 | Team | Settled legs | Failed legs | Failed slips | Leg failure rate |
 |---|---:|---:|---:|---:|
-| Manchester City FC | 3 | 3 | 3 | 100.0% |
 | Brighton & Hove Albion FC | 3 | 3 | 3 | 100.0% |
 | AS Roma | 4 | 3 | 3 | 75.0% |
+| Manchester City FC | 4 | 3 | 3 | 75.0% |
 | Paris FC | 2 | 2 | 2 | 100.0% |
 | Cagliari Calcio | 3 | 2 | 2 | 66.7% |
 | AS Monaco FC | 4 | 2 | 2 | 50.0% |
@@ -39,7 +39,7 @@ Pending legs are excluded.
 | Eintracht Frankfurt | 2 | 1 | 1 | 50.0% |
 | Villarreal CF | 2 | 1 | 1 | 50.0% |
 | RCD Espanyol de Barcelona | 3 | 1 | 1 | 33.3% |
-| Borussia Dortmund | 3 | 1 | 1 | 33.3% |
+| Borussia Dortmund | 4 | 1 | 1 | 25.0% |
 | SSC Napoli | 5 | 1 | 1 | 20.0% |
 | Club Atlético de Madrid | 5 | 1 | 1 | 20.0% |
 | FC Internazionale Milano | 8 | 0 | 0 | 0.0% |
