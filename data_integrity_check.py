@@ -15,18 +15,26 @@ FILES = {
 }
 
 REQUIRED = {
-    "core1": {"date", "league", "home", "away", "hg", "ag",
-              "hit", "cleared"},
-    "core2": {"date", "league", "home", "away", "hg", "ag",
-              "hit", "cleared"},
-    "picks": {"date", "league", "home", "away", "market",
-              "hg", "ag", "result"},
+    "core1": {
+        "date", "league", "home", "away",
+        "hg", "ag", "hit", "cleared"
+    },
+    "core2": {
+        "date", "league", "home", "away",
+        "hg", "ag", "hit", "cleared"
+    },
+    "picks": {
+        "date", "league", "home", "away",
+        "market", "hg", "ag", "result"
+    },
 }
 
 
 def normalise(value):
     return "".join(
-        c.lower() for c in str(value or "") if c.isalnum()
+        c.lower()
+        for c in str(value or "")
+        if c.isalnum()
     )
 
 
@@ -35,9 +43,11 @@ def read_file(path):
         raise FileNotFoundError(path)
 
     with path.open(
-        "r", newline="", encoding="utf-8-sig"
-    ) as f:
-        reader = csv.DictReader(f)
+        "r",
+        newline="",
+        encoding="utf-8-sig"
+    ) as file:
+        reader = csv.DictReader(file)
         return reader.fieldnames or [], list(reader)
 
 
@@ -47,8 +57,10 @@ def fixture_key(row, market=None):
         str(row.get("league", "")).strip().upper(),
         normalise(row.get("home")),
         normalise(row.get("away")),
-        str(market if market is not None
-            else row.get("market", "")).strip(),
+        str(
+            market if market is not None
+            else row.get("market", "")
+        ).strip(),
     )
 
 
@@ -74,33 +86,43 @@ def audit_file(name, path):
     ]
 
     duplicates = [
-        key for key, count in Counter(keys).items()
+        key
+        for key, count in Counter(keys).items()
         if count > 1
     ]
 
     missing_identity = [
-        i + 2 for i, row in enumerate(rows)
-        if not all(row.get(k) for k in
-                   ("date", "league", "home", "away"))
+        index + 2
+        for index, row in enumerate(rows)
+        if not all(
+            row.get(field)
+            for field in (
+                "date", "league", "home", "away"
+            )
+        )
     ]
 
-    invalid_results = []
-
     if name == "picks":
-        allowed = {"", "HIT", "MISS", "POSTPONED",
-                   "CANCELLED", "VOID"}
+        allowed = {
+            "", "HIT", "MISS",
+            "POSTPONED", "CANCELLED", "VOID"
+        }
 
         invalid_results = [
-            i + 2 for i, row in enumerate(rows)
+            index + 2
+            for index, row in enumerate(rows)
             if str(row.get("result", "")).upper()
             not in allowed
         ]
 
     else:
         invalid_results = [
-            i + 2 for i, row in enumerate(rows)
-            if row.get("hit", "") not in ("0", "1")
-            and row.get("cleared", "") not in ("", "0", "1")
+            index + 2
+            for index, row in enumerate(rows)
+            if (
+                row.get("hit", "") not in ("0", "1")
+                or row.get("cleared", "") not in ("", "0", "1")
+            )
         ]
 
     print(f"\n[{name.upper()}]")
@@ -158,6 +180,7 @@ def compare_reports(picks, reports):
                 continue
 
             checked += 1
+
             expected = (
                 "HIT" if row.get("hit") == "1"
                 else "MISS"
@@ -182,6 +205,7 @@ def main():
     for name, path in FILES.items():
         try:
             rows, problems = audit_file(name, path)
+
             results[name] = rows
             total_problems += len(problems)
 
@@ -193,7 +217,10 @@ def main():
             total_problems += 1
 
     if "picks" in results and len(reports) == 2:
-        compare_reports(results["picks"], reports)
+        compare_reports(
+            results["picks"],
+            reports
+        )
 
     print("\n" + "=" * 40)
     print(f"TOTAL AUDIT WARNINGS: {total_problems}")
