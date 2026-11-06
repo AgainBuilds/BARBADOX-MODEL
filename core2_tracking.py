@@ -1,231 +1,276 @@
-
 #!/usr/bin/env python3
-"""BARBADOX read-only historical data integrity audit."""
+"""Merge qualified Core 2 Under 3.5 selections into picks.csv without clashing with Core 1."""
 
 import csv
+import os
+import re
+from datetime import datetime, timezone
 from pathlib import Path
-from collections import Counter
 
 ROOT = Path(__file__).resolve().parent
+REPORT_DIR = ROOT / os.getenv("REPORT_DIR", "reports")
+PICKS = ROOT / "picks.csv"
+RUN_LOG = ROOT / "core2_run.log"
 
-FILES = {
-    "core1": ROOT / "reports" / "core1_results.csv",
-    "core2": ROOT / "reports" / "core2_results.csv",
-    "picks": ROOT / "picks.csv",
-}
+THRESHOLD = float(os.getenv("THRESHOLD", "0.75"))
 
-REQUIRED = {
-    "core1": {
-        "date", "league", "home", "away",
-        "hg", "ag", "hit", "cleared"
-    },
-    "core2": {
-        "date", "league", "home", "away",
-        "hg", "ag", "hit", "cleared"
-    },
-    "picks": {
-        "date", "league", "home", "away",
-        "market", "hg", "ag", "result"
-    },
-}
+FIELDS = [
+    "date", "league", "home", "away", "market", "probability",
+    "core_probability", "low", "high", "field_temp_c", "factors",
+    "logged_at", "hg", "ag", "result", "note",
+]
 
 
-def normalise(value):
-    return "".join(
-        c.lower()
-        for c in str(value or "")
-        if c.isalnum()
-    )
-
-
-def read_file(path):
+def read_csv(path):
     if not path.exists():
-        raise FileNotFoundError(path)
+        return []
 
-    with path.open(
-        "r",
-        newline="",
-        encoding="utf-8-sig"
-    ) as file:
-        reader = csv.DictReader(file)
-        return reader.fieldnames or [], list(reader)
+    with path.open(newline="", encoding="utf-8-sig") as f:
+        return list(csv.DictReader(f))
 
 
-def fixture_key(row, market=None):
-    return (
-        str(row.get("date", ""))[:10],
-        str(row.get("league", "")).strip().upper(),
-        normalise(row.get("home")),
-        normalise(row.get("away")),
-        str(
-            market if market is not None
-            else row.get("market", "")
-        ).strip(),
+def norm(s):
+    return "".join(
+        c.lower() for c in str(s or "") if c.isalnum()
     )
 
 
-def audit_file(name, path):
-    headers, rows = read_file(path)
-    problems = []
+def is_core2(r):
+    return str(r.get("note", "")).strip().upper().startswith(
+        "CORE2_UNDER35"
+    )
 
-    missing_headers = REQUIRED[name] - set(headers)
 
-    if missing_headers:
-        problems.append(
-            f"Missing columns: {sorted(missing_headers)}"
-        )
+def key(r):
+    # Market is part of the key: a fixture can have both O1.5 and U3.5 records.
+    market = "3.5" if is_core2(r) else str(
+        r.get("market", "")
+    ).strip()
 
-    keys = [
-        fixture_key(
-            row,
-            "1.5" if name == "core1"
-            else "3.5" if name == "core2"
-            else None
-        )
-        for row in rows
-    ]
+    return (
+        str(r.get("date", ""))[:10],
+        str(r.get("league", "")).upper().strip(),
+        norm(r.get("home")),
+        norm(r.get("away")),
+        market,
+    )
 
-    duplicates = [
-        key
-        for key, count in Counter(keys).items()
-        if count > 1
-    ]
 
-    missing_identity = [
-        index + 2
-        for index, row in enumerate(rows)
-        if not all(
-            row.get(field)
-            for field in (
-                "date", "league", "home", "away"
+def make_pick(s, historical):
+    try:
+        p = float(s.get("p_final", ""))
+    except (ValueError, TypeError):
+        return None
+
+    if not 0 <= p <= 1 or p < THRESHOLD:
+        return None
+
+    hg = ag = result = ""
+
+    if historical:
+        try:
+            hg, ag = int(s["hg"]), int(s["ag"])
+        except (KeyError, ValueError, TypeError):
+            return None
+
+        result = "HIT" if hg + ag <= 3 else "MISS"
+
+        flag = str(s.get("hit", "")).strip()
+
+        if flag in ("0", "1") and flag != (
+            "1" if result == "HIT" else "0"
+        ):
+            print(
+                "WARNING: Core 2 report hit flag disagrees with score:",
+                s.get("home"), "vs", s.get("away")
             )
-        )
-    ]
 
-    if name == "picks":
-        allowed = {
-            "", "HIT", "MISS",
-            "POSTPONED", "CANCELLED", "VOID"
-        }
-
-        invalid_results = [
-            index + 2
-            for index, row in enumerate(rows)
-            if str(row.get("result", "")).upper()
-            not in allowed
-        ]
-
-    else:
-        invalid_results = [
-            index + 2
-            for index, row in enumerate(rows)
-            if (
-                row.get("hit", "") not in ("0", "1")
-                or row.get("cleared", "") not in ("", "0", "1")
-            )
-        ]
-
-    print(f"\n[{name.upper()}]")
-    print(f"Rows: {len(rows)}")
-    print(f"Columns: {len(headers)}")
-    print(f"Duplicate fixture keys: {len(duplicates)}")
-    print(f"Missing identity fields: {len(missing_identity)}")
-    print(f"Invalid result fields: {len(invalid_results)}")
-
-    if duplicates:
-        problems.append(
-            f"Duplicate keys: {duplicates[:5]}"
-        )
-
-    if missing_identity:
-        problems.append(
-            f"Missing identity rows: {missing_identity[:10]}"
-        )
-
-    if invalid_results:
-        problems.append(
-            f"Invalid result rows: {invalid_results[:10]}"
-        )
-
-    for problem in problems:
-        print("WARNING:", problem)
-
-    return rows, problems
-
-
-def compare_reports(picks, reports):
-    pick_map = {
-        fixture_key(row): row
-        for row in picks
+    return {
+        "date": str(s.get("date", ""))[:10],
+        "league": s.get("league", ""),
+        "home": s.get("home", ""),
+        "away": s.get("away", ""),
+        "market": "3.5",
+        "probability": f"{p:.4f}",
+        "core_probability": (
+            s.get("p_cal", "") or s.get("p_raw", "")
+        ),
+        "low": "",
+        "high": "",
+        "field_temp_c": "",
+        "factors": "Core 2 Under 3.5 walk-forward",
+        "logged_at": datetime.now(timezone.utc).isoformat(),
+        "hg": hg,
+        "ag": ag,
+        "result": result,
+        "note": (
+            "CORE2_UNDER35|HISTORICAL"
+            if historical
+            else "CORE2_UNDER35|UPCOMING"
+        ),
     }
 
-    print("\n[CROSS-FILE CONSISTENCY]")
 
-    for name, rows in reports.items():
-        market = "1.5" if name == "core1" else "3.5"
+def parse_upcoming_log():
+    """Convert qualified upcoming predictions from the console log to CSV rows."""
+    if not RUN_LOG.exists():
+        return []
 
-        checked = 0
-        missing = 0
-        disagreements = 0
+    pattern = re.compile(
+        r"^\s*(\d{4}-\d{2}-\d{2})\s+([A-Z0-9]+)\s+"
+        r"(.+?)\s+vs\s+(.+?)\s+(\d+(?:\.\d+)?)%"
+        r"\s+\(raw\s+(\d+(?:\.\d+)?)%\)",
+        re.I,
+    )
 
-        for row in rows:
-            if row.get("cleared") != "1":
-                continue
+    out = []
 
-            key = fixture_key(row, market)
-            pick = pick_map.get(key)
+    for line in RUN_LOG.read_text(
+        encoding="utf-8", errors="replace"
+    ).splitlines():
 
-            if pick is None:
-                missing += 1
-                continue
+        m = pattern.search(line)
 
-            checked += 1
+        if not m:
+            continue
 
-            expected = (
-                "HIT" if row.get("hit") == "1"
-                else "MISS"
-            )
+        date, league, home, away, final, raw = m.groups()
+        p = float(final) / 100
 
-            if pick.get("result", "").upper() != expected:
-                disagreements += 1
+        if p >= THRESHOLD:
+            out.append({
+                "date": date,
+                "league": league,
+                "home": home.strip(),
+                "away": away.strip(),
+                "p_final": f"{p:.4f}",
+                "p_cal": f"{p:.4f}",
+                "p_raw": f"{float(raw) / 100:.4f}",
+                "cleared": "1",
+            })
 
-        print(
-            f"{name.upper()}: "
-            f"matched={checked}, "
-            f"missing={missing}, "
-            f"outcome disagreements={disagreements}"
-        )
+    return out
 
 
 def main():
-    reports = {}
-    results = {}
-    total_problems = 0
+    existing = read_csv(PICKS)
+    positions = {
+        key(row): i for i, row in enumerate(existing)
+    }
 
-    for name, path in FILES.items():
-        try:
-            rows, problems = audit_file(name, path)
+    historical = read_csv(
+        REPORT_DIR / "core2_results.csv"
+    )
 
-            results[name] = rows
-            total_problems += len(problems)
+    upcoming = read_csv(
+        REPORT_DIR / "core2_upcoming.csv"
+    )
 
-            if name in ("core1", "core2"):
-                reports[name] = rows
+    if not upcoming:
+        upcoming = parse_upcoming_log()
 
-        except Exception as exc:
-            print(f"\n[{name.upper()}] ERROR: {exc}")
-            total_problems += 1
+        if upcoming:
+            REPORT_DIR.mkdir(
+                parents=True,
+                exist_ok=True,
+            )
 
-    if "picks" in results and len(reports) == 2:
-        compare_reports(
-            results["picks"],
-            reports
+            with (
+                REPORT_DIR / "core2_upcoming.csv"
+            ).open(
+                "w",
+                newline="",
+                encoding="utf-8",
+            ) as f:
+
+                w = csv.DictWriter(
+                    f,
+                    fieldnames=[
+                        "date", "league", "home", "away",
+                        "p_final", "p_cal", "p_raw", "cleared",
+                    ],
+                )
+
+                w.writeheader()
+                w.writerows(upcoming)
+
+            print(
+                f"Exported {len(upcoming)} qualified upcoming "
+                "Core 2 forecasts from console log."
+            )
+
+    added = updated = protected = 0
+
+    for rows, is_hist in (
+        (historical, True),
+        (upcoming, False),
+    ):
+        for source in rows:
+
+            if (
+                is_hist
+                and str(source.get("cleared", "")).strip() != "1"
+            ):
+                continue
+
+            pick = make_pick(source, is_hist)
+
+            if pick is None:
+                continue
+
+            k = key(pick)
+
+            if k not in positions:
+                positions[k] = len(existing)
+                existing.append(pick)
+                added += 1
+                continue
+
+            i = positions[k]
+            old = existing[i]
+
+            if not is_core2(old):
+                protected += 1
+                continue
+
+            was_hist = (
+                "HISTORICAL"
+                in str(old.get("note", "")).upper()
+            )
+
+            if is_hist or not was_hist:
+                existing[i] = pick
+                updated += 1
+
+    with PICKS.open(
+        "w",
+        newline="",
+        encoding="utf-8",
+    ) as f:
+
+        w = csv.DictWriter(
+            f,
+            fieldnames=FIELDS,
+            extrasaction="ignore",
         )
 
-    print("\n" + "=" * 40)
-    print(f"TOTAL AUDIT WARNINGS: {total_problems}")
-    print("READ-ONLY AUDIT COMPLETE")
-    print("No repository data was modified.")
+        w.writeheader()
+
+        w.writerows(
+            {
+                field: r.get(field, "")
+                for field in FIELDS
+            }
+            for r in existing
+        )
+
+    print("\nBARBADOX CORE 2 TRACKING COMPLETE")
+    print(
+        f"Threshold: {THRESHOLD:.1%} | "
+        f"new: {added} | updated: {updated} | "
+        f"protected: {protected}"
+    )
+    print(f"Total shared picks: {len(existing)}")
 
 
 if __name__ == "__main__":
