@@ -155,6 +155,10 @@ jobs:
               "gh_sync.py",
               "slips_history.py",
               "live_scores.py",
+              # Not imported by the server, but run by backtest.yml;
+              # compile it so line-wrap corruption like the 2026-11-06
+              # breakage is caught before the backtest is used.
+              "slip_backtest.py",
           ]
 
           failures = []
