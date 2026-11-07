@@ -710,6 +710,13 @@ const KICKOFF_TZ_HOURS = 1;
 const KICKOFF_BUFFER_MS = 30 * 60000;
 const SLIP_WINDOW_MS = 7 * 24 * 3600000;
 
+/* A fixture may sit in at most this many unsettled (PENDING) slips at
+   once. 1 restores the old never-reuse rule; 2 lets a fixture that is
+   already inside one pending slip join one new slip, so qualified
+   picks are never starved by earlier generations. Same cap as the
+   server endpoint. */
+const SLIP_LEG_REUSE_LIMIT = 2;
+
 function formatKickoff(value) {
   if (!value) return "Kickoff time unavailable";
 
@@ -784,10 +791,10 @@ function qualifiedUnder(f, now = Date.now()) {
     isUpcoming(f, now);
 }
 
-/* Fixtures inside any genuinely unsettled (PENDING) archive slip are
-   never reused — same reservation rule as the server. */
-function pendingFixtureKeys() {
-  const keys = new Set();
+/* Fixtures inside genuinely unsettled (PENDING) archive slips count
+   towards the reuse cap — same reservation rule as the server. */
+function pendingFixtureCounts() {
+  const counts = new Map();
 
   archiveSlips.forEach(slip => {
     if (String(slip.status || "PENDING").toUpperCase() !== "PENDING") return;
@@ -795,17 +802,20 @@ function pendingFixtureKeys() {
     /* Same settlement rule as the server: a slip whose stored legs
        already settle it — a confirmed losing leg, or all four legs
        won — is not genuinely pending, even when its top-level grade
-       still says PENDING, and must not keep its fixtures reserved. */
+       still says PENDING, and must not count towards the cap. */
     const legs = Array.isArray(slip.legs) ? slip.legs : [];
     if (legs.length === 4) {
       const results = legs.map(l => String((l && l.result) || "PENDING").toUpperCase());
       if (results.includes("LOST") || results.every(r => r === "WON")) return;
     }
 
-    (slip.legs || []).forEach(leg => keys.add(fixtureKey(leg)));
+    (slip.legs || []).forEach(leg => {
+      const key = fixtureKey(leg);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
   });
 
-  return keys;
+  return counts;
 }
 
 /* -------------------------------------------------------
@@ -1020,7 +1030,7 @@ function renderHistory() {
 /* Explain exactly why a fixture is unusable, so
    "nothing is there" never happens silently again. */
 function slipDiagnostics(now = Date.now()) {
-  const used = pendingFixtureKeys();
+  const held = pendingFixtureCounts();
 
   const overAll =
     snap && Array.isArray(snap.fixtures) ? snap.fixtures : [];
@@ -1042,7 +1052,7 @@ function slipDiagnostics(now = Date.now()) {
   });
 
   const classify = f => {
-    if (used.has(fixtureKey(f))) return "used";
+    if ((held.get(fixtureKey(f)) || 0) >= SLIP_LEG_REUSE_LIMIT) return "used";
     if (!Number.isFinite(kickoffMs(f))) return "nokickoff";
     if (!isUpcoming(f, now)) return "started";
     return "free";
@@ -1068,19 +1078,27 @@ function slipDiagnostics(now = Date.now()) {
 
 function buildSlips() {
   const now = Date.now();
-  const taken = pendingFixtureKeys();
+  const held = pendingFixtureCounts();
+
+  /* A fixture can enter this batch while its total across the
+     archive plus this batch stays under the reuse cap. */
+  const batchUse = new Map();
+  const slotsLeft = f => {
+    const key = fixtureKey(f);
+    return SLIP_LEG_REUSE_LIMIT -
+      ((held.get(key) || 0) + (batchUse.get(key) || 0));
+  };
 
   const over = (snap && Array.isArray(snap.fixtures) ? snap.fixtures : [])
-    .filter(f => qualifiedOver(f, now) && !taken.has(fixtureKey(f)))
+    .filter(f => qualifiedOver(f, now) && slotsLeft(f) > 0)
     .sort((a, b) => overProb(b) - overProb(a));
 
   const unders = (underSnap && Array.isArray(underSnap.fixtures)
     ? underSnap.fixtures
     : [])
-    .filter(f => qualifiedUnder(f, now) && !taken.has(fixtureKey(f)))
+    .filter(f => qualifiedUnder(f, now) && slotsLeft(f) > 0)
     .sort((a, b) => (Number(b.p_final) || 0) - (Number(a.p_final) || 0));
 
-  const used = new Set(taken);
   const list = [];
 
   const anchors = [...new Set(
@@ -1095,7 +1113,7 @@ function buildSlips() {
           t >= anchor &&
           t <= anchor + SLIP_WINDOW_MS &&
           t > now + KICKOFF_BUFFER_MS &&
-          !used.has(fixtureKey(f));
+          slotsLeft(f) > 0;
       };
 
       const trio = over.filter(inWindow).slice(0, 3);
@@ -1110,7 +1128,10 @@ function buildSlips() {
 
       if (!under) break;
 
-      [...trio, under].forEach(f => used.add(fixtureKey(f)));
+      [...trio, under].forEach(f => {
+        const key = fixtureKey(f);
+        batchUse.set(key, (batchUse.get(key) || 0) + 1);
+      });
 
       list.push({over: trio, under});
     }
@@ -1131,7 +1152,7 @@ function renderDiag(diag) {
     <div class="diag">
       <b>CORE 1 · OVER ${MARKET} CANDIDATES</b>
       ${line("Qualified in total", diag.over.total)}
-      ${line("Already inside your pending slips (never reused)", diag.over.used)}
+      ${line("Already in " + SLIP_LEG_REUSE_LIMIT + " pending slips (reuse cap reached)", diag.over.used)}
       ${line("Missing kickoff timestamp (cannot prove not started)", diag.over.nokickoff)}
       ${line("Kicked off / inside the 30-minute buffer", diag.over.started)}
       ${line("Free &amp; upcoming", diag.over.free)}
@@ -1140,7 +1161,7 @@ function renderDiag(diag) {
     <div class="diag">
       <b>CORE 2 · UNDER 3.5 CANDIDATES</b>
       ${line("Qualified in total", diag.under.total)}
-      ${line("Already inside your pending slips (never reused)", diag.under.used)}
+      ${line("Already in " + SLIP_LEG_REUSE_LIMIT + " pending slips (reuse cap reached)", diag.under.used)}
       ${line("Missing kickoff timestamp", diag.under.nokickoff)}
       ${line("Kicked off / inside the 30-minute buffer", diag.under.started)}
       ${line("Free &amp; upcoming", diag.under.free)}
@@ -1223,9 +1244,10 @@ async function generateSlips() {
 
       if (diag.over.used > 0 && diag.over.free === 0) {
         hints.push(
-          "Every qualified Over pick is already sitting in one of your pending " +
-          "slips in the permanent archive. A fixture is never placed in two " +
-          "unsettled slips. Once those slips are graded automatically after " +
+          "Every qualified Over pick has already reached the reuse cap of " +
+          SLIP_LEG_REUSE_LIMIT + " unsettled slips. A fixture never sits in " +
+          "more than " + SLIP_LEG_REUSE_LIMIT + " unsettled slips at once. " +
+          "Once those slips are graded automatically after " +
           "the matches finish, their fixtures are released."
         );
       }
@@ -1310,7 +1332,7 @@ async function generateSlips() {
       ? accepted.map(renderSavedSlip).join("")
       : `<div class="empty">
           No new slip was accepted. ${rejected.length} candidate(s) were blocked
-          because their fixtures are reserved by an unsettled slip or the exact
+          because their fixtures reached the reuse cap or the exact
           combination already exists in the permanent archive.<br>
           Open the slips tracker to follow your existing slips.
         </div>`;
