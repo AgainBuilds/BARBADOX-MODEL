@@ -2483,3 +2483,9 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-08,SA,FC Internazionale Milano,Como 1907,1.5,0.8263,0.8263,0.7896,0.8572,,core 82.6 | form 89 | base 73,2026-11-02T05:56:42.888499+00:00,,,,
 2026-11-08,FL1,Racing Club de Lens,Olympique de Marseille,1.5,0.8136,0.8136,0.7758,0.8456,,core 81.4 | form 85 | base 77,2026-11-02T05:56:42.888499+00:00,,,,
 2026-11-08,PD,Club Atlético de Madrid,FC Barcelona,1.5,0.8627,0.8627,0.8298,0.8897,,core 86.3 | form 89 | base 82,2026-11-02T05:56:42.888499+00:00,,,,
+2026-11-08,PL,Crystal Palace FC,Liverpool FC,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-07T23:24:53.230182+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-08,PL,Sunderland AFC,Chelsea FC,3.5,0.6272,0.6272,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-07T23:24:53.230182+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-08,FL1,Stade Rennais FC 1901,Lille OSC,3.5,0.6204,0.6204,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-07T23:24:53.230182+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-08,FL1,Stade Brestois 29,Olympique Lyonnais,3.5,0.6272,0.6272,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-07T23:24:53.230182+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-08,FL1,Angers SCO,OGC Nice,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-07T23:24:53.230182+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-08,PD,RC Celta de Vigo,Levante UD,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-07T23:24:53.230182+00:00,,,,CORE2_UNDER35|UPCOMING
