@@ -90,7 +90,13 @@ def _settlement_key(row):
 
 
 def _settled_pick_rows(picks_file=PICKS_FILE):
-    """Rows from picks.csv with a final HIT or MISS result."""
+    """Rows from picks.csv with a final HIT or MISS result.
+
+    Historical backtest rows (note CORE1_OVER15|HISTORICAL,
+    CORE2_UNDER35|HISTORICAL) are excluded: the ledger records live
+    BARBADOX recommendations only, so the balance starts empty on
+    deployment day and only real recommendations move it.
+    """
     rows = []
 
     for row in _read_rows(picks_file):
@@ -102,6 +108,11 @@ def _settled_pick_rows(picks_file=PICKS_FILE):
         if not row.get("date") or not row.get("home") or not row.get("away"):
             continue
 
+        note = str(row.get("note", "")).strip().upper()
+
+        if "HISTORICAL" in note:
+            continue
+
         rows.append(row)
 
     return rows
@@ -109,17 +120,36 @@ def _settled_pick_rows(picks_file=PICKS_FILE):
 
 def sync_ledger(picks_file=PICKS_FILE, ledger_file=LEDGER_FILE):
     """
-    Append settled recommendations that are not in the ledger yet.
+    Sync settled live recommendations into the ledger.
 
-    Idempotent: re-running never double-counts a settlement.
-    Returns the list of newly added ledger entries.
+    - Appends settled recommendations that are not in the ledger yet.
+      Idempotent: re-running never double-counts a settlement.
+    - Prunes ledger rows that no longer correspond to a settled live
+      (non historical) pick. This self-heals a ledger that was
+      populated from the historical backfill: those rows are removed
+      and the balances are recomputed from live recommendations only.
+
+    Returns (added, pruned).
     """
     ledger = _read_rows(ledger_file)
     known = {_settlement_key(row) for row in ledger}
 
+    settled_rows = _settled_pick_rows(picks_file)
+    live_keys = {_settlement_key(row) for row in settled_rows}
+
+    pruned = [
+        row for row in ledger
+        if _settlement_key(row) not in live_keys
+    ]
+
+    kept = [
+        row for row in ledger
+        if _settlement_key(row) in live_keys
+    ]
+
     added = []
 
-    for row in _settled_pick_rows(picks_file):
+    for row in settled_rows:
         key = _settlement_key(row)
 
         if key in known:
@@ -138,14 +168,14 @@ def sync_ledger(picks_file=PICKS_FILE, ledger_file=LEDGER_FILE):
         added.append(entry)
         known.add(key)
 
-    if added:
+    if added or pruned:
         _write_rows(
             ledger_file,
             LEDGER_FIELDS,
-            ledger + added,
+            kept + added,
         )
 
-    return added
+    return added, pruned
 
 
 def _apply_settlement(balances, home, away, success):
@@ -259,13 +289,15 @@ def settle(push=False):
     Settle the ledger from picks.csv and refresh the balance file.
 
     Returns the number of newly settled recommendations.
-    Safe to run repeatedly: settlement is idempotent.
+    Safe to run repeatedly: settlement is idempotent, and any ledger
+    rows that do not match a settled live pick (for example the
+    historical backfill ingested on first run) are pruned.
     """
     invalidate_cache()
-    added = sync_ledger()
+    added, pruned = sync_ledger()
     write_balances()
 
-    if added and push:
+    if (added or pruned) and push:
         import gh_sync
 
         if gh_sync.enabled():
@@ -274,6 +306,13 @@ def settle(push=False):
                 + str(len(added))
                 + " recommendation(s)"
             )
+
+            if pruned:
+                message += (
+                    ", prune "
+                    + str(len(pruned))
+                    + " historical backfill row(s)"
+                )
 
             gh_sync.push("blue_ledger.csv", message)
             gh_sync.push("blue_balances.csv", message)
@@ -326,3 +365,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
