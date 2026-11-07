@@ -1,793 +1,1585 @@
-#!/usr/bin/env python3
-"""BARBADOX permanent slip archive and dedicated tracker routes.
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>BARBADOX · Match Intelligence System</title>
 
-October 2026 settlement-integrity fix: every WON/LOST grade is verified
-on read, on merge, and at boot. A grade is kept only when it is
-auto-graded, timestamped after the kickoff that settles the slip, and
-re-derivable from the stored leg results. Manual grading is fully
-disabled.
+<style>
+:root {
+  --bg:#07090f;
+  --bg2:#0b0f1a;
+  --panel:rgba(255,255,255,.028);
+  --panel2:rgba(255,255,255,.05);
+  --line:rgba(255,255,255,.075);
+  --line2:rgba(255,255,255,.14);
+  --ink:#f4f6ff;
+  --dim:#8b96b8;
+  --dim2:#5c6584;
+  --acid:#c6ff4d;
+  --cyan:#37e0ff;
+  --pink:#ff3d71;
+  --amber:#ffb13d;
+  --green:#3dff9e;
+  --grad:linear-gradient(135deg,var(--acid),var(--cyan));
+  --radius:20px;
+  --shadow:0 18px 50px rgba(0,0,0,.45);
+}
 
-October 31, 2026 archive cleanup: at boot the archive merges exact
-duplicate slips and renumbers all slips 1..N in creation order, because
-old generation batches restarted the slip counter on every run.
+*{box-sizing:border-box}
 
-October 31, 2026 settlement-consistency fix: an accumulator is LOST as
-soon as one leg is conclusively lost, so LOST grades are validated
-against the earliest kickoff of the confirmed losing legs (WON still
-uses the latest kickoff of all four legs), boot-time reconciliation
-grades PENDING slips whose stored legs already settle them, and fixture
-reservation releases slips whose legs already settle them.
-"""
+html{scroll-behavior:smooth}
 
-import csv
-import hashlib
-import json
-import re
-import threading
-import time
-import unicodedata
-from datetime import datetime, timezone
-from pathlib import Path
+body {
+  margin:0;
+  background:
+    radial-gradient(1100px 520px at 85% -10%,rgba(55,224,255,.09),transparent 60%),
+    radial-gradient(900px 500px at -10% 0%,rgba(198,255,77,.06),transparent 55%),
+    var(--bg);
+  color:var(--ink);
+  font:14px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif;
+  min-height:100vh;
+  -webkit-font-smoothing:antialiased;
+}
 
-from flask import Blueprint, jsonify, request, send_from_directory
+button,select,input{font:inherit}
+button{cursor:pointer}
+.mono{font-family:ui-monospace,"SF Mono",monospace}
 
-import gh_sync
+::selection{background:rgba(198,255,77,.25)}
 
-slips_history_bp = Blueprint("barbadox_slips_history", __name__)
-ROOT = Path(__file__).resolve().parent
-HISTORY_CSV = ROOT / "slips_browser.csv"
-REMOTE_NAME = "slips_browser.csv"
-FIELDS = [
-    "id", "number", "created_at", "status", "graded_at",
-    "auto_graded", "archived_at", "legs",
-]
-_lock = threading.RLock()
-_last_push = {"signature": "", "at": 0.0, "status": "not checked"}
-GITHUB_PUSH_MIN_SECONDS = 120
+/* ---------- TOPBAR ---------- */
 
+.topbar {
+  position:sticky;top:0;z-index:30;
+  backdrop-filter:blur(14px);
+  background:rgba(7,9,15,.72);
+  border-bottom:1px solid var(--line);
+}
 
-def _now():
-    return datetime.now(timezone.utc).isoformat()
+.topbar-in {
+  max-width:1180px;margin:auto;
+  padding:14px 22px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:14px;flex-wrap:wrap;
+}
 
+.brand {
+  display:flex;align-items:baseline;gap:10px;
+}
 
-# ---------------------------------------------------------
-# SETTLEMENT INTEGRITY (October 2026 fix pack)
-#
-# A WON/LOST grade is only trustworthy when ALL of the
-# following hold:
-#   1. auto_graded == "YES"            (manual grading is dead)
-#   2. graded_at parses and is AFTER   (kills pre-kickoff
-#      the kickoff that settles the     "MANUAL WON" grades)
-#      slip — see _sanitize_grade
-#   3. the grade can be re-derived     (kills grades stamped
-#      from the leg results             mid-match / wrong-
-#                                       fixture matches)
-# Anything else is reset to PENDING.
-#
-# October 31, 2026 settlement-consistency fix: a four-leg
-# accumulator is LOST as soon as ONE leg is conclusively lost,
-# so a LOST grade is validated against the earliest kickoff of
-# the confirmed losing legs, not the latest kickoff of all four
-# legs (which would include fixtures that were never needed).
-# WON still requires all four legs, so it stays validated
-# against the latest kickoff of all legs.
-# ---------------------------------------------------------
+.brand b {
+  font-size:19px;font-weight:900;letter-spacing:.14em;
+}
 
-def _parse_utc(value):
-    """Parse an ISO timestamp or YYYY-MM-DD date; None if unusable."""
-    text = str(value or "").strip()
-    if not text:
-        return None
-    try:
-        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
-    except ValueError:
-        match = re.match(r"^(\d{4}-\d{2}-\d{2})", text)
-        if not match:
-            return None
-        try:
-            parsed = datetime.fromisoformat(match.group(1) + "T00:00:00+00:00")
-        except ValueError:
-            return None
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
+.brand b span {
+  background:var(--grad);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
 
+.brand small {
+  color:var(--dim);font-size:9.5px;letter-spacing:.32em;
+}
 
-def _leg_kickoff_max(legs):
-    """Latest kickoff across a slip's legs, or None."""
-    latest = None
-    if not isinstance(legs, list):
-        return None
-    for leg in legs:
-        if not isinstance(leg, dict):
-            continue
-        raw = (
-            leg.get("kickoff")
-            or leg.get("kickoffAt")
-            or leg.get("kickoff_at")
-            or leg.get("date")
-            or ""
-        )
-        parsed = _parse_utc(raw)
-        if parsed is not None and (latest is None or parsed > latest):
-            latest = parsed
-    return latest
+.sys {
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
 
+.pill {
+  font-size:10px;font-weight:700;letter-spacing:.14em;
+  padding:6px 12px;border-radius:99px;
+  border:1px solid var(--line2);
+  background:var(--panel2);
+  color:var(--dim);
+  white-space:nowrap;
+}
 
-def _losing_leg_kickoff_min(legs):
-    """Earliest kickoff among the confirmed losing legs, or None.
+.pill.on {color:var(--green);border-color:rgba(61,255,158,.35)}
+.pill.warn {color:var(--amber);border-color:rgba(255,177,61,.35)}
+.pill.err {color:var(--pink);border-color:rgba(255,61,113,.35)}
 
-    A four-leg accumulator is settled by its FIRST losing leg, so a
-    LOST grade only has to postdate that leg's kickoff. Later losing
-    legs — or fixtures that were never needed — cannot invalidate the
-    original loss.
-    """
-    earliest = None
-    if not isinstance(legs, list):
-        return None
-    for leg in legs:
-        if not isinstance(leg, dict):
-            continue
-        if str(leg.get("result") or "").upper() != "LOST":
-            continue
-        raw = (
-            leg.get("kickoff")
-            or leg.get("kickoffAt")
-            or leg.get("kickoff_at")
-            or leg.get("date")
-            or ""
-        )
-        parsed = _parse_utc(raw)
-        if parsed is not None and (earliest is None or parsed < earliest):
-            earliest = parsed
-    return earliest
+.dot {
+  width:7px;height:7px;border-radius:50%;
+  display:inline-block;margin-right:7px;
+  background:var(--dim);vertical-align:1px;
+}
 
+.dot.on{background:var(--green);box-shadow:0 0 10px rgba(61,255,158,.8);animation:pulse 2s infinite}
+.dot.warn{background:var(--amber);box-shadow:0 0 10px rgba(255,177,61,.8);animation:pulse 2s infinite}
+.dot.err{background:var(--pink)}
 
-def _leg_result_final(leg):
-    """True when a leg's WON/LOST result is backed by a finished fixture."""
-    if not isinstance(leg, dict):
-        return False
-    leg_state = str(leg.get("fixtureState") or "").upper()
-    status_text = str(
-        leg.get("fixtureStatusCode") or leg.get("fixtureStatus") or ""
-    ).upper()
-    return (
-        leg_state == "FINISHED"
-        or "FULL TIME" in status_text
-        or "FINISHED" in status_text
-        or "AWARDED" in status_text
+@keyframes pulse{50%{opacity:.35}}
+
+/* ---------- GATE (pre-run landing) ---------- */
+
+#gate {
+  min-height:calc(100vh - 62px);
+  display:flex;align-items:center;justify-content:center;
+  padding:40px 20px;
+}
+
+.gate-card {
+  max-width:640px;width:100%;
+  text-align:center;
+  padding:54px 34px;
+  border:1px solid var(--line);
+  border-radius:28px;
+  background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012));
+  box-shadow:var(--shadow);
+}
+
+.gate-logo {
+  font-size:clamp(40px,8vw,62px);
+  font-weight:900;letter-spacing:.16em;line-height:1;
+  margin-bottom:8px;
+}
+
+.gate-logo span {
+  background:var(--grad);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+
+.gate-sub {
+  color:var(--dim);font-size:11px;letter-spacing:.42em;
+  margin-bottom:34px;
+}
+
+.gate-desc {
+  color:var(--dim2);font-size:13px;max-width:420px;
+  margin:0 auto 34px;line-height:1.9;
+}
+
+.gate-actions {
+  display:flex;gap:12px;justify-content:center;flex-wrap:wrap;
+}
+
+.gate-meta {
+  margin-top:30px;font-size:11px;color:var(--dim2);letter-spacing:.06em;
+}
+
+/* ---------- BUTTONS ---------- */
+
+.btn {
+  border:0;border-radius:14px;
+  font-weight:800;letter-spacing:.1em;font-size:12.5px;
+  padding:13px 22px;
+  background:var(--grad);color:#061018;
+  box-shadow:0 6px 24px rgba(55,224,255,.25);
+  transition:transform .15s,box-shadow .15s,opacity .15s;
+}
+
+.btn:hover{transform:translateY(-1px);box-shadow:0 10px 32px rgba(55,224,255,.4)}
+.btn:disabled{opacity:.45;cursor:wait;transform:none;box-shadow:none}
+
+.btn.secondary {
+  background:transparent;color:var(--ink);
+  border:1px solid var(--line2);
+  box-shadow:none;
+}
+
+.btn.secondary:hover{border-color:var(--cyan);box-shadow:0 0 18px rgba(55,224,255,.15)}
+
+.btn.danger {
+  background:rgba(255,61,113,.12);color:var(--pink);
+  border:1px solid rgba(255,61,113,.4);
+  box-shadow:none;
+}
+
+.btn.small {padding:8px 14px;font-size:10.5px;border-radius:10px}
+
+/* ---------- LAYOUT ---------- */
+
+#dash {
+  display:none;
+  max-width:1180px;margin:auto;
+  padding:26px 22px 70px;
+}
+
+.panel {
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:24px;
+  margin:18px 0;
+  box-shadow:var(--shadow);
+  backdrop-filter:blur(6px);
+  position:relative;
+  overflow:hidden;
+}
+
+.panel::before {
+  content:"";position:absolute;inset:0 0 auto 0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(198,255,77,.4),transparent);
+}
+
+.panelhead,.actions {
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;flex-wrap:wrap;
+}
+
+.panelhead{margin-bottom:18px}
+
+.panelhead h2 {
+  font-size:12px;letter-spacing:.22em;font-weight:800;
+  margin:0;color:var(--ink);
+  display:flex;align-items:center;gap:10px;
+}
+
+.panelhead h2 em {
+  font-style:normal;color:var(--dim2);font-weight:600;font-size:10px;
+}
+
+.actions{margin-top:16px}
+
+.muted{color:var(--dim)}
+
+.status {
+  font-size:12px;line-height:1.8;color:var(--dim);
+  margin-top:14px;
+}
+
+.status.ok{color:var(--green)}
+.status.err{color:var(--pink)}
+.status.warn{color:var(--amber)}
+
+.empty {
+  color:var(--dim2);padding:40px 14px;text-align:center;
+  font-size:12.5px;line-height:2.1;letter-spacing:.04em;
+}
+
+.tag {
+  font-size:10px;font-weight:700;letter-spacing:.12em;
+  color:var(--cyan);border:1px solid rgba(55,224,255,.3);
+  border-radius:99px;padding:5px 12px;
+  background:rgba(55,224,255,.06);white-space:nowrap;
+}
+
+/* ---------- RUN PHASES ---------- */
+
+.phases {
+  display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;
+}
+
+.phase {
+  display:flex;align-items:center;gap:8px;
+  font-size:10px;font-weight:800;letter-spacing:.12em;
+  padding:8px 14px;border-radius:99px;
+  border:1px solid var(--line);
+  color:var(--dim2);
+  transition:all .3s;
+}
+
+.phase.active {
+  color:var(--acid);border-color:rgba(198,255,77,.4);
+  background:rgba(198,255,77,.06);
+}
+
+.phase.active .dot{background:var(--acid);box-shadow:0 0 10px rgba(198,255,77,.9);animation:pulse 1s infinite}
+
+.phase.done {color:var(--green);border-color:rgba(61,255,158,.3)}
+
+/* ---------- KPIs ---------- */
+
+.kpis {
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));
+  gap:12px;margin-bottom:16px;
+}
+
+.kpi {
+  background:var(--panel2);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:16px 12px;text-align:center;
+  transition:transform .15s;
+}
+
+.kpi:hover{transform:translateY(-2px)}
+
+.kpi strong {
+  font-size:24px;font-weight:900;display:block;
+  letter-spacing:.02em;
+}
+
+.kpi span {
+  font-size:9px;letter-spacing:.18em;color:var(--dim2);
+  margin-top:5px;display:block;
+}
+
+/* ---------- PICK CARDS ---------- */
+
+.cards {
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  gap:14px;
+}
+
+.card {
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
+  border:1px solid var(--line);
+  border-radius:18px;
+  padding:18px;
+  transition:transform .18s,border-color .18s,box-shadow .18s;
+}
+
+.card:hover {
+  transform:translateY(-3px);
+  border-color:var(--line2);
+  box-shadow:0 14px 34px rgba(0,0,0,.4);
+}
+
+.league {
+  font-size:9.5px;color:var(--dim2);letter-spacing:.2em;
+  font-weight:800;margin-bottom:10px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+
+.teams {
+  font-weight:800;font-size:15px;line-height:1.45;margin-bottom:6px;
+}
+
+.teams .vs {
+  color:var(--dim2);font-weight:600;font-size:12px;
+  display:block;letter-spacing:.14em;margin:2px 0;
+}
+
+.meta {
+  font-size:11px;color:var(--dim);margin-bottom:14px;
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+}
+
+.market-chip {
+  font-size:9.5px;font-weight:800;letter-spacing:.1em;
+  color:var(--acid);border:1px solid rgba(198,255,77,.3);
+  background:rgba(198,255,77,.06);
+  padding:3px 9px;border-radius:99px;
+}
+
+.market-chip.u {
+  color:var(--cyan);border-color:rgba(55,224,255,.3);
+  background:rgba(55,224,255,.06);
+}
+
+.conf {
+  margin-top:auto;
+}
+
+.conf-top {
+  display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;
+}
+
+.conf-top b {font-size:24px;font-weight:900;color:var(--cyan)}
+
+.conf-top small {font-size:8.5px;letter-spacing:.2em;color:var(--dim2)}
+
+.meter {
+  height:5px;border-radius:99px;
+  background:rgba(255,255,255,.07);overflow:hidden;
+}
+
+.meter i {
+  display:block;height:100%;border-radius:99px;
+  background:var(--grad);
+  transition:width .6s cubic-bezier(.2,.8,.2,1);
+}
+
+.reason {
+  font-size:10px;letter-spacing:.14em;font-weight:800;
+  margin-top:10px;
+}
+
+.reason.q{color:var(--green)}
+.reason.r{color:var(--amber)}
+.reason.n{color:var(--dim2)}
+
+/* ---------- SLIP STATUS CHIPS (history + modal) ---------- */
+
+.chip {
+  font-size:10px;font-weight:800;letter-spacing:.14em;
+  padding:5px 13px;border-radius:99px;
+}
+
+.chip.hit,.chip.WON,.chip.HIT {
+  color:var(--green);background:rgba(61,255,158,.09);
+  border:1px solid rgba(61,255,158,.3);
+}
+
+.chip.miss,.chip.LOST,.chip.MISS {
+  color:var(--pink);background:rgba(255,61,113,.09);
+  border:1px solid rgba(255,61,113,.3);
+}
+
+.chip.pending,.chip.PENDING {
+  color:var(--amber);background:rgba(255,177,61,.09);
+  border:1px solid rgba(255,177,61,.3);
+}
+
+.chip.VOID{color:var(--dim);background:rgba(139,150,184,.08);border:1px solid var(--line2)}
+
+/* ---------- HISTORY ---------- */
+
+.hist{display:flex;flex-direction:column;gap:8px}
+
+.hrow {
+  display:grid;grid-template-columns:92px 1fr auto auto;
+  gap:12px;align-items:center;
+  padding:11px 14px;border-radius:12px;
+  background:var(--panel2);border:1px solid var(--line);
+  font-size:12px;
+}
+
+/* ---------- GENERATE DIAGNOSTICS ---------- */
+
+.diag {
+  background:var(--panel2);border:1px solid var(--line);
+  border-radius:14px;padding:16px;margin:14px 0;
+  font-size:12px;line-height:2;
+}
+
+.diag b{color:var(--ink)}
+
+.diag .rowline {
+  display:flex;justify-content:space-between;gap:10px;
+  border-bottom:1px dashed var(--line);padding:3px 0;
+}
+
+.diag .rowline:last-child{border-bottom:0}
+
+.diag .n{font-weight:900;color:var(--cyan)}
+
+.diag-hint {
+  color:var(--amber);font-size:11.5px;margin-top:10px;line-height:1.9;
+}
+
+/* ---------- MODAL ---------- */
+
+.modal {
+  display:none;position:fixed;inset:0;z-index:40;
+  background:rgba(5,7,12,.92);
+  backdrop-filter:blur(10px);
+  overflow:auto;padding:26px 20px;
+}
+
+.modal-in{max-width:980px;margin:auto}
+
+/* ---------- SKELETON ---------- */
+
+.skeleton {
+  background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.09),rgba(255,255,255,.04));
+  background-size:200% 100%;
+  animation:shimmer 1.4s infinite;
+  border-radius:14px;
+}
+
+@keyframes shimmer{to{background-position:-200% 0}}
+
+footer {
+  text-align:center;color:var(--dim2);
+  font-size:10px;letter-spacing:.28em;font-weight:700;
+  padding:34px 0 10px;
+}
+
+@media(max-width:640px) {
+  .hrow{grid-template-columns:1fr auto}
+  .hrow .hide-sm{display:none}
+  .panel{padding:16px}
+  .gate-card{padding:38px 20px}
+  .brand small{display:none}
+}
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <b>BARBADOX<span>·</span></b>
+      <small>MATCH INTELLIGENCE</small>
+    </div>
+    <div class="sys">
+      <span id="sysDot" class="pill"><i class="dot"></i>CONNECTING…</span>
+      <span id="snapTime" class="pill mono" style="display:none">—</span>
+    </div>
+  </div>
+</div>
+
+<!-- GATE: nothing loads until the owner acts -->
+<div id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">BARBA<span>DOX</span></div>
+    <div class="gate-sub">MATCH INTELLIGENCE SYSTEM</div>
+
+    <p class="gate-desc">
+      The model is idle. No fixtures, picks or slips are loaded yet.<br>
+      Run a fresh scan of the next 7 days, or load the last saved snapshot.
+    </p>
+
+    <div class="gate-actions">
+      <button id="gateRun" class="btn">▶&nbsp; RUN MODEL</button>
+      <button id="gateLoad" class="btn secondary">LOAD LAST SNAPSHOT</button>
+    </div>
+
+    <div class="gate-meta" id="gateMeta">Checking service…</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<main id="dash">
+
+  <section class="panel">
+    <div class="panelhead">
+      <h2>MODEL CONTROL <em>· CORE 1 + CORE 2</em></h2>
+      <span id="thTag" class="tag">ENTRY BAR —</span>
+    </div>
+
+    <div class="actions" style="margin-top:0">
+      <button id="btnRun" class="btn">▶ RUN MODEL</button>
+      <button id="btnSlip" class="btn secondary">GENERATE SLIPS</button>
+      <a id="btnOpenTracker" class="btn secondary" href="/slips-tracker"
+         style="text-decoration:none">OPEN SLIPS TRACKER ↗</a>
+    </div>
+
+    <div id="runStatus" class="status">Idle. Nothing is loaded until you run the model or load the last snapshot.</div>
+
+    <div id="phases" class="phases" style="display:none">
+      <span class="phase" id="ph-core1"><i class="dot"></i>CORE 1</span>
+      <span class="phase" id="ph-review"><i class="dot"></i>REVIEW WINDOW</span>
+      <span class="phase" id="ph-export"><i class="dot"></i>FINAL EXPORT</span>
+      <span class="phase" id="ph-core2"><i class="dot"></i>CORE 2</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panelhead">
+      <h2>CORE 1 <em>· OVER 1.5 GOALS</em></h2>
+      <span id="resTag" class="tag">—</span>
+    </div>
+    <div id="resCards" class="cards"></div>
+    <div id="contextReady" class="status"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panelhead">
+      <h2>CORE 2 <em>· UNDER 3.5 GOALS</em></h2>
+      <span id="under35Tag" class="tag">—</span>
+    </div>
+    <div id="under35Kpis" class="kpis"></div>
+    <div id="under35Status" class="status"></div>
+    <div id="under35Cards" class="cards"></div>
+    <div id="under35Foot" class="muted" style="font-size:11px;margin-top:12px"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panelhead">
+      <h2>CORE 1 PERFORMANCE</h2>
+      <span id="perfTag" class="tag">—</span>
+    </div>
+    <div id="perfKpis" class="kpis"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panelhead">
+      <h2>ANALYSIS HISTORY</h2>
+      <span id="histTag" class="tag">—</span>
+    </div>
+    <div id="histList" class="hist"></div>
+  </section>
+
+  <footer>BUILT BY AGAINBUILDS · BARBADOX</footer>
+</main>
+
+<!-- GENERATE SLIPS MODAL -->
+<div id="slipModal" class="modal">
+  <div class="modal-in">
+    <div class="panelhead">
+      <h2>GENERATED SLIPS <em>· 3 × OVER 1.5 + 1 × UNDER 3.5</em></h2>
+      <button id="closeSlip" class="btn secondary small">CLOSE</button>
+    </div>
+    <div id="slipStatus" class="status"></div>
+    <div id="slipDiag"></div>
+    <div id="slipCards" class="cards"></div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const $ = id => document.getElementById(id);
+
+const LG = {
+  PL:"PREMIER LEAGUE",
+  PD:"LA LIGA",
+  FL1:"LIGUE 1",
+  BL1:"BUNDESLIGA",
+  SA:"SERIE A",
+  CL:"CHAMPIONS LEAGUE",
+  SAUDI:"SAUDI LEAGUE"
+};
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({
+  "&":"&amp;",
+  "<":"&lt;",
+  ">":"&gt;",
+  '"':"&quot;",
+  "'":"&#39;"
+}[c]));
+
+const pct = x =>
+  x !== null && x !== undefined && x !== "" &&
+  Number.isFinite(Number(x))
+    ? (Number(x) * 100).toFixed(1) + "%"
+    : "—";
+
+const api = async (path, opts = {}) => {
+  const r = await fetch(path, {cache:"no-store", ...opts});
+
+  if (!r.ok) {
+    throw Error(path + " returned HTTP " + r.status);
+  }
+
+  return r.json();
+};
+
+let snap = null;
+let underSnap = null;
+let pollTimer = null;
+let dataLoaded = false;
+
+let THRESHOLD = .80;
+let MARKET = 1.5;
+const UNDER_BAR = .60;
+
+/* -------------------------------------------------------
+   PERMANENT SLIP ARCHIVE (server-side, shared with
+   /slips-tracker). New slips are reserved atomically by
+   the server via /api/slip-history/generate.
+------------------------------------------------------- */
+
+const TRACK_KEY = "barbadox.slips.tracker.v1";
+
+let archiveSlips = [];
+
+async function loadArchive() {
+  const r = await fetch("/api/slip-history", {cache:"no-store"});
+
+  if (!r.ok) {
+    throw Error("permanent archive returned HTTP " + r.status);
+  }
+
+  const data = await r.json();
+
+  if (!data.ok || !Array.isArray(data.slips)) {
+    throw Error("permanent archive response is invalid.");
+  }
+
+  archiveSlips = data.slips;
+
+  /* Optional localStorage mirror kept for backwards
+     compatibility with any device still running an old
+     cached script. The server CSV remains the source of
+     truth for the permanent archive. */
+  try {
+    localStorage.setItem(TRACK_KEY, JSON.stringify(archiveSlips));
+  } catch {}
+
+  return archiveSlips;
+}
+
+function normTeam(name) {
+  return String(name || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/&/g, "and")
+    .replace(/\b(fc|cf|sc|afc|ac|ssc|club|football)\b/g, " ")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function fixtureKey(f) {
+  const date = String(f && f.date || "").slice(0,10).trim().toLowerCase();
+  const home = normTeam(f && f.home);
+  const away = normTeam(f && f.away);
+  return [date, home, away].join("|");
+}
+
+/* -------------------------------------------------------
+   KICKOFF / ELIGIBILITY
+------------------------------------------------------- */
+
+const KICKOFF_TZ_HOURS = 1;
+const KICKOFF_BUFFER_MS = 30 * 60000;
+const SLIP_WINDOW_MS = 7 * 24 * 3600000;
+
+/* A fixture may sit in at most this many unsettled (PENDING) slips at
+   once. 1 restores the old never-reuse rule; 2 lets a fixture that is
+   already inside one pending slip join one new slip, so qualified
+   picks are never starved by earlier generations. Same cap as the
+   server endpoint. */
+const SLIP_LEG_REUSE_LIMIT = 2;
+
+function formatKickoff(value) {
+  if (!value) return "Kickoff time unavailable";
+
+  const raw = String(value);
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(raw);
+  const date = new Date(raw);
+
+  if (Number.isNaN(date.getTime())) return "Kickoff time unavailable";
+
+  const options = {
+    timeZone:"Africa/Lagos",
+    weekday:"short", day:"2-digit", month:"short", year:"numeric"
+  };
+
+  if (dateOnly) {
+    return new Intl.DateTimeFormat("en-NG", options).format(date) +
+      " (time not provided)";
+  }
+
+  return new Intl.DateTimeFormat("en-NG", {
+    ...options, hour:"2-digit", minute:"2-digit", hour12:true
+  }).format(date) + " WAT";
+}
+
+function kickoffMs(f) {
+  if (f && f.kickoff_utc) {
+    const t = Date.parse(f.kickoff_utc);
+    if (Number.isFinite(t)) return t;
+  }
+
+  if (
+    f &&
+    /^\d{4}-\d{2}-\d{2}$/.test(String(f.date || "")) &&
+    /^\d{2}:\d{2}$/.test(String(f.time || ""))
+  ) {
+    return Date.parse(f.date + "T" + f.time + ":00Z") -
+      KICKOFF_TZ_HOURS * 3600000;
+  }
+
+  return NaN;
+}
+
+function kickoffIso(f) {
+  const t = kickoffMs(f);
+  return Number.isFinite(t) ? new Date(t).toISOString() : null;
+}
+
+function isUpcoming(f, now = Date.now()) {
+  const t = kickoffMs(f);
+  return Number.isFinite(t) && t > now + KICKOFF_BUFFER_MS;
+}
+
+function overProb(f) {
+  const p = Number(f.point ?? f.core);
+  return Number.isFinite(p) ? p : NaN;
+}
+
+function qualifiedOver(f, now = Date.now()) {
+  return f.decision === "logged" &&
+    overProb(f) >= THRESHOLD &&
+    isUpcoming(f, now);
+}
+
+function qualifiedUnder(f, now = Date.now()) {
+  const bar = underSnap &&
+    Number.isFinite(Number(underSnap.threshold))
+      ? Number(underSnap.threshold)
+      : UNDER_BAR;
+
+  return f.decision === "qualified" &&
+    Number(f.p_final) >= bar &&
+    isUpcoming(f, now);
+}
+
+/* Fixtures inside genuinely unsettled (PENDING) archive slips count
+   towards the reuse cap — same reservation rule as the server. */
+function pendingFixtureCounts() {
+  const counts = new Map();
+
+  archiveSlips.forEach(slip => {
+    if (String(slip.status || "PENDING").toUpperCase() !== "PENDING") return;
+
+    /* Same settlement rule as the server: a slip whose stored legs
+       already settle it — a confirmed losing leg, or all four legs
+       won — is not genuinely pending, even when its top-level grade
+       still says PENDING, and must not count towards the cap. */
+    const legs = Array.isArray(slip.legs) ? slip.legs : [];
+    if (legs.length === 4) {
+      const results = legs.map(l => String((l && l.result) || "PENDING").toUpperCase());
+      if (results.includes("LOST") || results.every(r => r === "WON")) return;
+    }
+
+    (slip.legs || []).forEach(leg => {
+      const key = fixtureKey(leg);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+  });
+
+  return counts;
+}
+
+/* -------------------------------------------------------
+   PICK CARDS
+------------------------------------------------------- */
+
+function card(f, market, prob, kind = "q") {
+  const barWidth = Number.isFinite(Number(prob))
+    ? Math.max(0, Math.min(100, Number(prob) * 100))
+    : 0;
+
+  const reasonLabel =
+    kind === "q" ? "QUALIFIED" :
+    kind === "r" ? "REVIEW WINDOW" :
+    "NEAR ENTRY BAR";
+
+  const reasonClass =
+    kind === "q" ? "q" : kind === "r" ? "r" : "n";
+
+  return `
+    <article class="card">
+      <div class="league">
+        <span>${esc(LG[f.league] || f.league || "FOOTBALL")}</span>
+        <span class="reason ${reasonClass}">${reasonLabel}</span>
+      </div>
+
+      <div class="teams">
+        ${esc(f.home)}
+        <span class="vs">VS</span>
+        ${esc(f.away)}
+      </div>
+
+      <div class="meta">
+        <span>${esc(formatKickoff(f.kickoff_utc || f.date))}</span>
+      </div>
+
+      <div class="conf">
+        <div class="conf-top">
+          <b>${pct(prob)}</b>
+          <span class="market-chip ${market.includes("UNDER") ? "u" : ""}">
+            ${esc(market)}
+          </span>
+        </div>
+        <div class="meter"><i style="width:${barWidth}%"></i></div>
+        <div class="conf-top" style="margin-top:6px;margin-bottom:0">
+          <small>CONFIDENCE</small>
+        </div>
+      </div>
+    </article>`;
+}
+
+function setStatus(msg, cls = "") {
+  $("runStatus").textContent = msg;
+  $("runStatus").className = "status " + cls;
+}
+
+function setPhases(active, done) {
+  const box = $("phases");
+  box.style.display = "flex";
+
+  ["core1", "review", "export", "core2"].forEach(k => {
+    const el = $("ph-" + k);
+    el.className = "phase";
+    if (done.includes(k)) el.classList.add("done");
+    if (active === k) el.classList.add("active");
+  });
+}
+
+/* -------------------------------------------------------
+   CORE RENDERERS
+------------------------------------------------------- */
+
+function renderCore1() {
+  const fs = snap && Array.isArray(snap.fixtures) ? snap.fixtures : [];
+
+  if (snap) {
+    if (snap.threshold !== null && snap.threshold !== undefined &&
+        Number.isFinite(Number(snap.threshold))) {
+      THRESHOLD = Number(snap.threshold);
+    }
+
+    if (snap.market !== null && snap.market !== undefined &&
+        Number.isFinite(Number(snap.market))) {
+      MARKET = Number(snap.market);
+    }
+  }
+
+  $("thTag").textContent = "ENTRY BAR " + Math.round(THRESHOLD * 100) + "%";
+
+  $("resTag").textContent =
+    fs.filter(f => qualifiedOver(f)).length + " QUALIFIED · " +
+    fs.length + " SCANNED";
+
+  const picks = fs.filter(f =>
+    isUpcoming(f) && (
+      qualifiedOver(f) ||
+      ["review-window", "near-line"].includes(f.decision)
     )
+  );
 
+  $("resCards").innerHTML = picks.length
+    ? picks.map(f => card(
+        f,
+        "OVER " + MARKET + " GOALS",
+        overProb(f),
+        f.decision === "logged" ? "q" :
+          f.decision === "review-window" ? "r" : "n"
+      )).join("")
+    : `<div class="empty">${
+        snap
+          ? "No upcoming Core 1 fixtures to display. No selections were manufactured."
+          : "Core 1 data not loaded."
+      }</div>`;
 
-def _sanitize_grade(row):
-    """Purge any WON/LOST grade that cannot be trusted. In place."""
-    status = str(row.get("status") or "").upper()
-    if status not in {"WON", "LOST"}:
-        return row
-    auto = str(row.get("auto_graded") or "").upper() == "YES"
-    graded_at = _parse_utc(row.get("graded_at"))
-    derived = _derived_settlement(row.get("legs"))
-    if status == "LOST":
-        # A lost accumulator is settled by its FIRST confirmed losing
-        # leg: the grade must postdate that leg's kickoff, not the
-        # kickoffs of legs the slip never needed.
-        kickoff = _losing_leg_kickoff_min(row.get("legs"))
-    else:
-        # A won accumulator needs all four legs confirmed, so the
-        # grade must postdate the latest kickoff of all legs.
-        kickoff = _leg_kickoff_max(row.get("legs"))
-    trustworthy = (
-        auto
-        and graded_at is not None
-        and kickoff is not None
-        and graded_at > kickoff
-        and derived == status
-    )
-    if trustworthy:
-        return row
-    print(
-        "Settlement sanitizer: purged bogus "
-        + status
-        + " grade on slip "
-        + str(row.get("id") or row.get("number") or "?")
-    )
-    row["status"] = "PENDING"
-    row["graded_at"] = ""
-    row["auto_graded"] = "NO"
-    legs = row.get("legs")
-    if isinstance(legs, list):
-        for leg in legs:
-            if not isinstance(leg, dict):
-                continue
-            if str(leg.get("result") or "").upper() in {"WON", "LOST"}:
-                leg_state = str(leg.get("fixtureState") or "").upper()
-                status_text = str(
-                    leg.get("fixtureStatusCode") or leg.get("fixtureStatus") or ""
-                ).upper()
-                finished = (
-                    leg_state == "FINISHED"
-                    or "FULL TIME" in status_text
-                    or "FINISHED" in status_text
-                    or "AWARDED" in status_text
-                )
-                if not finished:
-                    leg["result"] = "PENDING"
-    return row
+  $("contextReady").textContent = snap
+    ? "Only picks meeting the model's entry bar are logged. Blank context fields remain neutral."
+    : "Waiting for Core 1 data.";
+}
 
+function renderCore2() {
+  const d = underSnap;
+  const fs = d && Array.isArray(d.fixtures) ? d.fixtures : [];
 
-def _reconcile_pending(row):
-    """Grade a PENDING slip whose stored legs already settle it.
+  const q = fs.filter(f => f.decision === "qualified" && isUpcoming(f));
 
-    Settlement rule: LOST as soon as one leg is conclusively lost,
-    WON only when all four legs are conclusively won. The grade is
-    stamped only when every WON/LOST leg result is backed by a
-    finished fixture, and it must still pass the same trust checks
-    as _sanitize_grade; otherwise the slip stays PENDING.
-    In place.
-    """
-    if str(row.get("status") or "PENDING").upper() != "PENDING":
-        return
-    derived = _derived_settlement(row.get("legs"))
-    if derived not in {"WON", "LOST"}:
-        return
-    legs = row.get("legs") or []
-    if not isinstance(legs, list):
-        return
-    if not all(
-        _leg_result_final(leg)
-        for leg in legs
-        if isinstance(leg, dict)
-        and str(leg.get("result") or "").upper() in {"WON", "LOST"}
-    ):
-        return
-    row["status"] = derived
-    row["graded_at"] = _now()
-    row["auto_graded"] = "YES"
-    _sanitize_grade(row)
+  const t = d && d.threshold !== null && d.threshold !== undefined &&
+    Number.isFinite(Number(d.threshold)) ? Number(d.threshold) : .60;
 
+  $("under35Tag").textContent = d
+    ? (d.status === "ok"
+        ? "CORE 2 · " + Math.round(t * 100) + "% BAR"
+        : "STATUS " + String(d.status || "UNKNOWN").toUpperCase())
+    : "UNAVAILABLE";
 
-def _startup_sanitize():
-    """Boot-time purge: clean slips_browser.csv before it serves anything.
+  $("under35Kpis").innerHTML = `
+    <div class="kpi"><strong>${d ? (d.scanned ?? fs.length) : "—"}</strong><span>SCANNED</span></div>
+    <div class="kpi"><strong>${q.length}</strong><span>QUALIFIED</span></div>
+    <div class="kpi"><strong>${Math.max(0, fs.length - q.length)}</strong><span>NOT QUALIFIED</span></div>`;
 
-    October 31, 2026 settlement-consistency fix:
-    1. The purge now actually persists. _sanitize_grade mutates rows
-       in place, so the previous cleaned/rows comparison always saw
-       identical objects and never wrote the file.
-    2. A slip whose stored legs already settle it conclusively (a
-       confirmed losing leg, or four confirmed winning legs) is
-       graded at boot under the same trust rule instead of staying
-       PENDING forever with its fixtures reserved.
-    """
-    try:
-        rows = _read_rows_unsanitized()
-        before = [json.dumps(row, sort_keys=True, default=str) for row in rows]
-        for row in rows:
-            _sanitize_grade(row)
-            _reconcile_pending(row)
-        after = [json.dumps(row, sort_keys=True, default=str) for row in rows]
-        if before != after:
-            _write_rows(rows)
-            print("Settlement sanitizer: server CSV purged/reconciled at boot.")
-    except Exception as exc:
-        print("Settlement sanitizer failed at boot: " + str(exc))
+  $("under35Status").textContent = d
+    ? (d.status === "ok"
+        ? "Under 3.5 results loaded at " + Math.round(t * 100) + "% threshold."
+        : "Core 2 reports " + d.status + ". Do not treat this as a successful run.")
+    : "Could not retrieve /api/under35.";
 
+  $("under35Status").className =
+    "status " + (d && d.status === "ok" ? "ok" : "warn");
 
-def _slip_order_key(row):
-    """Deterministic archive order: creation time, then archived time, then id."""
-    created = _parse_utc(row.get("created_at"))
-    return (
-        created.isoformat() if created else "9999-12-31T00:00:00+00:00",
-        str(row.get("created_at") or ""),
-        str(row.get("archived_at") or ""),
-        str(row.get("id") or ""),
-    )
+  $("under35Cards").innerHTML = q.length
+    ? [...q]
+        .sort((a, b) => (Number(b.p_final) || 0) - (Number(a.p_final) || 0))
+        .map(f => card(f, "UNDER 3.5 GOALS", f.p_final, "q"))
+        .join("")
+    : `<div class="empty">${
+        d && d.status === "ok"
+          ? "No fixture cleared Core 2's threshold."
+          : "Core 2 is unavailable or has not reported success."
+      }</div>`;
 
+  $("under35Foot").textContent =
+    d && d.generated_at
+      ? "Generated: " + d.generated_at + " · Threshold " + Math.round(t * 100) + "%"
+      : "";
+}
 
-def _startup_renumber():
-    """Boot-time archive cleanup (October 31, 2026):
+function renderPerformance() {
+  const ps = snap && Array.isArray(snap.picks) ? snap.picks : [];
 
-    1. Exact-duplicate slips (same four-leg signature) generated twice by
-       old batches are merged into a single record; a graded duplicate
-       passes its grade to the keeper.
-    2. All slips are renumbered 1..N in creation order. Old generation
-       batches restarted the counter at 1 on every run, so the archive
-       held up to three different slips all numbered "8".
-    Idempotent: when nothing changes, nothing is written.
-    """
-    try:
-        rows = _read_rows_unsanitized()
-        seen = {}
-        deduped = []
-        removed = 0
-        for row in rows:
-            signature = _slip_signature(row.get("legs"))
-            if signature and signature in seen:
-                keeper = seen[signature]
-                if not _is_graded(keeper.get("status")) and _is_graded(row.get("status")):
-                    keeper["status"] = str(row.get("status") or "").upper()
-                    keeper["graded_at"] = row.get("graded_at") or ""
-                    keeper["auto_graded"] = row.get("auto_graded") or "YES"
-                removed += 1
-                continue
-            if signature:
-                seen[signature] = row
-            deduped.append(row)
+  const g = ps.filter(p => p.result === "HIT" || p.result === "MISS");
+  const hits = g.filter(p => p.result === "HIT").length;
+  const pending = ps.length - g.length;
 
-        ordered = sorted(deduped, key=_slip_order_key)
-        renumbered = False
-        for index, row in enumerate(ordered, 1):
-            if str(row.get("number") or "") != str(index):
-                row["number"] = str(index)
-                renumbered = True
+  $("perfTag").textContent = g.length + " GRADED";
 
-        if removed or renumbered:
-            _write_rows(ordered)
-            print(
-                "Archive cleanup: merged " + str(removed)
-                + " exact duplicate slip(s), renumbered 1.." + str(len(ordered)) + "."
-            )
-    except Exception as exc:
-        print("Archive cleanup failed at boot: " + str(exc))
+  $("perfKpis").innerHTML = `
+    <div class="kpi"><strong>${hits}/${g.length}</strong><span>HITS / GRADED</span></div>
+    <div class="kpi"><strong>${g.length ? pct(hits / g.length) : "—"}</strong><span>HIT RATE</span></div>
+    <div class="kpi"><strong>${pending}</strong><span>PENDING</span></div>`;
+}
 
+function renderHistory() {
+  const ps = snap && Array.isArray(snap.picks) ? [...snap.picks] : [];
 
-def _read_rows_unsanitized():
-    if not HISTORY_CSV.exists():
-        return []
-    rows = []
-    with HISTORY_CSV.open(newline="", encoding="utf-8") as stream:
-        for raw in csv.DictReader(stream):
-            row = dict(raw)
-            try:
-                row["legs"] = json.loads(row.get("legs") or "[]")
-            except (ValueError, TypeError):
-                row["legs"] = []
-            row["number"] = row.get("number") or ""
-            row["status"] = str(row.get("status") or "PENDING").upper()
-            rows.append(row)
-    return rows
+  ps.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
 
+  $("histTag").textContent = ps.length + " LOGGED";
 
-def _read_rows():
-    """Read the CSV and purge any grade that fails the trust checks."""
-    return [_sanitize_grade(row) for row in _read_rows_unsanitized()]
+  $("histList").innerHTML =
+    ps.slice(0, 30).map(p => `
+      <div class="hrow">
+        <span class="muted mono">${esc(p.date)}</span>
+        <span>
+          ${esc(p.home)} vs ${esc(p.away)}
+          <span class="muted">(${esc(p.hg ?? "—")}-${esc(p.ag ?? "—")})</span>
+        </span>
+        <span class="hide-sm">${pct(parseFloat(p.probability))}</span>
+        <span class="chip ${
+          p.result === "HIT" ? "hit" :
+          p.result === "MISS" ? "miss" : "pending"
+        }">${esc(p.result || "PENDING")}</span>
+      </div>
+    `).join("") ||
+    '<div class="empty">No logged calls yet.</div>';
+}
 
+/* -------------------------------------------------------
+   SLIP GENERATION (saved straight to the permanent archive)
+   Live scores, leg scores and archive grading are handled
+   by live_scores.js and the /slips-tracker page.
+------------------------------------------------------- */
 
-def _write_rows(rows):
-    HISTORY_CSV.parent.mkdir(parents=True, exist_ok=True)
-    temporary = HISTORY_CSV.with_suffix(".csv.tmp")
-    with temporary.open("w", newline="", encoding="utf-8") as stream:
-        writer = csv.DictWriter(stream, fieldnames=FIELDS)
-        writer.writeheader()
-        for row in rows:
-            output = dict(row)
-            output["legs"] = json.dumps(
-                row.get("legs") or [], ensure_ascii=False, separators=(",", ":")
-            )
-            writer.writerow({field: output.get(field, "") for field in FIELDS})
-    temporary.replace(HISTORY_CSV)
+/* Explain exactly why a fixture is unusable, so
+   "nothing is there" never happens silently again. */
+function slipDiagnostics(now = Date.now()) {
+  const held = pendingFixtureCounts();
 
+  const overAll =
+    snap && Array.isArray(snap.fixtures) ? snap.fixtures : [];
 
-def _is_graded(status):
-    return str(status or "").upper() in {"WON", "LOST"}
+  const overQualified = overAll.filter(
+    f => f.decision === "logged" && overProb(f) >= THRESHOLD
+  );
 
+  const underAll =
+    underSnap && Array.isArray(underSnap.fixtures) ? underSnap.fixtures : [];
 
-def _should_keep(existing, incoming):
-    old_status = str(existing.get("status") or "PENDING").upper()
-    new_status = str(incoming.get("status") or "PENDING").upper()
-    if _is_graded(old_status) and not _is_graded(new_status):
-        return True
-    if _is_graded(old_status) and _is_graded(new_status):
-        return True
-    return False
+  const underQualified = underAll.filter(f => {
+    const bar = underSnap &&
+      Number.isFinite(Number(underSnap.threshold))
+        ? Number(underSnap.threshold)
+        : UNDER_BAR;
 
+    return f.decision === "qualified" && Number(f.p_final) >= bar;
+  });
 
-def _merge_leg_scores(existing, incoming):
-    old_legs = existing.get("legs") or []
-    new_legs = incoming.get("legs") or []
-    if not isinstance(old_legs, list) or not isinstance(new_legs, list):
-        return False
-    if len(old_legs) != len(new_legs):
-        return False
-    merged = []
-    changed = False
-    for old_leg, new_leg in zip(old_legs, new_legs):
-        if not isinstance(old_leg, dict) or not isinstance(new_leg, dict):
-            merged.append(old_leg)
-            continue
-        leg = dict(old_leg)
-        old_result = str(old_leg.get("result") or "PENDING").upper()
-        incoming_result = str(new_leg.get("result") or "PENDING").upper()
-        if old_result in {"WON", "LOST"}:
-            incoming_is_final = str(new_leg.get("fixtureState") or "").upper() == "FINISHED"
-            outcome_agrees = incoming_result == old_result
-            if not incoming_is_final or not outcome_agrees:
-                merged.append(leg)
-                continue
-        incoming_provisional = new_leg.get("scoreProvisional") is True
-        old_confirmed_score = (
-            old_leg.get("homeScore") is not None
-            and old_leg.get("awayScore") is not None
-            and old_leg.get("scoreProvisional") is not True
-        )
-        old_state = str(old_leg.get("fixtureState") or "UNKNOWN").upper()
-        if old_state == "UNKNOWN":
-            old_status_text = str(
-                old_leg.get("fixtureStatusCode") or old_leg.get("fixtureStatus") or ""
-            ).upper()
-            if "FULL TIME" in old_status_text or "FINISHED" in old_status_text or "AWARDED" in old_status_text:
-                old_state = "FINISHED"
-            elif "LIVE" in old_status_text or "HALF TIME" in old_status_text or "IN PLAY" in old_status_text:
-                old_state = "LIVE"
-            elif "SCHEDULED" in old_status_text or "NOT STARTED" in old_status_text:
-                old_state = "SCHEDULED"
-        new_state = str(new_leg.get("fixtureState") or "UNKNOWN").upper()
-        status_regression = (
-            old_state == "FINISHED" and new_state != "FINISHED"
-        ) or (
-            old_state == "LIVE" and new_state in {"SCHEDULED", "UNKNOWN"}
-        )
-        protected_status_fields = {
-            "fixtureState", "fixtureStatusCode", "fixtureStatus",
-            "matchMinute", "injuryTime", "scoreProvisional",
-            "scoreFinalConfirmed", "scoreUnconfirmed",
-            "homeScore", "awayScore", "liveScore",
+  const classify = f => {
+    if ((held.get(fixtureKey(f)) || 0) >= SLIP_LEG_REUSE_LIMIT) return "used";
+    if (!Number.isFinite(kickoffMs(f))) return "nokickoff";
+    if (!isUpcoming(f, now)) return "started";
+    return "free";
+  };
+
+  const tally = list => {
+    const t = {used:0, nokickoff:0, started:0, free:0};
+    list.forEach(f => t[classify(f)]++);
+    return t;
+  };
+
+  return {
+    over: {
+      total: overQualified.length,
+      ...tally(overQualified)
+    },
+    under: {
+      total: underQualified.length,
+      ...tally(underQualified)
+    }
+  };
+}
+
+function buildSlips() {
+  const now = Date.now();
+  const held = pendingFixtureCounts();
+
+  /* A fixture can enter this batch while its total across the
+     archive plus this batch stays under the reuse cap. */
+  const batchUse = new Map();
+  const slotsLeft = f => {
+    const key = fixtureKey(f);
+    return SLIP_LEG_REUSE_LIMIT -
+      ((held.get(key) || 0) + (batchUse.get(key) || 0));
+  };
+
+  const over = (snap && Array.isArray(snap.fixtures) ? snap.fixtures : [])
+    .filter(f => qualifiedOver(f, now) && slotsLeft(f) > 0)
+    .sort((a, b) => overProb(b) - overProb(a));
+
+  const unders = (underSnap && Array.isArray(underSnap.fixtures)
+    ? underSnap.fixtures
+    : [])
+    .filter(f => qualifiedUnder(f, now) && slotsLeft(f) > 0)
+    .sort((a, b) => (Number(b.p_final) || 0) - (Number(a.p_final) || 0));
+
+  const list = [];
+
+  const anchors = [...new Set(
+    over.map(kickoffMs).filter(Number.isFinite)
+  )].sort((a, b) => a - b);
+
+  for (const anchor of anchors) {
+    for (;;) {
+      const inWindow = f => {
+        const t = kickoffMs(f);
+        return Number.isFinite(t) &&
+          t >= anchor &&
+          t <= anchor + SLIP_WINDOW_MS &&
+          t > now + KICKOFF_BUFFER_MS &&
+          slotsLeft(f) > 0;
+      };
+
+      const trio = over.filter(inWindow).slice(0, 3);
+
+      if (trio.length < 3) break;
+
+      const trioKeys = new Set(trio.map(fixtureKey));
+
+      const under = unders.find(f =>
+        inWindow(f) && !trioKeys.has(fixtureKey(f))
+      );
+
+      if (!under) break;
+
+      [...trio, under].forEach(f => {
+        const key = fixtureKey(f);
+        batchUse.set(key, (batchUse.get(key) || 0) + 1);
+      });
+
+      list.push({over: trio, under});
+    }
+  }
+
+  return {
+    list,
+    overFree: over.length,
+    underFree: unders.length
+  };
+}
+
+function renderDiag(diag) {
+  const line = (label, n) =>
+    `<div class="rowline"><span>${label}</span><span class="n">${n}</span></div>`;
+
+  return `
+    <div class="diag">
+      <b>CORE 1 · OVER ${MARKET} CANDIDATES</b>
+      ${line("Qualified in total", diag.over.total)}
+      ${line("Already in " + SLIP_LEG_REUSE_LIMIT + " pending slips (reuse cap reached)", diag.over.used)}
+      ${line("Missing kickoff timestamp (cannot prove not started)", diag.over.nokickoff)}
+      ${line("Kicked off / inside the 30-minute buffer", diag.over.started)}
+      ${line("Free &amp; upcoming", diag.over.free)}
+    </div>
+
+    <div class="diag">
+      <b>CORE 2 · UNDER 3.5 CANDIDATES</b>
+      ${line("Qualified in total", diag.under.total)}
+      ${line("Already in " + SLIP_LEG_REUSE_LIMIT + " pending slips (reuse cap reached)", diag.under.used)}
+      ${line("Missing kickoff timestamp", diag.under.nokickoff)}
+      ${line("Kicked off / inside the 30-minute buffer", diag.under.started)}
+      ${line("Free &amp; upcoming", diag.under.free)}
+    </div>`;
+}
+
+function renderSavedSlip(slip) {
+  const legs = Array.isArray(slip.legs) ? slip.legs : [];
+
+  return `
+    <article class="card">
+      <div class="league">
+        <span>SLIP #${esc(slip.number)} · 4 MATCHES</span>
+        <span class="reason q">SAVED</span>
+      </div>
+
+      ${legs.map(l => `
+        <div class="teams" style="font-size:13.5px;margin-top:9px">
+          ${esc(l.home)} <span class="vs">VS</span> ${esc(l.away)}
+        </div>
+        <div class="meta">
+          <span class="market-chip ${
+            String(l.market || "").toUpperCase().includes("UNDER") ? "u" : ""
+          }">${esc(l.market)}</span>
+          <span>${pct(l.probability)}</span>
+        </div>
+      `).join("")}
+    </article>`;
+}
+
+async function generateSlips() {
+  $("slipModal").style.display = "block";
+
+  $("slipCards").innerHTML =
+    '<div class="empty skeleton" style="height:120px">Building slips…</div>';
+
+  $("slipStatus").className = "status";
+  $("slipStatus").textContent =
+    "Checking the permanent archive and reserving fixtures…";
+
+  $("slipDiag").innerHTML = "";
+
+  if (!snap) {
+    $("slipCards").innerHTML =
+      '<div class="empty">No Core 1 snapshot is loaded. Run the model or load the last snapshot first.</div>';
+    return;
+  }
+
+  if (!underSnap) {
+    try {
+      underSnap = await api("/api/under35");
+    } catch {}
+  }
+
+  try {
+    try {
+      await loadArchive();
+    } catch (e) {
+      $("slipCards").innerHTML =
+        '<div class="empty">The permanent archive could not be reached (' +
+        esc(e.message) + '). No slips were created — the archive was not bypassed.</div>';
+      $("slipStatus").className = "status err";
+      return;
+    }
+
+    const {list, overFree, underFree} = buildSlips();
+    const diag = slipDiagnostics();
+
+    $("slipDiag").innerHTML = renderDiag(diag);
+
+    if (!list.length) {
+      $("slipCards").innerHTML = `
+        <div class="empty">
+          No complete slip can be made right now.<br>
+          Each slip needs 3 free Core 1 Over picks + 1 free Core 2 Under pick,
+          all upcoming and starting within one week of each other.
+        </div>`;
+
+      const hints = [];
+
+      if (diag.over.used > 0 && diag.over.free === 0) {
+        hints.push(
+          "Every qualified Over pick has already reached the reuse cap of " +
+          SLIP_LEG_REUSE_LIMIT + " unsettled slips. A fixture never sits in " +
+          "more than " + SLIP_LEG_REUSE_LIMIT + " unsettled slips at once. " +
+          "Once those slips are graded automatically after " +
+          "the matches finish, their fixtures are released."
+        );
+      }
+
+      if (diag.over.nokickoff > 0) {
+        hints.push(
+          diag.over.nokickoff + " qualified pick(s) carry no kickoff timestamp " +
+          "and can never enter a slip — the model never guesses whether a " +
+          "match has started."
+        );
+      }
+
+      if (overFree >= 3 && underFree === 0) {
+        hints.push(
+          "There are Over picks available, but no free Under 3.5 pick inside " +
+          "their one-week window. Slip building stops instead of padding."
+        );
+      }
+
+      $("slipStatus").innerHTML =
+        `0 slips generated · ${overFree} free Over picks · ` +
+        `${underFree} free Under picks.` +
+        (hints.length
+          ? `<div class="diag-hint">${hints.map(esc).join("<br><br>")}</div>`
+          : "");
+
+      return;
+    }
+
+    const createdAt = new Date().toISOString();
+
+    const candidates = list.map(item => ({
+      createdAt,
+      status: "PENDING",
+      autoGraded: false,
+
+      legs: [
+        ...item.over.map(f => ({
+          home: f.home,
+          away: f.away,
+          date: f.date,
+          league: f.league,
+          market: "OVER " + MARKET,
+          probability: overProb(f),
+          kickoff: kickoffIso(f),
+          footballDataId: f.id ?? f.fixture_id ?? f.match_id ?? null
+        })),
+
+        {
+          home: item.under.home,
+          away: item.under.away,
+          date: item.under.date,
+          league: item.under.league,
+          market: "UNDER 3.5",
+          probability: Number(item.under.p_final),
+          kickoff: kickoffIso(item.under),
+          footballDataId: item.under.id ?? item.under.fixture_id ?? item.under.match_id ?? null
         }
-        for key, value in new_leg.items():
-            if value is None or value == "":
-                continue
-            if status_regression and key in protected_status_fields:
-                continue
-            if old_leg.get("scoreFinalConfirmed") is True and key == "scoreFinalConfirmed" and value is not True:
-                continue
-            if old_leg.get("scoreFinalConfirmed") is True and key == "scoreUnconfirmed" and value is True:
-                continue
-            if incoming_provisional and old_confirmed_score and key in {"homeScore", "awayScore", "liveScore"}:
-                continue
-            if key == "result":
-                old_result = str(leg.get("result") or "PENDING").upper()
-                new_result = str(value).upper()
-                if old_result in {"WON", "LOST"}:
-                    continue
-                if new_result not in {"WON", "LOST"}:
-                    continue
-            if leg.get(key) != value:
-                leg[key] = value
-                changed = True
-        merged.append(leg)
-    if changed:
-        existing["legs"] = merged
-    return changed
+      ]
+    }));
 
+    const r = await fetch("/api/slip-history/generate", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({slips: candidates})
+    });
 
-def _normalize(slip):
-    auto = slip.get("autoGraded")
-    if auto is None:
-        auto = str(slip.get("auto_graded") or "").upper() == "YES"
-    legs = slip.get("legs")
-    if not isinstance(legs, list):
-        legs = []
-    return {
-        "id": str(slip.get("id") or "").strip(),
-        "number": slip.get("number", ""),
-        "created_at": slip.get("createdAt") or slip.get("created_at") or "",
-        "status": str(slip.get("status") or "PENDING").upper(),
-        "graded_at": slip.get("gradedAt") or slip.get("graded_at") or "",
-        "auto_graded": "YES" if auto else "NO",
-        "archived_at": slip.get("archivedAt") or slip.get("archived_at") or _now(),
-        "legs": legs,
+    if (!r.ok) {
+      throw Error("server rejected the generation request (HTTP " + r.status + ")");
     }
 
+    const saved = await r.json();
 
-def _derived_settlement(legs):
-    if not isinstance(legs, list) or len(legs) != 4:
-        return None
-    results = [
-        str(leg.get("result") or "PENDING").upper()
-        for leg in legs if isinstance(leg, dict)
-    ]
-    if len(results) != 4:
-        return None
-    if "LOST" in results:
-        return "LOST"
-    if all(result == "WON" for result in results):
-        return "WON"
-    return None
-
-
-def _public_slip(row):
-    return {
-        "id": row.get("id"),
-        "number": row.get("number"),
-        "createdAt": row.get("created_at"),
-        "status": row.get("status") or "PENDING",
-        "gradedAt": row.get("graded_at") or None,
-        "autoGraded": str(row.get("auto_graded") or "").upper() == "YES",
-        "archivedAt": row.get("archived_at"),
-        "legs": row.get("legs") or [],
+    if (!saved.ok) {
+      throw Error(saved.error || "The server could not reserve these slips.");
     }
 
+    const accepted = Array.isArray(saved.accepted) ? saved.accepted : [];
+    const rejected = Array.isArray(saved.rejected) ? saved.rejected : [];
 
-def _team_key(value):
-    value = unicodedata.normalize("NFKD", str(value or ""))
-    value = "".join(char for char in value if not unicodedata.combining(char))
-    value = value.strip().lower()
-    value = value.replace("&", " and ")
-    value = re.sub(r"\b(football club|soccer club|fc|sc|afc|cf|ac|ssc|club|football)\b", " ", value)
-    value = re.sub(r"[^a-z0-9]+", " ", value)
-    return " ".join(value.split())
+    $("slipCards").innerHTML = accepted.length
+      ? accepted.map(renderSavedSlip).join("")
+      : `<div class="empty">
+          No new slip was accepted. ${rejected.length} candidate(s) were blocked
+          because their fixtures reached the reuse cap or the exact
+          combination already exists in the permanent archive.<br>
+          Open the slips tracker to follow your existing slips.
+        </div>`;
 
+    $("slipStatus").textContent =
+      (accepted.length
+        ? accepted.length + " new slip(s) saved to the permanent archive with " +
+          "server-assigned numbers. " + rejected.length +
+          " duplicate or conflicting candidate(s) were skipped."
+        : "No new slip was created.") +
+      " Grading is automatic once all four legs finish. " +
+      "Visit OPEN SLIPS TRACKER to view playable, ongoing, won and lost slips with live scores.";
 
-def _leg_fixture_key(leg):
-    if not isinstance(leg, dict):
-        return None
-    home = _team_key(leg.get("home"))
-    away = _team_key(leg.get("away"))
-    raw_date = leg.get("date") or leg.get("kickoff") or ""
-    match = re.match(r"^(\d{4}-\d{2}-\d{2})", str(raw_date).strip())
-    if not home or not away or not match:
-        return None
-    return match.group(1) + "|" + home + "|" + away
+    if (saved.backupStatus && !/backed up to github/i.test(saved.backupStatus)) {
+      $("slipStatus").textContent += " Archive backup: " + saved.backupStatus;
+    }
 
+    /* Re-sync so pending fixtures stay reserved and the
+       localStorage mirror used by live_scores.js is fresh. */
+    loadArchive().catch(() => {});
 
-def _market_key(leg):
-    market = str(leg.get("market") or "").upper().replace("GOALS", "").strip()
-    market = re.sub(r"\s+", " ", market)
-    if "OVER" in market and "1.5" in market:
-        return "OVER 1.5"
-    if "UNDER" in market and "3.5" in market:
-        return "UNDER 3.5"
-    return market
+  } catch (error) {
+    $("slipCards").innerHTML =
+      '<div class="empty">No new slips were created. The archive was not bypassed.</div>';
 
+    $("slipStatus").textContent = error.message || "Slip generation failed.";
+    $("slipStatus").className = "status err";
+  }
+}
 
-def _slip_signature(slip_or_legs):
-    legs = slip_or_legs.get("legs") if isinstance(slip_or_legs, dict) else slip_or_legs
-    if not isinstance(legs, list) or len(legs) != 4:
-        return None
-    parts = []
-    for leg in legs:
-        if not isinstance(leg, dict):
-            return None
-        fixture = _leg_fixture_key(leg)
-        market = _market_key(leg)
-        if not fixture or market not in {"OVER 1.5", "UNDER 3.5"}:
-            return None
-        parts.append(fixture + "|" + market)
-    fixture_keys = [_leg_fixture_key(leg) for leg in legs]
-    if len(set(fixture_keys)) != 4:
-        return None
-    canonical = "\n".join(sorted(parts))
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+$("btnSlip").addEventListener("click", generateSlips);
 
+$("closeSlip").addEventListener("click", () => {
+  $("slipModal").style.display = "none";
+});
 
-def _pending_fixture_keys(rows):
-    used = set()
-    for row in rows:
-        if str(row.get("status") or "PENDING").upper() != "PENDING":
-            continue
-        # Settlement rule: a slip whose stored legs already settle it
-        # (a confirmed losing leg, or four confirmed winning legs) is
-        # no longer genuinely pending and must not keep its fixtures
-        # reserved, even when its top-level grade still says PENDING.
-        if _derived_settlement(row.get("legs")) in {"WON", "LOST"}:
-            continue
-        legs = row.get("legs") or []
-        if isinstance(legs, list):
-            used.update(key for leg in legs if (key := _leg_fixture_key(leg)))
-    return used
+/* -------------------------------------------------------
+   DATA REFRESH + RUN POLLING
+------------------------------------------------------- */
 
+async function refreshData() {
+  const [a, b] = await Promise.allSettled([
+    api("/api/data"),
+    api("/api/under35")
+  ]);
 
-def _valid_candidate(slip):
-    if not isinstance(slip, dict):
-        return False, "Slip is not an object."
-    legs = slip.get("legs")
-    if not isinstance(legs, list) or len(legs) != 4:
-        return False, "Every slip must contain exactly four legs."
-    keys = [_leg_fixture_key(leg) for leg in legs]
-    if any(key is None for key in keys):
-        return False, "A leg is missing a valid date or team name."
-    if len(set(keys)) != 4:
-        return False, "A slip contains the same fixture more than once."
-    markets = [_market_key(leg) for leg in legs]
-    if markets.count("OVER 1.5") != 3 or markets.count("UNDER 3.5") != 1:
-        return False, "Slip must contain exactly 3 Over 1.5 legs and 1 Under 3.5 leg."
-    if not _slip_signature(legs):
-        return False, "Slip combination could not be identified safely."
-    return True, ""
+  snap = a.status === "fulfilled" ? a.value : null;
+  underSnap = b.status === "fulfilled" ? b.value : null;
+  dataLoaded = !!snap;
 
+  if (snap) {
+    $("sysDot").className = "pill on";
+    $("sysDot").innerHTML = '<i class="dot on"></i>CORE 1 DATA LOADED';
 
-def _push_to_github(force=False):
-    if not HISTORY_CSV.exists() or not gh_sync.enabled():
-        _last_push["status"] = "GitHub backup is not configured."
-        return _last_push["status"]
-    try:
-        signature = hashlib.sha256(HISTORY_CSV.read_bytes()).hexdigest()
-        if signature == _last_push["signature"]:
-            return _last_push["status"]
-        if not force and time.time() - _last_push["at"] < GITHUB_PUSH_MIN_SECONDS:
-            _last_push["status"] = "Backup queued; waiting for the safe-sync interval."
-            return _last_push["status"]
-        gh_sync.push_snapshot(REMOTE_NAME, "Update slips history (browser tracker archive)")
-        _last_push.update(signature=signature, at=time.time(), status="Archive backed up to GitHub.")
-    except Exception as exc:
-        _last_push["status"] = "GitHub backup failed: " + str(exc)[:220]
-    return _last_push["status"]
+    $("snapTime").style.display = "";
+    $("snapTime").textContent = snap.generated_at
+      ? String(snap.generated_at).slice(0, 16).replace("T", " ") + "Z"
+      : "—";
 
+    setStatus(
+      "Data loaded. Core 1 and Core 2 are displayed independently.",
+      "ok"
+    );
 
-def _startup_restore():
-    if not gh_sync.enabled() or HISTORY_CSV.exists():
-        return
-    try:
-        if gh_sync.pull(REMOTE_NAME):
-            print("Restored slips history from GitHub.")
-    except Exception as exc:
-        print("Could not restore slips history: " + str(exc))
+  } else {
+    $("sysDot").className = "pill err";
+    $("sysDot").innerHTML = '<i class="dot err"></i>NO DATA';
 
+    setStatus(
+      "Core 1 data could not be loaded. Check the service and /api/data endpoint.",
+      "err"
+    );
+  }
 
-_startup_restore()
+  renderCore1();
+  renderCore2();
+  renderPerformance();
+  renderHistory();
 
+  loadArchive().catch(() => {});
+}
 
-_startup_sanitize()
+function enterDashboard() {
+  $("gate").style.display = "none";
+  $("dash").style.display = "block";
+}
 
+async function pollStatus() {
+  try {
+    const s = await api("/api/status");
 
-_startup_renumber()
+    if (s.running) {
+      if (s.core1_status === "running" && s.waiting) {
+        setPhases("review", ["core1"]);
+        setStatus(
+          "Model running · review window active · " +
+          (s.wait_seconds || 0) + "s remaining. New fixtures were added to context.csv.",
+          "warn"
+        );
 
+      } else if (s.core1_status === "running") {
+        setPhases("core1", []);
+        setStatus("Core 1 scanning…", "warn");
 
-@slips_history_bp.get("/slips-tracker")
-def slips_tracker_page():
-    return send_from_directory(str(ROOT), "slips_tracker.html")
+      } else if (s.core2_status === "running") {
+        setPhases("core2", ["core1", "review", "export"]);
+        setStatus("Core 2 (Under 3.5) running…", "warn");
 
+      } else {
+        setPhases("export", ["core1", "review"]);
+        setStatus("Model is running…", "warn");
+      }
 
-@slips_history_bp.get("/slips_tracker.js")
-def slips_tracker_script():
-    return send_from_directory(str(ROOT), "slips_tracker.js", mimetype="application/javascript")
+      return;
+    }
 
+    clearInterval(pollTimer);
+    pollTimer = null;
 
-@slips_history_bp.get("/slips_history.js")
-def slips_history_script():
-    return send_from_directory(str(ROOT), "slips_history.js", mimetype="application/javascript")
+    $("btnRun").disabled = false;
+    $("gateRun").disabled = false;
+    $("btnRun").textContent = "▶ RUN MODEL";
 
+    if (s.ok) {
+      setPhases(null, ["core1", "review", "export", "core2"]);
+      await refreshData();
 
-@slips_history_bp.get("/api/slip-history")
-def get_history():
-    with _lock:
-        rows = _read_rows()
-    return jsonify({
-        "ok": True,
-        "count": len(rows),
-        "slips": [_public_slip(row) for row in rows],
-        "backupStatus": _last_push["status"],
-    })
+      setStatus(
+        s.ready === false
+          ? "Run ended but final readiness was not confirmed; check service logs."
+          : "Model run completed. Review the exported picks below.",
+        s.ready === false ? "warn" : "ok"
+      );
 
+    } else {
+      setPhases(null, []);
+      setStatus("Model run failed. Check service logs.", "err");
+    }
 
-@slips_history_bp.post("/api/slip-history")
-def save_history():
-    data = request.get_json(silent=True) or {}
-    incoming = data.get("slips")
-    if not isinstance(incoming, list):
-        return jsonify({"ok": False, "error": "Body must contain a slips array."}), 400
+  } catch (e) {
+    setStatus("Status check failed: " + e.message, "warn");
+  }
+}
 
-    changed = False
-    important_change = False
-    with _lock:
-        rows = _read_rows()
-        by_id = {row["id"]: row for row in rows if row.get("id")}
-        for slip in incoming:
-            if not isinstance(slip, dict):
-                continue
-            record = _normalize(slip)
-            _sanitize_grade(record)
-            if not record["id"]:
-                continue
-            existing = by_id.get(record["id"])
-            if existing is None:
-                derived = _derived_settlement(record.get("legs"))
-                if derived:
-                    record["status"] = derived
-                    record["graded_at"] = record.get("graded_at") or _now()
-                    record["auto_graded"] = "YES"
-                _sanitize_grade(record)
-                by_id[record["id"]] = record
-                changed = True
-                important_change = True
-                continue
-            merged = dict(existing)
-            _merge_leg_scores(merged, record)
-            if not _is_graded(existing.get("status")):
-                new_status = str(record.get("status") or "PENDING").upper()
-                if new_status in {"PENDING", "WON", "LOST"}:
-                    merged["status"] = new_status
-                if new_status in {"WON", "LOST"}:
-                    merged["graded_at"] = record.get("graded_at") or _now()
-                    merged["auto_graded"] = record.get("auto_graded") or "YES"
-                    if str(existing.get("status") or "PENDING").upper() != new_status:
-                        important_change = True
-                derived = _derived_settlement(merged.get("legs"))
-                if derived and merged.get("status") != derived:
-                    merged["status"] = derived
-                    merged["graded_at"] = merged.get("graded_at") or _now()
-                    merged["auto_graded"] = "YES"
-                    important_change = True
-            _sanitize_grade(merged)
-            merged["id"] = existing["id"]
-            merged["number"] = existing.get("number")
-            merged["created_at"] = existing.get("created_at") or record.get("created_at")
-            if merged != existing:
-                by_id[record["id"]] = merged
-                changed = True
-        if changed:
-            ordered = sorted(by_id.values(), key=lambda row: str(row.get("created_at") or ""))
-            _write_rows(ordered)
-        count = len(by_id)
+async function startRun(fromGate) {
+  const btn = $("btnRun");
+  const gateBtn = $("gateRun");
 
-    backup = _push_to_github(force=important_change) if changed else _last_push["status"]
-    return jsonify({"ok": True, "changed": changed, "count": count, "backupStatus": backup})
+  btn.disabled = true;
+  gateBtn.disabled = true;
+  btn.textContent = "RUNNING…";
 
+  setStatus("Starting model…");
 
-@slips_history_bp.post("/api/slip-history/generate")
-def generate_history_slips():
-    """Reserve new slips atomically; IDs and visible numbers belong to server."""
-    data = request.get_json(silent=True) or {}
-    candidates = data.get("slips")
-    if not isinstance(candidates, list):
-        return jsonify({"ok": False, "error": "Body must contain a slips array."}), 400
+  try {
+    const r = await api("/api/run", {method: "POST"});
 
-    accepted, rejected = [], []
-    changed = False
-    with _lock:
-        rows = _read_rows()
-        by_id = {row["id"]: row for row in rows if row.get("id")}
-        signatures = {_slip_signature(row) for row in rows}
-        signatures.discard(None)
-        used = _pending_fixture_keys(rows)
-        numeric = [int(row.get("number") or 0) for row in rows if str(row.get("number") or "").isdigit()]
-        next_number = max(numeric or [0]) + 1
+    if (!r.ok) {
+      throw Error(r.message || "Run request was not accepted");
+    }
 
-        for index, candidate in enumerate(candidates):
-            valid, reason = _valid_candidate(candidate)
-            if not valid:
-                rejected.append({"index": index, "reason": reason})
-                continue
-            legs = candidate["legs"]
-            keys = [_leg_fixture_key(leg) for leg in legs]
-            conflict = next((key for key in keys if key in used), None)
-            if conflict:
-                rejected.append({
-                    "index": index,
-                    "reason": "A fixture is already reserved by an unsettled slip.",
-                })
-                continue
-            signature = _slip_signature(legs)
-            if signature in signatures:
-                rejected.append({
-                    "index": index,
-                    "reason": "This exact four-leg combination already exists in the permanent archive.",
-                })
-                continue
+    enterDashboard();
 
-            record = _normalize(candidate)
-            record["id"] = "slip-" + signature[:24]
-            record["number"] = next_number
-            record["status"] = "PENDING"
-            record["graded_at"] = ""
-            record["auto_graded"] = "NO"
-            record["created_at"] = record["created_at"] or _now()
-            record["archived_at"] = _now()
-            by_id[record["id"]] = record
-            accepted.append(_public_slip(record))
-            signatures.add(signature)
-            used.update(keys)
-            next_number += 1
-            changed = True
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(pollStatus, 1500);
+    await pollStatus();
 
-        if changed:
-            ordered = sorted(by_id.values(), key=lambda row: str(row.get("created_at") or ""))
-            _write_rows(ordered)
+  } catch (e) {
+    btn.disabled = false;
+    gateBtn.disabled = false;
+    btn.textContent = "▶ RUN MODEL";
 
-    backup = _push_to_github(force=True) if changed else _last_push["status"]
-    return jsonify({
-        "ok": True,
-        "accepted": accepted,
-        "rejected": rejected,
-        "count": len(accepted),
-        "backupStatus": backup,
-    })
+    setStatus("Run request failed: " + e.message, "err");
+
+    if (fromGate) {
+      $("gateMeta").textContent = "Run request failed: " + e.message;
+    }
+  }
+}
+
+$("btnRun").addEventListener("click", () => startRun(false));
+$("gateRun").addEventListener("click", () => startRun(true));
+
+$("gateLoad").addEventListener("click", async () => {
+  $("gateMeta").textContent = "Loading last snapshot…";
+  enterDashboard();
+  setStatus("Loading last saved snapshot…", "warn");
+
+  try {
+    await refreshData();
+  } catch (e) {
+    setStatus("Load failed: " + e.message, "err");
+  }
+});
+
+/* -------------------------------------------------------
+   INIT — nothing loads until the owner acts
+------------------------------------------------------- */
+
+(async function init() {
+  loadArchive().catch(() => {});
+
+  try {
+    const s = await api("/api/status");
+
+    if (s.running) {
+      $("gateMeta").textContent =
+        "A model run is already in progress — open the dashboard to watch it.";
+
+      const open = document.createElement("button");
+      open.className = "btn secondary";
+      open.textContent = "OPEN RUNNING MODEL";
+      open.addEventListener("click", () => {
+        enterDashboard();
+        $("btnRun").disabled = true;
+        $("gateRun").disabled = true;
+        $("btnRun").textContent = "RUNNING…";
+
+        if (pollTimer) clearInterval(pollTimer);
+        pollTimer = setInterval(pollStatus, 1500);
+        pollStatus();
+      });
+
+      $("gate").querySelector(".gate-actions").appendChild(open);
+
+    } else if (s.finished_at) {
+      $("gateMeta").textContent =
+        "Last run finished " +
+        String(s.finished_at).slice(0, 16).replace("T", " ") + "Z. LOAD LAST SNAPSHOT shows its picks.";
+
+    } else {
+      $("gateMeta").textContent =
+        "Service online. No run recorded yet — start one.";
+    }
+
+    $("sysDot").className = "pill on";
+    $("sysDot").innerHTML = '<i class="dot on"></i>SERVICE ONLINE';
+
+  } catch (e) {
+    $("gateMeta").textContent =
+      "Service connection failed: " + e.message;
+
+    $("sysDot").className = "pill err";
+    $("sysDot").innerHTML = '<i class="dot err"></i>SERVICE ERROR';
+  }
+})();
+</script>
+
+</body>
+</html>
