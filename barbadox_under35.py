@@ -17,6 +17,10 @@ It does not modify:
     context.csv
     docs/data.json
 
+BLUE (universal team-balance system) is applied before qualification:
+adjusted probability = original probability + home balance + away
+balance. The threshold is unchanged (0.60).
+
 Default scan window: 7 days.
 """
 
@@ -29,6 +33,7 @@ from pathlib import Path
 
 import barbadox_core as bc
 import barbadox_core2 as c2
+import blue_balance as blue
 
 # Fixtures kicking off sooner than this (or already started) never qualify.
 KICKOFF_BUFFER_MIN = max(0, int(os.environ.get("KICKOFF_BUFFER_MINUTES", "30")))
@@ -241,15 +246,26 @@ def analyse(matches, threshold, d0, d1):
             output.append(entry)
             continue
 
+        # BLUE: adjusted probability = original probability
+        # + home balance + away balance. Threshold unchanged (0.60).
+        # A fixture only sees settlements from strictly earlier days.
+        p_blue = blue.adjust(
+            match["home"],
+            match["away"],
+            p_final,
+            as_of=entry["date"],
+        )
+
         entry.update({
             "decision": (
                 "qualified"
-                if p_final >= threshold
+                if p_blue >= threshold
                 else "below-line"
             ),
             "p_raw": round(p_raw, 4),
             "p_cal": round(p_cal, 4),
             "p_final": round(p_final, 4),
+            "p_blue": round(p_blue, 4),
             "lambda_total": round(lambda_total, 4),
             "threshold": threshold,
         })
@@ -338,6 +354,21 @@ def main():
 
     print("CORE 2 UNDER 3.5: loading match data...")
 
+    # BLUE: settle the universal team-balance ledger before analysis.
+    # Reads picks.csv; idempotent; does not modify picks.csv.
+    try:
+        blue_settled = blue.settle()
+
+        if blue_settled:
+            print(
+                "CORE 2 UNDER 3.5: BLUE settled "
+                + str(blue_settled)
+                + " new recommendation(s)."
+            )
+
+    except Exception as exc:
+        print("CORE 2 UNDER 3.5: BLUE settlement skipped: " + str(exc))
+
     matches, empty_leagues = load_history(leagues)
 
     status, reason, fixtures = analyse(
@@ -392,7 +423,7 @@ def main():
 
     top_fixtures = sorted(
         qualified,
-        key=lambda fixture: -fixture["p_final"],
+        key=lambda fixture: -fixture["p_blue"],
     )[:5]
 
     for fixture in top_fixtures:
@@ -400,7 +431,7 @@ def main():
             f"  {fixture['date']} "
             f"{fixture['league']:<4} "
             f"{fixture['home']} vs {fixture['away']} "
-            f"{fixture['p_final'] * 100:.1f}%"
+            f"{fixture['p_blue'] * 100:.1f}% (blue)"
         )
 
     if len(qualified) > len(top_fixtures):
