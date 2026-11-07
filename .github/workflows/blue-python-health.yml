@@ -157,9 +157,17 @@ jobs:
               "slips_history.py",
               "live_scores.py",
               "blue_balance.py",
+              # Model scripts: imported or executed by the daily run,
+              # the console export, and the backtest. Compile them so
+              # line-wrap corruption like the 2026-11-06 breakage is
+              # caught before deployment, not at run time.
+              "barbadox_core.py",
+              "export_snapshot.py",
+              "barbadox_under35.py",
+              "core2_tracking.py",
               # Not imported by the server, but run by backtest.yml;
-              # compile it so line-wrap corruption like the 2026-11-06
-              # breakage is caught before the backtest is used.
+              # compile it so the same class of breakage is caught
+              # before the backtest is used.
               "slip_backtest.py",
           ]
 
