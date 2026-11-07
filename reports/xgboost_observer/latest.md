@@ -1,6 +1,6 @@
 # BARBADOX XGBOOST OBSERVER
 
-Generated: 2026-11-06 15:01 UTC
+Generated: 2026-11-07 06:00 UTC
 Current season: 2026/2027
 
 ## DATA COVERAGE
@@ -278,7 +278,7 @@ Accuracy: 0.834
 Brier score: 0.144
 Baseline Brier score: 0.139
 Brier improvement: -0.006
-ROC-AUC: 0.518
+ROC-AUC: 0.520
 
 INTERPRETATION
 - Lower Brier score is better.
