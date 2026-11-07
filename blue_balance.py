@@ -1,0 +1,328 @@
+#!/usr/bin/env python3
+"""
+Blue: the universal team-balance system for BARBADOX.
+
+Rules:
+- Every team starts at 0.
+- Failed recommendation: both teams receive -2.
+- Successful recommendation: each participating team recovers +1, capped at 0.
+- One universal balance across OVER 1.5 and UNDER 3.5.
+- Adjusted probability = original probability + home balance + away balance.
+- Thresholds remain 80% (Core 1) and 60% (Core 2).
+- Balances update chronologically. Same-day settlements are applied at
+  day's end, so a fixture only sees settlements from strictly earlier days.
+
+Storage (both live in the repository so they survive Render redeploys):
+- blue_ledger.csv: append-only settlement record (source of truth).
+- blue_balances.csv: derived current balances, recomputed from the ledger.
+"""
+
+import csv
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+LEDGER_FILE = ROOT / "blue_ledger.csv"
+BALANCES_FILE = ROOT / "blue_balances.csv"
+PICKS_FILE = ROOT / "picks.csv"
+
+SUCCESS_DELTA = 1.0
+FAILURE_DELTA = -2.0
+RECOVERY_CAP = 0.0
+
+LEDGER_FIELDS = [
+    "date", "league", "home", "away", "market",
+    "result", "settled_at",
+]
+BALANCE_FIELDS = ["team", "balance", "updated_at"]
+
+
+def _utc_now():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def norm(name):
+    """Normalise a team name to a stable ledger key."""
+    return "".join(
+        character.lower()
+        for character in str(name or "")
+        if character.isalnum()
+    )
+
+
+def _read_rows(path):
+    if not path.exists():
+        return []
+
+    with path.open(newline="", encoding="utf-8-sig") as handle:
+        return list(csv.DictReader(handle))
+
+
+def _write_rows(path, fields, rows):
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    temporary = path.with_suffix(path.suffix + ".tmp")
+
+    with temporary.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    # Atomic replacement prevents partially written CSV files.
+    temporary.replace(path)
+
+
+def _settlement_key(row):
+    """
+    A recommendation is identified by fixture, market, and date.
+
+    The market is part of the key so one fixture can settle both an
+    OVER 1.5 and an UNDER 3.5 recommendation independently.
+    """
+    return (
+        str(row.get("date", ""))[:10],
+        str(row.get("league", "")).upper().strip(),
+        norm(row.get("home")),
+        norm(row.get("away")),
+        str(row.get("market", "")).strip(),
+    )
+
+
+def _settled_pick_rows(picks_file=PICKS_FILE):
+    """Rows from picks.csv with a final HIT or MISS result."""
+    rows = []
+
+    for row in _read_rows(picks_file):
+        result = str(row.get("result", "")).strip().upper()
+
+        if result not in ("HIT", "MISS"):
+            continue
+
+        if not row.get("date") or not row.get("home") or not row.get("away"):
+            continue
+
+        rows.append(row)
+
+    return rows
+
+
+def sync_ledger(picks_file=PICKS_FILE, ledger_file=LEDGER_FILE):
+    """
+    Append settled recommendations that are not in the ledger yet.
+
+    Idempotent: re-running never double-counts a settlement.
+    Returns the list of newly added ledger entries.
+    """
+    ledger = _read_rows(ledger_file)
+    known = {_settlement_key(row) for row in ledger}
+
+    added = []
+
+    for row in _settled_pick_rows(picks_file):
+        key = _settlement_key(row)
+
+        if key in known:
+            continue
+
+        entry = {
+            "date": str(row.get("date", ""))[:10],
+            "league": str(row.get("league", "")).strip(),
+            "home": row.get("home", ""),
+            "away": row.get("away", ""),
+            "market": str(row.get("market", "")).strip(),
+            "result": str(row.get("result", "")).strip().upper(),
+            "settled_at": _utc_now(),
+        }
+
+        added.append(entry)
+        known.add(key)
+
+    if added:
+        _write_rows(
+            ledger_file,
+            LEDGER_FIELDS,
+            ledger + added,
+        )
+
+    return added
+
+
+def _apply_settlement(balances, home, away, success):
+    """Apply one recommendation outcome to both participating teams."""
+    for team in (norm(home), norm(away)):
+        current = balances.get(team, 0.0)
+
+        if success:
+            # Recovery is capped at 0: teams never go positive.
+            balances[team] = min(
+                current + SUCCESS_DELTA,
+                RECOVERY_CAP,
+            )
+        else:
+            balances[team] = current + FAILURE_DELTA
+
+
+_replay_cache = {}
+
+
+def invalidate_cache():
+    _replay_cache.clear()
+
+
+def replay(as_of=None):
+    """
+    Rebuild balances by replaying the ledger chronologically.
+
+    Same-day settlements are applied together at that day's end. A
+    fixture kicking off on date D therefore only sees settlements
+    dated strictly before D: pass as_of=D to exclude same-day and
+    later settlements.
+    """
+    cache_key = as_of if as_of is not None else "__all__"
+
+    if cache_key in _replay_cache:
+        return _replay_cache[cache_key]
+
+    by_day = {}
+
+    for row in _read_rows(LEDGER_FILE):
+        day = str(row.get("date", ""))[:10]
+        by_day.setdefault(day, []).append(row)
+
+    balances = {}
+
+    for day in sorted(by_day):
+        if as_of is not None and day >= as_of:
+            break
+
+        # All of a day's settlements apply together, in ledger order.
+        for row in by_day[day]:
+            _apply_settlement(
+                balances,
+                row.get("home"),
+                row.get("away"),
+                str(row.get("result", "")).strip().upper() == "HIT",
+            )
+
+    _replay_cache[cache_key] = balances
+    return balances
+
+
+def balances_for(home, away, as_of=None):
+    balances = replay(as_of)
+
+    return (
+        balances.get(norm(home), 0.0),
+        balances.get(norm(away), 0.0),
+    )
+
+
+def adjust(home, away, probability, as_of=None):
+    """
+    Blue-adjusted probability: original + home balance + away balance,
+    clamped to [0, 1].
+
+    Balances are never positive (recovery is capped at 0), so Blue can
+    only lower a probability, never inflate one. That is intentional.
+    """
+    home_balance, away_balance = balances_for(home, away, as_of)
+
+    adjusted = (
+        float(probability)
+        + home_balance
+        + away_balance
+    )
+
+    return min(max(adjusted, 0.0), 1.0)
+
+
+def write_balances(balances_file=BALANCES_FILE):
+    """Recompute and persist the current balance snapshot."""
+    balances = replay()
+
+    rows = [
+        {
+            "team": team,
+            "balance": f"{value:.4f}",
+            "updated_at": _utc_now(),
+        }
+        for team, value in sorted(balances.items())
+    ]
+
+    _write_rows(balances_file, BALANCE_FIELDS, rows)
+    return len(rows)
+
+
+def settle(push=False):
+    """
+    Settle the ledger from picks.csv and refresh the balance file.
+
+    Returns the number of newly settled recommendations.
+    Safe to run repeatedly: settlement is idempotent.
+    """
+    invalidate_cache()
+    added = sync_ledger()
+    write_balances()
+
+    if added and push:
+        import gh_sync
+
+        if gh_sync.enabled():
+            message = (
+                "Barbadox BLUE: settle "
+                + str(len(added))
+                + " recommendation(s)"
+            )
+
+            gh_sync.push("blue_ledger.csv", message)
+            gh_sync.push("blue_balances.csv", message)
+
+    return len(added)
+
+
+def _show():
+    balances = replay()
+
+    if not balances:
+        print("BLUE: no settlements in the ledger yet. All teams at 0.")
+        return
+
+    negative = {
+        team: value
+        for team, value in balances.items()
+        if value < 0
+    }
+
+    print(
+        "BLUE: "
+        + str(len(negative))
+        + " of "
+        + str(len(balances))
+        + " team(s) carry a negative balance."
+    )
+
+    for team, value in sorted(negative.items()):
+        print(f"  {team}: {value:+.1f}")
+
+
+def main():
+    command = sys.argv[1] if len(sys.argv) > 1 else "show"
+
+    if command == "settle":
+        push = "--push" in sys.argv[2:]
+        count = settle(push=push)
+        print(f"BLUE: settled {count} new recommendation(s).")
+        _show()
+
+    elif command == "show":
+        _show()
+
+    else:
+        sys.exit(
+            "Usage: python blue_balance.py [settle [--push] | show]"
+        )
+
+
+if __name__ == "__main__":
+    main()
