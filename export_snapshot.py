@@ -11,6 +11,10 @@ IMPORTANT:
 - New fixtures trigger a review window.
 - Pick logging can be deferred during that window.
 - context.csv remains append-only.
+
+BLUE (universal team-balance system) is applied before pick
+qualification: adjusted probability = original probability
++ home balance + away balance. The threshold is unchanged.
 """
 
 import argparse
@@ -21,6 +25,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import barbadox_core as bc
+import blue_balance as blue
 import gh_sync
 
 
@@ -142,6 +147,21 @@ def export(args):
             "No new picks will be logged during this pass."
         )
 
+    # BLUE: settle the universal team-balance ledger from settled
+    # picks before any qualification decision is made. Idempotent.
+    try:
+        blue_settled = blue.settle(push=use_github)
+
+        if blue_settled:
+            print(
+                "BLUE: settled "
+                + str(blue_settled)
+                + " new recommendation(s) into the ledger."
+            )
+
+    except Exception as exc:
+        print("BLUE settlement skipped: " + str(exc))
+
     def build():
         """
         Build one snapshot.
@@ -246,17 +266,30 @@ def export(args):
             probability = result["p"]
             upper_bound = result.get("upper", probability)
 
+            # BLUE: adjusted probability = original probability
+            # + home balance + away balance. Threshold unchanged.
+            # A fixture only sees settlements from strictly earlier days.
+            p_blue = blue.adjust(
+                fixture["home"],
+                fixture["away"],
+                probability,
+                as_of=fixture["ldate"],
+            )
+
             if key in logged_keys:
                 decision = "logged"
 
             elif args.defer_picks:
                 decision = "review-window"
 
-            elif probability >= threshold:
+            elif p_blue >= threshold:
+                result_blue = dict(result)
+                result_blue["p"] = p_blue
+
                 picks.append(
                     bc.make_pick(
                         fixture,
-                        result,
+                        result_blue,
                         row,
                         market,
                     )
@@ -287,6 +320,7 @@ def export(args):
                 "p_form": p_form,
                 "p_base": p_base,
                 "point": round(probability, 4),
+                "point_blue": round(p_blue, 4),
                 "low": round(result["low"], 4),
                 "high": round(result["high"], 4),
                 "upper": round(upper_bound, 4),
