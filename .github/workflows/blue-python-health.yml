@@ -38,6 +38,7 @@ jobs:
               "gh_sync.py",
               "slips_history.py",
               "live_scores.py",
+              "blue_balance.py",
               "console.html",
               "slips_tracker.html",
               "slips_tracker.js",
@@ -155,6 +156,7 @@ jobs:
               "gh_sync.py",
               "slips_history.py",
               "live_scores.py",
+              "blue_balance.py",
               # Not imported by the server, but run by backtest.yml;
               # compile it so line-wrap corruption like the 2026-11-06
               # breakage is caught before the backtest is used.
