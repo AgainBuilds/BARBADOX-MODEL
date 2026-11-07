@@ -67,6 +67,14 @@ try:
 except ImportError:
     requests = None
 
+# BLUE: the universal team-balance system. Imported lazily inside the
+# pick-logging commands as well; a top-level import keeps the policy
+# identical everywhere a live pick is logged or graded.
+try:
+    import blue_balance as blue
+except ImportError:
+    blue = None
+
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 CONTEXT_FILE = BASE_DIR / "context.csv"
@@ -1015,6 +1023,22 @@ def cmd_run(args):
     pools = load_for_leagues(leagues, args.refresh)
     env = Env(pools)
 
+    # BLUE: settle the universal team-balance ledger before analysis,
+    # exactly like the console export does. Reads picks.csv; idempotent.
+    if blue is not None:
+        try:
+            blue_settled = blue.settle()
+
+            if blue_settled:
+                print(
+                    "BLUE: settled "
+                    + str(blue_settled)
+                    + " new recommendation(s)."
+                )
+
+        except Exception as exc:
+            print("BLUE: settlement skipped: " + str(exc))
+
     tz = timedelta(hours=CFG["kickoff_tz_hours"])
     d0 = (
         datetime.strptime(args.date, "%Y-%m-%d").date()
@@ -1112,17 +1136,53 @@ def cmd_run(args):
         for note in res["notes"]:
             print(f"  note: {note}")
 
-        print(
-            f"  => {pct(res['p'])} "
-            f"(core {pct(res['core'])}, "
-            f"range {pct(res['low'])}-{pct(res['high'])})"
-        )
+        # BLUE: adjusted probability = original probability + home
+        # balance + away balance, seen as of the fixture's own day.
+        # Same policy as the console export.
+        p_blue = None
+
+        if blue is not None:
+            try:
+                p_blue = blue.adjust(
+                    fx["home"],
+                    fx["away"],
+                    res["p"],
+                    as_of=fx["ldate"],
+                )
+            except Exception:
+                p_blue = None
+
+        if p_blue is None:
+            print(
+                f"  => {pct(res['p'])} "
+                f"(core {pct(res['core'])}, "
+                f"range {pct(res['low'])}-{pct(res['high'])})"
+            )
+        else:
+            print(
+                f"  => {pct(res['p'])} "
+                f"(blue {pct(p_blue)}, "
+                f"core {pct(res['core'])}, "
+                f"range {pct(res['low'])}-{pct(res['high'])})"
+            )
 
         key = (fx["ldate"], norm(fx["home"]), norm(fx["away"]), str(args.market))
 
         # IMPORTANT: checked=1 is not required for upcoming fixtures.
-        if res["p"] >= args.threshold and key not in logged_keys:
-            picks.append(make_pick(fx, res, row, args.market))
+        qualifies = (
+            p_blue
+            if p_blue is not None
+            else res["p"]
+        ) >= args.threshold
+
+        if qualifies and key not in logged_keys:
+            res_logged = res
+
+            if p_blue is not None:
+                res_logged = dict(res)
+                res_logged["p"] = p_blue
+
+            picks.append(make_pick(fx, res_logged, row, args.market))
             logged_keys.add(key)
             kept += 1
             print(f"  LOGGED (>= {pct(args.threshold)})")
@@ -1178,13 +1238,14 @@ def grade_rows(rows, index):
         if p.get("result"):
             continue
 
-        # Core 2 Under 3.5 rows are settled by core2_tracking.py.
-        # Grading them here would apply Over-market rules and invert the result.
-        if (
+        # Core 2 Under 3.5 rows (market 3.5) are graded here as well:
+        # a hit means the total stayed strictly under the 3.5 line
+        # (at most 3 goals). Once graded, BLUE settles them into the
+        # universal balance exactly like an Over recommendation.
+        is_under = (
             str(p.get("note", "")).strip().upper().startswith("CORE2_UNDER35")
             or str(p.get("market", "")).strip() == "3.5"
-        ):
-            continue
+        )
 
         try:
             pdate = datetime.strptime(p["date"], "%Y-%m-%d").date()
@@ -1201,11 +1262,20 @@ def grade_rows(rows, index):
         if fin:
             m = fin[0]
             p["hg"], p["ag"] = m["hg"], m["ag"]
-            p["result"] = (
-                "HIT"
-                if m["hg"] + m["ag"] > float(p["market"])
-                else "MISS"
-            )
+
+            try:
+                line_value = float(p["market"])
+            except (TypeError, ValueError):
+                continue
+
+            total = m["hg"] + m["ag"]
+
+            if is_under:
+                hit = total < line_value
+            else:
+                hit = total > line_value
+
+            p["result"] = "HIT" if hit else "MISS"
             continue
 
         if pdate >= today:
@@ -1237,6 +1307,18 @@ def cmd_review(args):
     grade_rows(picks, index)
     write_picks(picks)
     write_html_report(picks)
+
+    # BLUE: settle newly graded recommendations (live picks only)
+    # into the universal balance so the next run sees them.
+    if blue is not None:
+        try:
+            settled = blue.settle()
+
+            if settled:
+                print(f"BLUE: settled {settled} new recommendation(s).")
+
+        except Exception as exc:
+            print("BLUE: settlement skipped: " + str(exc))
 
     graded = [p for p in picks if p["result"] in ("HIT", "MISS")]
     hits = [p for p in graded if p["result"] == "HIT"]
@@ -1357,3 +1439,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
