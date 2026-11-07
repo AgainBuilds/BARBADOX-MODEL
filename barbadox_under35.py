@@ -13,9 +13,13 @@ The live feed reads match data through barbadox_core.py and writes:
     docs/under35.json
 
 It does not modify:
-    picks.csv
     context.csv
     docs/data.json
+
+It appends each qualified pick to picks.csv (market 3.5, note
+CORE2_UNDER35|UPCOMING, probability = p_blue) so that Core 2
+recommendations are graded by the daily review and settled into the
+universal BLUE balance like Core 1 recommendations.
 
 BLUE (universal team-balance system) is applied before qualification:
 adjusted probability = original probability + home balance + away
@@ -34,6 +38,7 @@ from pathlib import Path
 import barbadox_core as bc
 import barbadox_core2 as c2
 import blue_balance as blue
+import gh_sync
 
 # Fixtures kicking off sooner than this (or already started) never qualify.
 KICKOFF_BUFFER_MIN = max(0, int(os.environ.get("KICKOFF_BUFFER_MINUTES", "30")))
@@ -275,6 +280,74 @@ def analyse(matches, threshold, d0, d1):
     return "ok", "", output
 
 
+def _log_picks(qualified):
+    """
+    Append qualified Under 3.5 picks to picks.csv.
+
+    Rows use market 3.5 and note CORE2_UNDER35|UPCOMING so Core 1
+    tooling never confuses them with Over picks. The probability is
+    the BLUE-adjusted value (the one that cleared the bar).
+    Deduplicated on date/league/teams/market; never rewrites or drops
+    existing rows.
+    """
+    if not qualified:
+        return 0
+
+    picks = bc.read_picks()
+
+    existing = {
+        (
+            str(p.get("date", ""))[:10],
+            str(p.get("league", "")).upper().strip(),
+            bc.norm(p.get("home")),
+            bc.norm(p.get("away")),
+            "3.5",
+        )
+        for p in picks
+    }
+
+    added = 0
+
+    for fixture in qualified:
+        key = (
+            str(fixture.get("date", ""))[:10],
+            str(fixture.get("league", "")).upper().strip(),
+            bc.norm(fixture.get("home")),
+            bc.norm(fixture.get("away")),
+            "3.5",
+        )
+
+        if key in existing:
+            continue
+
+        picks.append({
+            "date": str(fixture.get("date", ""))[:10],
+            "league": fixture.get("league", ""),
+            "home": fixture.get("home", ""),
+            "away": fixture.get("away", ""),
+            "market": "3.5",
+            "probability": f"{fixture.get('p_blue', 0):.4f}",
+            "core_probability": f"{fixture.get('p_final', 0):.4f}",
+            "low": "",
+            "high": "",
+            "field_temp_c": "",
+            "factors": "Core 2 Under 3.5 live (blue-adjusted)",
+            "logged_at": bc.NOW.isoformat(),
+            "hg": "",
+            "ag": "",
+            "result": "",
+            "note": "CORE2_UNDER35|UPCOMING",
+        })
+
+        existing.add(key)
+        added += 1
+
+    if added:
+        bc.write_picks(picks)
+
+    return added
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Barbadox Core 2 - Under 3.5 Goals - Live Feed"
@@ -414,6 +487,30 @@ def main():
         if fixture["decision"] == "qualified"
     ]
 
+    # Log the qualified picks to picks.csv so the daily review grades
+    # them and BLUE settles them into the universal balance.
+    try:
+        if qualified and gh_sync.enabled():
+            gh_sync.pull("picks.csv")
+
+        new_picks = _log_picks(qualified)
+
+        if new_picks and gh_sync.enabled():
+            gh_sync.push(
+                "picks.csv",
+                f"Barbadox: log {new_picks} Core 2 Under 3.5 pick(s)",
+            )
+
+        if new_picks:
+            print(
+                "CORE 2 UNDER 3.5: logged "
+                + str(new_picks)
+                + " new Under pick(s) to picks.csv."
+            )
+
+    except Exception as exc:
+        print("CORE 2 UNDER 3.5: pick logging skipped: " + str(exc))
+
     print(
         f"CORE 2 UNDER 3.5: {len(fixtures)} fixture(s) "
         f"scanned, {len(qualified)} cleared "
@@ -449,3 +546,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
