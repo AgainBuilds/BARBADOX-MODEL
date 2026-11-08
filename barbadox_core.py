@@ -27,6 +27,11 @@ for finished-match bookkeeping, not pre-match approval.
 Nothing here calls out to an LLM, a search API, or any paid service. The only network
 calls are to football-data.org (free tier) for fixtures and results.
 
+BLUE (universal team-balance system) is applied before pick qualification. A pick
+whose raw probability clears the bar but whose Blue-adjusted probability does not is
+recorded to blue_dropped.csv, and the daily review grades those vetoes so the console's
+BLUE tracker can show whether each veto would have hit.
+
 USAGE
     python barbadox_core.py run
     python barbadox_core.py run --date 2026-10-10 --days 3
@@ -1187,6 +1192,33 @@ def cmd_run(args):
             kept += 1
             print(f"  LOGGED (>= {pct(args.threshold)})")
 
+        elif (
+            p_blue is not None
+            and res["p"] >= args.threshold
+            and key not in logged_keys
+        ):
+            # BLUE veto: the raw probability cleared the bar but the
+            # Blue-adjusted one did not. Record the veto in
+            # blue_dropped.csv so the console's BLUE tracker can show
+            # it and the daily review can grade it later.
+            if blue is not None:
+                try:
+                    if blue.log_dropped(
+                        fx["ldate"],
+                        fx["league"],
+                        fx["home"],
+                        fx["away"],
+                        str(args.market),
+                        res["p"],
+                        p_blue,
+                        args.threshold,
+                        "OVER",
+                    ):
+                        print("  BLUE DROPPED (raw clears bar, blue does not)")
+
+                except Exception as exc:
+                    print("  BLUE drop logging skipped: " + str(exc))
+
         print()
 
     if kept:
@@ -1288,6 +1320,49 @@ def grade_rows(rows, index):
             p["note"] = "postponed"
 
 
+def _dropped_finder(index):
+    """
+    Build a result finder for blue_dropped.csv rows, using the same
+    tolerance as grade_rows: date within one day, finished matches
+    first, POSTPONED only once the fixture date has passed.
+    """
+    tz = timedelta(hours=CFG["kickoff_tz_hours"])
+    today = (NOW + tz).date()
+
+    def finder(home, away, date_text):
+        try:
+            pdate = datetime.strptime(
+                str(date_text)[:10],
+                "%Y-%m-%d",
+            ).date()
+        except ValueError:
+            return None
+
+        cands = index.get((norm(home), norm(away)), [])
+        near = [
+            m for m in cands
+            if abs(((m["dt"] + tz).date() - pdate).days) <= 1
+        ]
+        fin = [m for m in near if m["finished"]]
+
+        if fin:
+            m = fin[0]
+            return {
+                "hg": m["hg"],
+                "ag": m["ag"],
+                "status": m["status"],
+            }
+
+        if pdate < today and any(
+            m["status"] == "POSTPONED" for m in near
+        ):
+            return {"hg": None, "ag": None, "status": "POSTPONED"}
+
+        return None
+
+    return finder
+
+
 def cmd_review(args):
     picks = read_picks()
 
@@ -1295,18 +1370,48 @@ def cmd_review(args):
         print("No picks logged yet.")
         return
 
-    leagues = sorted({
+    leagues = {
         p["league"] for p in picks
         if p["league"] in LEAGUES
-    })
+    }
+
+    # BLUE: vetoed picks live in blue_dropped.csv and must be graded
+    # too, so their leagues need results data as well.
+    if blue is not None:
+        try:
+            for row in blue.read_dropped():
+                lg = str(row.get("league", "")).strip().upper()
+
+                if lg in LEAGUES:
+                    leagues.add(lg)
+
+        except Exception:
+            pass
 
     print("Loading results...")
-    pools = load_for_leagues(leagues, refresh=True)
+    pools = load_for_leagues(sorted(leagues), refresh=True)
     index = build_index(pools)
 
     grade_rows(picks, index)
     write_picks(picks)
     write_html_report(picks)
+
+    # BLUE: grade vetoed picks in blue_dropped.csv against the same
+    # results index, so the BLUE tracker can show whether each veto
+    # was right (the pick would have hit) or saved a leg.
+    if blue is not None:
+        try:
+            graded_dropped = blue.grade_dropped(_dropped_finder(index))
+
+            if graded_dropped:
+                print(
+                    "BLUE: graded "
+                    + str(graded_dropped)
+                    + " vetoed pick(s) in blue_dropped.csv."
+                )
+
+        except Exception as exc:
+            print("BLUE: vetoed pick grading skipped: " + str(exc))
 
     # BLUE: settle newly graded recommendations (live picks only)
     # into the universal balance so the next run sees them.
@@ -1439,4 +1544,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
