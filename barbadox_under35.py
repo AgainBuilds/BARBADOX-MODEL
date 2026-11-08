@@ -25,6 +25,11 @@ BLUE (universal team-balance system) is applied before qualification:
 adjusted probability = original probability + home balance + away
 balance. The threshold is unchanged (0.60).
 
+A pick whose raw probability clears the bar but whose Blue-adjusted
+probability does not is recorded to blue_dropped.csv (idempotent), so
+the console's BLUE tracker can show the veto and later grade whether
+it was right.
+
 Default scan window: 7 days.
 """
 
@@ -511,6 +516,59 @@ def main():
     except Exception as exc:
         print("CORE 2 UNDER 3.5: pick logging skipped: " + str(exc))
 
+    # BLUE: record vetoed Under picks (raw probability cleared the bar
+    # but the Blue-adjusted one did not) in blue_dropped.csv, so the
+    # console's BLUE tracker can show and later grade each veto.
+    try:
+        if gh_sync.enabled():
+            gh_sync.pull("blue_dropped.csv")
+
+        new_dropped = 0
+
+        for fixture in fixtures:
+            if fixture.get("decision") != "below-line":
+                continue
+
+            p_final = fixture.get("p_final")
+            p_blue = fixture.get("p_blue")
+
+            if p_final is None or p_blue is None:
+                continue
+
+            if float(p_final) < args.threshold:
+                continue
+
+            if blue.log_dropped(
+                fixture["date"],
+                fixture["league"],
+                fixture["home"],
+                fixture["away"],
+                "3.5",
+                float(p_final),
+                float(p_blue),
+                args.threshold,
+                "UNDER",
+            ):
+                new_dropped += 1
+
+        if new_dropped and gh_sync.enabled():
+            gh_sync.push(
+                "blue_dropped.csv",
+                "Barbadox: log "
+                + str(new_dropped)
+                + " BLUE-vetoed Under pick(s)",
+            )
+
+        if new_dropped:
+            print(
+                "CORE 2 UNDER 3.5: "
+                + str(new_dropped)
+                + " pick(s) vetoed by BLUE and recorded."
+            )
+
+    except Exception as exc:
+        print("CORE 2 UNDER 3.5: BLUE veto logging skipped: " + str(exc))
+
     print(
         f"CORE 2 UNDER 3.5: {len(fixtures)} fixture(s) "
         f"scanned, {len(qualified)} cleared "
@@ -546,4 +604,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
