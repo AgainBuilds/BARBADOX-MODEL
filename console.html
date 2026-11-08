@@ -391,7 +391,7 @@ button{cursor:pointer}
 .reason.r{color:var(--amber)}
 .reason.n{color:var(--dim2)}
 
-/* ---------- SLIP STATUS CHIPS (history + modal) ---------- */
+/* ---------- SLIP STATUS CHIPS (history + modal + blue tracker) ---------- */
 
 .chip {
   font-size:10px;font-weight:800;letter-spacing:.14em;
@@ -414,6 +414,19 @@ button{cursor:pointer}
 }
 
 .chip.VOID{color:var(--dim);background:rgba(139,150,184,.08);border:1px solid var(--line2)}
+
+/* BLUE tracker: a veto graded HIT means the veto was wrong and the
+   pick would have won (amber). MISS means BLUE dodged a losing leg
+   (green). */
+.chip.wouldhit {
+  color:var(--amber);background:rgba(255,177,61,.09);
+  border:1px solid rgba(255,177,61,.3);
+}
+
+.chip.dodged {
+  color:var(--green);background:rgba(61,255,158,.09);
+  border:1px solid rgba(61,255,158,.3);
+}
 
 /* ---------- HISTORY ---------- */
 
@@ -571,6 +584,21 @@ footer {
 
   <section class="panel">
     <div class="panelhead">
+      <h2>BLUE TRACKER <em>· TEAM BALANCES + VETOED PICKS</em></h2>
+      <span id="blueTag" class="tag">—</span>
+    </div>
+    <div id="blueKpis" class="kpis"></div>
+    <div id="blueStatus" class="status"></div>
+    <div id="blueBalances" class="hist"></div>
+    <div id="blueDroppedHead" class="panelhead" style="display:none;margin-top:4px">
+      <h2>VETOED PICKS <em>· RAW CLEARED THE BAR, BLUE DID NOT</em></h2>
+    </div>
+    <div id="blueDropped" class="hist"></div>
+    <div id="blueFoot" class="muted" style="font-size:11px;margin-top:12px"></div>
+  </section>
+
+  <section class="panel">
+    <div class="panelhead">
       <h2>CORE 1 PERFORMANCE</h2>
       <span id="perfTag" class="tag">—</span>
     </div>
@@ -642,6 +670,7 @@ const api = async (path, opts = {}) => {
 
 let snap = null;
 let underSnap = null;
+let blueData = null;
 let pollTimer = null;
 let dataLoaded = false;
 
@@ -979,6 +1008,258 @@ function renderCore2() {
     d && d.generated_at
       ? "Generated: " + d.generated_at + " · Threshold " + Math.round(t * 100) + "%"
       : "";
+}
+
+/* -------------------------------------------------------
+   BLUE TRACKER (team balances + vetoed picks)
+   /api/blue returns {ok, balances, dropped}:
+     balances: blue_balances.csv rows (team, balance, updated_at)
+     dropped:  blue_dropped.csv rows (date, league, home, away,
+               market, side, p_raw, p_blue, bar, balance_home,
+               balance_away, dropped_at, hg, ag, result)
+------------------------------------------------------- */
+
+function blueKey(name) {
+  /* Mirrors blue_balance.norm(): lowercase, letters and numbers
+     only, everything else stripped. */
+  return String(name || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, "");
+}
+
+function blueNameMap() {
+  /* blue_balances.csv stores normalized keys like "arsenal".
+     Recover pretty display names from every feed we have. */
+  const map = new Map();
+
+  const add = name => {
+    const key = blueKey(name);
+    if (key && !map.has(key)) map.set(key, String(name));
+  };
+
+  const feeds = [
+    snap && snap.fixtures,
+    snap && snap.picks,
+    underSnap && underSnap.fixtures,
+    blueData && blueData.dropped
+  ];
+
+  feeds.forEach(feed => {
+    (Array.isArray(feed) ? feed : []).forEach(row => {
+      if (!row) return;
+      add(row.home);
+      add(row.away);
+    });
+  });
+
+  return map;
+}
+
+function blueTeam(name, map) {
+  const key = blueKey(name);
+  return (map && map.get(key)) || key || "—";
+}
+
+function liveBlueDropped() {
+  /* Vetoes from the CURRENT snapshots that are not in the archive
+     CSV yet (a fresh run always sees them before the next push).
+     Core 1: decision "blue-dropped", or a below-line row whose raw
+     probability still cleared the bar. Core 2: below-line rows
+     whose raw p_final cleared the bar but Blue pulled them under. */
+  const rows = [];
+
+  const overAll =
+    snap && Array.isArray(snap.fixtures) ? snap.fixtures : [];
+
+  overAll.forEach(f => {
+    const raw = overProb(f);
+    const blue = Number(f.point_blue);
+
+    const rawCleared =
+      f.decision === "blue-dropped" ||
+      (f.decision === "below-line" && raw >= THRESHOLD);
+
+    if (!rawCleared) return;
+    if (!Number.isFinite(raw) || raw < THRESHOLD) return;
+    if (!Number.isFinite(blue) || blue >= THRESHOLD) return;
+
+    rows.push({
+      date: f.date,
+      league: f.league,
+      home: f.home,
+      away: f.away,
+      market: String(MARKET),
+      side: "OVER",
+      p_raw: raw,
+      p_blue: f.point_blue,
+      bar: THRESHOLD,
+      balance_home: "",
+      balance_away: "",
+      result: "",
+      live: true
+    });
+  });
+
+  const underAll =
+    underSnap && Array.isArray(underSnap.fixtures) ? underSnap.fixtures : [];
+
+  const underBar = underSnap &&
+    Number.isFinite(Number(underSnap.threshold))
+      ? Number(underSnap.threshold)
+      : UNDER_BAR;
+
+  underAll.forEach(f => {
+    if (f.decision !== "below-line") return;
+
+    const raw = Number(f.p_final);
+    const blue = Number(f.p_blue);
+
+    if (!Number.isFinite(raw) || raw < underBar) return;
+    if (!Number.isFinite(blue) || blue >= underBar) return;
+
+    rows.push({
+      date: f.date,
+      league: f.league,
+      home: f.home,
+      away: f.away,
+      market: "3.5",
+      side: "UNDER",
+      p_raw: f.p_final,
+      p_blue: f.p_blue,
+      bar: underBar,
+      balance_home: "",
+      balance_away: "",
+      result: "",
+      live: true
+    });
+  });
+
+  return rows;
+}
+
+function droppedRowKey(r) {
+  /* Same identity as Python's _dropped_key(): fixture + market. */
+  return [
+    String(r.date || "").slice(0, 10),
+    blueKey(r.home),
+    blueKey(r.away),
+    String(r.market || "").trim()
+  ].join("|");
+}
+
+function mergedDropped() {
+  /* Archive rows first, then live rows deduplicated against them. */
+  const archive =
+    blueData && Array.isArray(blueData.dropped) ? blueData.dropped : [];
+
+  const seen = new Set(archive.map(droppedRowKey));
+
+  const live = liveBlueDropped().filter(r => {
+    const key = droppedRowKey(r);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return [...archive, ...live];
+}
+
+function renderBlue() {
+  const balances =
+    blueData && Array.isArray(blueData.balances) ? blueData.balances : [];
+
+  const dropped = mergedDropped();
+  const names = blueNameMap();
+
+  const negative = balances
+    .map(b => ({...b, v: Number(b.balance)}))
+    .filter(b => Number.isFinite(b.v) && b.v < 0)
+    .sort((a, b) => a.v - b.v);
+
+  const deepest = negative.length ? negative[0].v : 0;
+
+  const graded =
+    dropped.filter(r => r.result === "HIT" || r.result === "MISS");
+  const wouldHit = graded.filter(r => r.result === "HIT").length;
+
+  const ok = !!blueData && blueData.ok !== false;
+
+  $("blueTag").textContent =
+    negative.length + " PENALIZED · " + dropped.length + " VETOED";
+
+  $("blueKpis").innerHTML = `
+    <div class="kpi"><strong>${negative.length}</strong><span>TEAMS PENALIZED</span></div>
+    <div class="kpi"><strong>${negative.length ? deepest.toFixed(0) : "—"}</strong><span>DEEPEST PENALTY</span></div>
+    <div class="kpi"><strong>${dropped.length}</strong><span>PICKS VETOED</span></div>
+    <div class="kpi"><strong>${wouldHit}</strong><span>WOULD HAVE HIT</span></div>`;
+
+  $("blueStatus").textContent = ok
+    ? "BLUE: failed recommendation -2 for both teams, success +1 recovery capped at 0. One universal balance across Over 1.5 and Under 3.5, settled from live picks only."
+    : "Could not retrieve /api/blue. Balance and veto history are unavailable.";
+
+  $("blueStatus").className = "status " + (ok ? "" : "warn");
+
+  $("blueBalances").innerHTML = negative.length
+    ? negative.map(b => `
+        <div class="hrow">
+          <span class="muted mono">${b.v.toFixed(0)}</span>
+          <span>${esc(blueTeam(b.team, names))}</span>
+          <span class="hide-sm muted">LEDGER BALANCE</span>
+          <span class="chip miss">PENALIZED</span>
+        </div>
+      `).join("")
+    : `<div class="empty">${
+        ok
+          ? "No team is carrying a BLUE penalty. Every balance is at 0."
+          : "Balance data unavailable."
+      }</div>`;
+
+  $("blueDroppedHead").style.display = dropped.length ? "" : "none";
+
+  $("blueDropped").innerHTML = dropped.length
+    ? dropped.map(r => {
+        const side = String(r.side || "").toUpperCase();
+        const isUnder = side === "UNDER";
+
+        const score =
+          r.result === "HIT" || r.result === "MISS"
+            ? ` <span class="muted">(${esc(r.hg ?? "—")}-${esc(r.ag ?? "—")})</span>`
+            : "";
+
+        const chip =
+          r.result === "HIT"
+            ? '<span class="chip wouldhit">WOULD HIT</span>'
+          : r.result === "MISS"
+            ? '<span class="chip dodged">DODGED</span>'
+          : r.result === "POSTPONED"
+            ? '<span class="chip VOID">POSTPONED</span>'
+            : `<span class="chip pending">${r.live ? "LIVE" : "PENDING"}</span>`;
+
+        return `
+          <div class="hrow">
+            <span class="muted mono">${esc(String(r.date || "").slice(0, 10))}</span>
+            <span>
+              ${esc(r.home)} vs ${esc(r.away)}${score}
+              <span class="muted">(${esc(LG[r.league] || r.league || "FOOTBALL")})</span>
+            </span>
+            <span class="hide-sm">
+              <span class="market-chip ${isUnder ? "u" : ""}">
+                ${isUnder ? "UNDER" : "OVER"} ${esc(r.market)}
+              </span>
+              ${pct(r.p_raw)} → ${pct(r.p_blue)}
+            </span>
+            ${chip}
+          </div>`;
+      }).join("")
+    : `<div class="empty">
+        No pick has been vetoed by BLUE yet. When a raw probability clears the
+        bar but the Blue-adjusted one does not, it appears here.
+      </div>`;
+
+  $("blueFoot").textContent = ok
+    ? "WOULD HIT = the veto was wrong, the pick would have won. DODGED = the veto saved a leg. " +
+      "LIVE / PENDING rows are graded by the daily review once the match finishes."
+    : "";
 }
 
 function renderPerformance() {
@@ -1374,13 +1655,15 @@ $("closeSlip").addEventListener("click", () => {
 ------------------------------------------------------- */
 
 async function refreshData() {
-  const [a, b] = await Promise.allSettled([
+  const [a, b, c] = await Promise.allSettled([
     api("/api/data"),
-    api("/api/under35")
+    api("/api/under35"),
+    api("/api/blue")
   ]);
 
   snap = a.status === "fulfilled" ? a.value : null;
   underSnap = b.status === "fulfilled" ? b.value : null;
+  blueData = c.status === "fulfilled" ? c.value : null;
   dataLoaded = !!snap;
 
   if (snap) {
@@ -1409,6 +1692,7 @@ async function refreshData() {
 
   renderCore1();
   renderCore2();
+  renderBlue();
   renderPerformance();
   renderHistory();
 
