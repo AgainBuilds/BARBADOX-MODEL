@@ -15,6 +15,10 @@ Rules:
 Storage (both live in the repository so they survive Render redeploys):
 - blue_ledger.csv: append-only settlement record (source of truth).
 - blue_balances.csv: derived current balances, recomputed from the ledger.
+- blue_dropped.csv: append-only record of picks BLUE vetoed (the raw
+  probability cleared the entry bar but the Blue-adjusted probability
+  did not). The daily review grades these against real results, so the
+  console's BLUE tracker can show whether each veto would have hit.
 """
 
 import csv
@@ -25,6 +29,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 LEDGER_FILE = ROOT / "blue_ledger.csv"
 BALANCES_FILE = ROOT / "blue_balances.csv"
+DROPPED_FILE = ROOT / "blue_dropped.csv"
 PICKS_FILE = ROOT / "picks.csv"
 
 SUCCESS_DELTA = 1.0
@@ -36,6 +41,11 @@ LEDGER_FIELDS = [
     "result", "settled_at",
 ]
 BALANCE_FIELDS = ["team", "balance", "updated_at"]
+DROPPED_FIELDS = [
+    "date", "league", "home", "away", "market", "side",
+    "p_raw", "p_blue", "bar", "balance_home", "balance_away",
+    "dropped_at", "hg", "ag", "result",
+]
 
 
 def _utc_now():
@@ -87,6 +97,15 @@ def _settlement_key(row):
         norm(row.get("away")),
         str(row.get("market", "")).strip(),
     )
+
+
+def _dropped_key(row):
+    """
+    A vetoed pick is identified the same way as a settlement: fixture,
+    market, and date. This makes drop logging idempotent no matter how
+    many pipelines (daily run, console export, Core 2) see the fixture.
+    """
+    return _settlement_key(row)
 
 
 def _settled_pick_rows(picks_file=PICKS_FILE):
@@ -320,6 +339,122 @@ def settle(push=False):
     return len(added)
 
 
+def read_dropped(dropped_file=DROPPED_FILE):
+    """All BLUE-vetoed pick rows (graded and pending)."""
+    return _read_rows(dropped_file)
+
+
+def log_dropped(
+    date,
+    league,
+    home,
+    away,
+    market,
+    p_raw,
+    p_blue,
+    bar,
+    side,
+    dropped_file=DROPPED_FILE,
+):
+    """
+    Record a pick BLUE vetoed: the raw probability cleared the entry
+    bar but the Blue-adjusted probability did not.
+
+    Idempotent: a vetoed fixture is only recorded once, no matter how
+    many pipelines see it. Returns True when a new row was written.
+
+    `side` is "OVER" or "UNDER" and decides how the row is graded
+    later (OVER: total goals above the line; UNDER: total below it).
+    """
+    row = {
+        "date": str(date)[:10],
+        "league": str(league).strip(),
+        "home": home,
+        "away": away,
+        "market": str(market).strip(),
+        "side": str(side).strip().upper(),
+    }
+
+    rows = _read_rows(dropped_file)
+
+    if _dropped_key(row) in {_dropped_key(existing) for existing in rows}:
+        return False
+
+    balance_home, balance_away = balances_for(
+        home,
+        away,
+        as_of=row["date"],
+    )
+
+    row.update({
+        "p_raw": f"{float(p_raw):.4f}",
+        "p_blue": f"{float(p_blue):.4f}",
+        "bar": f"{float(bar):.4f}",
+        "balance_home": f"{balance_home:.1f}",
+        "balance_away": f"{balance_away:.1f}",
+        "dropped_at": _utc_now(),
+        "hg": "",
+        "ag": "",
+        "result": "",
+    })
+
+    rows.append(row)
+    _write_rows(dropped_file, DROPPED_FIELDS, rows)
+    return True
+
+
+def grade_dropped(finder, dropped_file=DROPPED_FILE):
+    """
+    Grade BLUE-vetoed picks against real results.
+
+    `finder(home, away, date)` must return None while the result is
+    not known yet, or a dict {"hg", "ag", "status"}. A HIT means the
+    veto was wrong (the pick would have won); a MISS means the veto
+    saved a leg. Returns the number of newly graded rows.
+    """
+    rows = _read_rows(dropped_file)
+    graded = 0
+
+    for row in rows:
+        if row.get("result"):
+            continue
+
+        info = finder(row.get("home"), row.get("away"), row.get("date"))
+
+        if not info:
+            continue
+
+        status = str(info.get("status", "")).strip().upper()
+
+        if status == "POSTPONED":
+            row["result"] = "POSTPONED"
+            graded += 1
+            continue
+
+        if info.get("hg") is None or info.get("ag") is None:
+            continue
+
+        try:
+            total = int(info["hg"]) + int(info["ag"])
+            line = float(row.get("market", ""))
+        except (TypeError, ValueError):
+            continue
+
+        is_under = str(row.get("side", "")).strip().upper() == "UNDER"
+
+        hit = total < line if is_under else total > line
+
+        row["hg"] = info["hg"]
+        row["ag"] = info["ag"]
+        row["result"] = "HIT" if hit else "MISS"
+        graded += 1
+
+    if graded:
+        _write_rows(dropped_file, DROPPED_FIELDS, rows)
+
+    return graded
+
+
 def _show():
     balances = replay()
 
@@ -345,6 +480,56 @@ def _show():
         print(f"  {team}: {value:+.1f}")
 
 
+def _show_dropped():
+    rows = read_dropped()
+
+    if not rows:
+        print("BLUE: no picks vetoed yet.")
+        return
+
+    graded = [
+        row for row in rows
+        if row.get("result") in ("HIT", "MISS")
+    ]
+    hits = [row for row in graded if row["result"] == "HIT"]
+
+    print(
+        "BLUE: "
+        + str(len(rows))
+        + " pick(s) vetoed, "
+        + str(len(graded))
+        + " graded, "
+        + str(len(hits))
+        + " would have hit."
+    )
+
+    for row in sorted(
+        rows,
+        key=lambda item: str(item.get("date", "")),
+        reverse=True,
+    ):
+        print(
+            "  "
+            + str(row.get("date", ""))
+            + " "
+            + str(row.get("home", ""))
+            + " vs "
+            + str(row.get("away", ""))
+            + " ["
+            + str(row.get("side", ""))
+            + " "
+            + str(row.get("market", ""))
+            + "] raw "
+            + str(row.get("p_raw", ""))
+            + " -> blue "
+            + str(row.get("p_blue", ""))
+            + " (bar "
+            + str(row.get("bar", ""))
+            + ") "
+            + (str(row.get("result", "")) or "PENDING")
+        )
+
+
 def main():
     command = sys.argv[1] if len(sys.argv) > 1 else "show"
 
@@ -357,12 +542,14 @@ def main():
     elif command == "show":
         _show()
 
+    elif command == "dropped":
+        _show_dropped()
+
     else:
         sys.exit(
-            "Usage: python blue_balance.py [settle [--push] | show]"
+            "Usage: python blue_balance.py [settle [--push] | show | dropped]"
         )
 
 
 if __name__ == "__main__":
     main()
-
