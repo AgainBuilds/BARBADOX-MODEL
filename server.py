@@ -13,6 +13,7 @@ Includes:
 - Cached live-score results.
 - Safe handling of provider errors.
 - Persistent slips history backed by CSV and GitHub.
+- BLUE tracker API: team balances and BLUE-vetoed picks.
 
 Required Render environment variables:
     FOOTBALL_DATA_KEY
@@ -21,6 +22,7 @@ Required Render environment variables:
     GITHUB_BRANCH
 """
 
+import csv
 import json
 import os
 import subprocess
@@ -42,6 +44,8 @@ BASE = Path(__file__).resolve().parent
 SNAPSHOT = BASE / "docs" / "data.json"
 UNDER35 = BASE / "docs" / "under35.json"
 SLIP = BASE / "slip.md"
+BLUE_BALANCES = BASE / "blue_balances.csv"
+BLUE_DROPPED = BASE / "blue_dropped.csv"
 
 app = Flask(__name__)
 
@@ -70,6 +74,14 @@ def read_json(path):
         return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return None
+
+
+def read_csv_rows(path):
+    try:
+        with open(path, newline="", encoding="utf-8-sig") as handle:
+            return list(csv.DictReader(handle))
+    except Exception:
+        return []
 
 
 # ---------------------------------------------------------
@@ -506,6 +518,8 @@ def _startup_restore():
     for name, path in (
         ("docs/data.json", SNAPSHOT),
         ("docs/under35.json", UNDER35),
+        ("blue_balances.csv", BLUE_BALANCES),
+        ("blue_dropped.csv", BLUE_DROPPED),
     ):
         if path.exists():
             continue
@@ -559,6 +573,27 @@ def under35():
         }), 404
 
     return jsonify(snapshot)
+
+
+@app.get("/api/blue")
+def blue():
+    """Team balances and BLUE-vetoed picks for the console tracker."""
+    if gh_sync.enabled():
+        for name in ("blue_balances.csv", "blue_dropped.csv"):
+            try:
+                gh_sync.pull(name)
+
+            except Exception as exc:
+                print("Could not refresh " + name + ": " + str(exc))
+
+    balances = read_csv_rows(BLUE_BALANCES)
+    dropped = read_csv_rows(BLUE_DROPPED)
+
+    return jsonify({
+        "ok": True,
+        "balances": balances,
+        "dropped": dropped,
+    })
 
 
 @app.post("/api/run")
