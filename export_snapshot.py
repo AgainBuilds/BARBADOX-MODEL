@@ -15,6 +15,12 @@ IMPORTANT:
 BLUE (universal team-balance system) is applied before pick
 qualification: adjusted probability = original probability
 + home balance + away balance. The threshold is unchanged.
+
+A pick whose raw probability clears the bar but whose Blue-adjusted
+probability does not is recorded to blue_dropped.csv (idempotent) with
+decision "blue-dropped", so the console's BLUE tracker can show the
+veto and later grade whether it was right. Veto logging is deferred
+together with pick logging during a review-window pass.
 """
 
 import argparse
@@ -203,6 +209,7 @@ def export(args):
         }
 
         new_picks = 0
+        new_dropped = 0
         output_fixtures = []
 
         ordered_fixtures = sorted(
@@ -299,6 +306,29 @@ def export(args):
                 new_picks += 1
                 decision = "logged"
 
+            elif probability >= threshold:
+                # BLUE veto: the raw probability cleared the bar but
+                # the Blue-adjusted one did not. Persist the veto so
+                # the console's BLUE tracker can show and grade it.
+                decision = "blue-dropped"
+
+                try:
+                    if blue.log_dropped(
+                        fixture["ldate"],
+                        fixture["league"],
+                        fixture["home"],
+                        fixture["away"],
+                        str(market),
+                        probability,
+                        p_blue,
+                        threshold,
+                        "OVER",
+                    ):
+                        new_dropped += 1
+
+                except Exception:
+                    pass
+
             else:
                 decision = "below-line"
 
@@ -371,6 +401,7 @@ def export(args):
             output_fixtures,
             added_context,
             new_picks,
+            new_dropped,
         )
 
     added_total = 0
@@ -380,12 +411,14 @@ def export(args):
             # Always pull the latest owner-maintained files first.
             gh_sync.pull("context.csv")
             gh_sync.pull("picks.csv")
+            gh_sync.pull("blue_dropped.csv")
 
         (
             snapshot,
             output_fixtures,
             added_context,
             new_picks,
+            new_dropped,
         ) = build()
 
         try:
@@ -406,6 +439,14 @@ def export(args):
                     gh_sync.push(
                         "picks.csv",
                         f"Barbadox: log {new_picks} qualifying pick(s)",
+                    )
+
+                if new_dropped and not args.defer_picks:
+                    gh_sync.push(
+                        "blue_dropped.csv",
+                        "Barbadox: log "
+                        + str(new_dropped)
+                        + " BLUE-vetoed pick(s)",
                     )
 
             added_total += added_context
@@ -449,6 +490,8 @@ def export(args):
     )
 
     print(f"New picks written this pass: {new_picks}.")
+
+    print(f"BLUE vetoes recorded this pass: {new_dropped}.")
 
     if args.defer_picks:
         print(
