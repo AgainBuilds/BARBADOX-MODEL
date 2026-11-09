@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-09T09:56:44.174423+00:00",
+ "generated_at": "2026-11-09T18:01:17.066070+00:00",
  "window": {
   "from": "2026-11-09",
   "to": "2026-11-15"
@@ -44580,9 +44580,9 @@
    "field_temp_c": "",
    "factors": "core 84.8 | form 85 | base 82",
    "logged_at": "2026-11-02T05:56:42.888499+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "1",
+   "ag": "2",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -44598,9 +44598,9 @@
    "field_temp_c": "",
    "factors": "core 88.9 | form 93 | base 70",
    "logged_at": "2026-11-02T05:56:42.888499+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "0",
+   "ag": "1",
+   "result": "MISS",
    "note": ""
   },
   {
@@ -44616,9 +44616,9 @@
    "field_temp_c": "",
    "factors": "core 86.4 | form 85 | base 87",
    "logged_at": "2026-11-02T05:56:42.888499+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "1",
+   "ag": "2",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -44634,9 +44634,9 @@
    "field_temp_c": "",
    "factors": "core 84.5 | form 89 | base 79",
    "logged_at": "2026-11-02T05:56:42.888499+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "1",
+   "ag": "0",
+   "result": "MISS",
    "note": ""
   },
   {
@@ -44652,9 +44652,9 @@
    "field_temp_c": "",
    "factors": "core 83.1 | form 76 | base 84",
    "logged_at": "2026-11-02T05:56:42.888499+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "1",
+   "ag": "1",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -44670,9 +44670,9 @@
    "field_temp_c": "",
    "factors": "core 85.3 | form 91 | base 79",
    "logged_at": "2026-11-02T05:56:42.888499+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "2",
+   "ag": "0",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -44688,9 +44688,9 @@
    "field_temp_c": "",
    "factors": "core 82.6 | form 89 | base 73",
    "logged_at": "2026-11-02T05:56:42.888499+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "2",
+   "ag": "0",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -44706,9 +44706,9 @@
    "field_temp_c": "",
    "factors": "core 81.4 | form 85 | base 77",
    "logged_at": "2026-11-02T05:56:42.888499+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "1",
+   "ag": "2",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -44724,9 +44724,9 @@
    "field_temp_c": "",
    "factors": "core 86.3 | form 89 | base 82",
    "logged_at": "2026-11-02T05:56:42.888499+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "1",
+   "ag": "2",
+   "result": "HIT",
    "note": ""
   },
   {
@@ -44742,9 +44742,9 @@
    "field_temp_c": "",
    "factors": "Core 2 Under 3.5 live (blue-adjusted)",
    "logged_at": "2026-11-07T23:24:53.230182+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "1",
+   "ag": "3",
+   "result": "MISS",
    "note": "CORE2_UNDER35|UPCOMING"
   },
   {
@@ -44760,9 +44760,9 @@
    "field_temp_c": "",
    "factors": "Core 2 Under 3.5 live (blue-adjusted)",
    "logged_at": "2026-11-07T23:24:53.230182+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "1",
+   "ag": "0",
+   "result": "HIT",
    "note": "CORE2_UNDER35|UPCOMING"
   },
   {
@@ -44778,9 +44778,9 @@
    "field_temp_c": "",
    "factors": "Core 2 Under 3.5 live (blue-adjusted)",
    "logged_at": "2026-11-07T23:24:53.230182+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "1",
+   "ag": "2",
+   "result": "HIT",
    "note": "CORE2_UNDER35|UPCOMING"
   },
   {
@@ -44796,9 +44796,9 @@
    "field_temp_c": "",
    "factors": "Core 2 Under 3.5 live (blue-adjusted)",
    "logged_at": "2026-11-07T23:24:53.230182+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "2",
+   "ag": "0",
+   "result": "HIT",
    "note": "CORE2_UNDER35|UPCOMING"
   },
   {
@@ -44814,9 +44814,9 @@
    "field_temp_c": "",
    "factors": "Core 2 Under 3.5 live (blue-adjusted)",
    "logged_at": "2026-11-07T23:24:53.230182+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "0",
+   "ag": "2",
+   "result": "HIT",
    "note": "CORE2_UNDER35|UPCOMING"
   },
   {
@@ -44832,9 +44832,9 @@
    "field_temp_c": "",
    "factors": "Core 2 Under 3.5 live (blue-adjusted)",
    "logged_at": "2026-11-07T23:24:53.230182+00:00",
-   "hg": "",
-   "ag": "",
-   "result": "",
+   "hg": "0",
+   "ag": "0",
+   "result": "HIT",
    "note": "CORE2_UNDER35|UPCOMING"
   }
  ],
