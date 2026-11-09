@@ -1,6 +1,6 @@
 # BARBADOX XGBOOST OBSERVER
 
-Generated: 2026-11-07 06:00 UTC
+Generated: 2026-11-09 06:35 UTC
 Current season: 2026/2027
 
 ## DATA COVERAGE
@@ -9,11 +9,11 @@ Current season: 2026/2027
 - Core 2 historical settled selections: 984
 - Historical unique selections: 2249
 - Historical seasons found: 2024/2025, 2025/2026, 2026/2027
-- Current archive: Read 115 settled legs from slips_browser.csv.
-- Current-season settled slip legs: 115
-- Current-season slips represented: 32
-- Current OVER 1.5 legs: 86
-- Current UNDER 3.5 legs: 29
+- Current archive: Read 129 settled legs from slips_browser.csv.
+- Current-season settled slip legs: 129
+- Current-season slips represented: 34
+- Current OVER 1.5 legs: 95
+- Current UNDER 3.5 legs: 34
 - Current unrecognized-market legs: 0
 
 ## MARKET DEFINITIONS
@@ -37,26 +37,26 @@ Failures are separated according to the market attached to each individual leg.
 
 | Team | Settled legs | OVER 1.5 failed | UNDER 3.5 failed | Unknown-market failed | Total failed | Failed slips | Total failure rate |
 |---|---:|---:|---:|---:|---:|---:|---:|
+| Manchester City FC | 5 | 3 | 1 | 0 | 4 | 4 | 80.0% |
 | Brighton & Hove Albion FC | 3 | 3 | 0 | 0 | 3 | 3 | 100.0% |
-| AS Roma | 4 | 0 | 3 | 0 | 3 | 3 | 75.0% |
-| Manchester City FC | 4 | 3 | 0 | 0 | 3 | 3 | 75.0% |
+| Cagliari Calcio | 4 | 1 | 2 | 0 | 3 | 3 | 75.0% |
+| AS Roma | 5 | 0 | 3 | 0 | 3 | 3 | 60.0% |
+| Coventry City FC | 2 | 0 | 2 | 0 | 2 | 2 | 100.0% |
 | Paris FC | 2 | 0 | 2 | 0 | 2 | 2 | 100.0% |
-| Cagliari Calcio | 3 | 0 | 2 | 0 | 2 | 2 | 66.7% |
 | AS Monaco FC | 4 | 0 | 2 | 0 | 2 | 2 | 50.0% |
 | RC Deportivo La Coruña | 1 | 1 | 0 | 0 | 1 | 1 | 100.0% |
-| Coventry City FC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
 | Sunderland AFC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
-| Hull City AFC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
 | Ipswich Town FC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
 | Getafe CF | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
 | Sevilla FC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
 | Eintracht Frankfurt | 2 | 1 | 0 | 0 | 1 | 1 | 50.0% |
 | Villarreal CF | 2 | 1 | 0 | 0 | 1 | 1 | 50.0% |
+| Hull City AFC | 2 | 0 | 1 | 0 | 1 | 1 | 50.0% |
 | RCD Espanyol de Barcelona | 3 | 1 | 0 | 0 | 1 | 1 | 33.3% |
-| Borussia Dortmund | 4 | 1 | 0 | 0 | 1 | 1 | 25.0% |
-| SSC Napoli | 5 | 0 | 1 | 0 | 1 | 1 | 20.0% |
-| Club Atlético de Madrid | 5 | 1 | 0 | 0 | 1 | 1 | 20.0% |
-| FC Internazionale Milano | 8 | 0 | 0 | 0 | 0 | 0 | 0.0% |
+| Everton FC | 3 | 0 | 1 | 0 | 1 | 1 | 33.3% |
+| VfB Stuttgart | 3 | 1 | 0 | 0 | 1 | 1 | 33.3% |
+| SV Werder Bremen | 3 | 1 | 0 | 0 | 1 | 1 | 33.3% |
+| Nottingham Forest FC | 3 | 0 | 1 | 0 | 1 | 1 | 33.3% |
 
 ## Current-season failed selections — market identification
 
@@ -76,6 +76,10 @@ Failures are separated according to the market attached to each individual leg.
 | 2026-11-01 | Getafe CF vs Sevilla FC | UNDER 3.5 | LOST | 1793228449823-1-ckz8aw |
 | 2026-11-01 | Paris FC vs AS Monaco FC | UNDER 3.5 | LOST | 1793019693767-0-si0stf |
 | 2026-11-01 | Paris FC vs AS Monaco FC | UNDER 3.5 | LOST | 1793032635788-3-fadsnc |
+| 2026-11-06 | Everton FC vs Coventry City FC | UNDER 3.5 | LOST | slip-4321c5c4fa65614a7e5be221 |
+| 2026-11-07 | Cagliari Calcio vs Frosinone Calcio | OVER 1.5 | LOST | slip-4321c5c4fa65614a7e5be221 |
+| 2026-11-07 | Nottingham Forest FC vs Manchester City FC | UNDER 3.5 | LOST | slip-8945baa21b1e5781c890d89e |
+| 2026-11-07 | VfB Stuttgart vs SV Werder Bremen | OVER 1.5 | LOST | slip-4321c5c4fa65614a7e5be221 |
 
 ## Historical backtest team ranking
 
@@ -111,23 +115,23 @@ Failures are separated according to the market attached to each individual leg.
 | Brighton & Hove Albion FC | 3 | 3 | 3 | 100.0% |
 | Manchester City FC | 4 | 3 | 3 | 75.0% |
 | RC Deportivo La Coruña | 1 | 1 | 1 | 100.0% |
+| Cagliari Calcio | 2 | 1 | 1 | 50.0% |
 | Eintracht Frankfurt | 2 | 1 | 1 | 50.0% |
 | Villarreal CF | 2 | 1 | 1 | 50.0% |
 | RCD Espanyol de Barcelona | 3 | 1 | 1 | 33.3% |
-| Borussia Dortmund | 4 | 1 | 1 | 25.0% |
+| VfB Stuttgart | 3 | 1 | 1 | 33.3% |
+| SV Werder Bremen | 3 | 1 | 1 | 33.3% |
+| Frosinone Calcio | 3 | 1 | 1 | 33.3% |
+| Borussia Dortmund | 5 | 1 | 1 | 20.0% |
 | Club Atlético de Madrid | 5 | 1 | 1 | 20.0% |
 | FC Internazionale Milano | 8 | 0 | 0 | 0.0% |
-| FC Bayern München | 7 | 0 | 0 | 0.0% |
+| FC Bayern München | 8 | 0 | 0 | 0.0% |
+| RC Strasbourg Alsace | 7 | 0 | 0 | 0.0% |
+| SV 07 Elversberg | 6 | 0 | 0 | 0.0% |
 | Manchester United FC | 6 | 0 | 0 | 0.0% |
 | SC Freiburg | 6 | 0 | 0 | 0.0% |
 | FC Barcelona | 6 | 0 | 0 | 0.0% |
 | AC Monza | 6 | 0 | 0 | 0.0% |
-| SV 07 Elversberg | 5 | 0 | 0 | 0.0% |
-| ACF Fiorentina | 5 | 0 | 0 | 0.0% |
-| TSG 1899 Hoffenheim | 5 | 0 | 0 | 0.0% |
-| Bayer 04 Leverkusen | 5 | 0 | 0 | 0.0% |
-| Stade Rennais FC 1901 | 5 | 0 | 0 | 0.0% |
-| RC Strasbourg Alsace | 5 | 0 | 0 | 0.0% |
 
 ### UNDER 3.5
 
@@ -135,24 +139,24 @@ Failures are separated according to the market attached to each individual leg.
 |---|---:|---:|---:|---:|
 | AS Roma | 3 | 3 | 3 | 100.0% |
 | Cagliari Calcio | 2 | 2 | 2 | 100.0% |
+| Coventry City FC | 2 | 2 | 2 | 100.0% |
 | Paris FC | 2 | 2 | 2 | 100.0% |
 | AS Monaco FC | 4 | 2 | 2 | 50.0% |
 | SSC Napoli | 1 | 1 | 1 | 100.0% |
-| Coventry City FC | 1 | 1 | 1 | 100.0% |
 | Sunderland AFC | 1 | 1 | 1 | 100.0% |
-| Hull City AFC | 1 | 1 | 1 | 100.0% |
 | Ipswich Town FC | 1 | 1 | 1 | 100.0% |
 | Getafe CF | 1 | 1 | 1 | 100.0% |
 | Sevilla FC | 1 | 1 | 1 | 100.0% |
+| Manchester City FC | 1 | 1 | 1 | 100.0% |
+| Hull City AFC | 2 | 1 | 1 | 50.0% |
+| Everton FC | 3 | 1 | 1 | 33.3% |
+| Nottingham Forest FC | 3 | 1 | 1 | 33.3% |
+| Arsenal FC | 4 | 0 | 0 | 0.0% |
 | Juventus FC | 4 | 0 | 0 | 0.0% |
-| Arsenal FC | 3 | 0 | 0 | 0.0% |
 | Genoa CFC | 3 | 0 | 0 | 0.0% |
 | FC Lorient | 3 | 0 | 0 | 0.0% |
 | Stade Brestois 29 | 3 | 0 | 0 | 0.0% |
-| Lille OSC | 2 | 0 | 0 | 0.0% |
-| Everton FC | 2 | 0 | 0 | 0.0% |
-| SS Lazio | 2 | 0 | 0 | 0.0% |
-| Parma Calcio 1913 | 2 | 0 | 0 | 0.0% |
+| Leeds United FC | 3 | 0 | 0 | 0.0% |
 
 ## HISTORICAL MARKET-SPECIFIC TEAM ANALYSIS
 
@@ -212,9 +216,10 @@ Failures are separated according to the market attached to each individual leg.
 
 | Team | Current failed slips | Current failed legs | Historical failures | Historical failure rate |
 |---|---:|---:|---:|---:|
-| Cagliari Calcio | 2 | 2 | 14 | 23.3% |
-| FC Internazionale Milano | 0 | 0 | 11 | 22.0% |
+| Cagliari Calcio | 3 | 3 | 14 | 23.3% |
+| Everton FC | 1 | 1 | 11 | 33.3% |
 | AS Roma | 3 | 3 | 15 | 27.8% |
+| SV Werder Bremen | 1 | 1 | 12 | 23.5% |
 
 ### Exact fixture, date and market overlaps
 
@@ -231,10 +236,10 @@ Failures are separated according to the market attached to each individual leg.
 | Team | Current failed slips | Current failed legs | Historical failures | Historical failure rate |
 |---|---:|---:|---:|---:|
 | FC Barcelona | 0 | 0 | 10 | 14.1% |
-| Bayer 04 Leverkusen | 0 | 0 | 10 | 15.2% |
 | Manchester City FC | 3 | 3 | 8 | 20.0% |
 | RC Strasbourg Alsace | 0 | 0 | 8 | 19.0% |
-| TSG 1899 Hoffenheim | 0 | 0 | 8 | 12.1% |
+| SV Werder Bremen | 1 | 1 | 12 | 24.0% |
+| VfB Stuttgart | 1 | 1 | 10 | 17.2% |
 
 ### Exact fixture, date and market overlaps
 
@@ -251,7 +256,7 @@ Failures are separated according to the market attached to each individual leg.
 | Team | Current failed slips | Current failed legs | Historical failures | Historical failure rate |
 |---|---:|---:|---:|---:|
 | Cagliari Calcio | 2 | 2 | 9 | 18.4% |
-| Everton FC | 0 | 0 | 10 | 33.3% |
+| Everton FC | 1 | 1 | 10 | 33.3% |
 | Genoa CFC | 0 | 0 | 11 | 22.0% |
 | Juventus FC | 0 | 0 | 14 | 25.9% |
 | AS Roma | 3 | 3 | 13 | 27.1% |
@@ -278,7 +283,7 @@ Accuracy: 0.834
 Brier score: 0.144
 Baseline Brier score: 0.139
 Brier improvement: -0.006
-ROC-AUC: 0.520
+ROC-AUC: 0.518
 
 INTERPRETATION
 - Lower Brier score is better.
