@@ -1,6 +1,6 @@
 # BARBADOX XGBOOST OBSERVER
 
-Generated: 2026-11-09 06:35 UTC
+Generated: 2026-11-11 06:26 UTC
 Current season: 2026/2027
 
 ## DATA COVERAGE
@@ -9,11 +9,11 @@ Current season: 2026/2027
 - Core 2 historical settled selections: 984
 - Historical unique selections: 2249
 - Historical seasons found: 2024/2025, 2025/2026, 2026/2027
-- Current archive: Read 129 settled legs from slips_browser.csv.
-- Current-season settled slip legs: 129
-- Current-season slips represented: 34
-- Current OVER 1.5 legs: 95
-- Current UNDER 3.5 legs: 34
+- Current archive: Read 140 settled legs from slips_browser.csv.
+- Current-season settled slip legs: 140
+- Current-season slips represented: 35
+- Current OVER 1.5 legs: 105
+- Current UNDER 3.5 legs: 35
 - Current unrecognized-market legs: 0
 
 ## MARKET DEFINITIONS
@@ -43,20 +43,20 @@ Failures are separated according to the market attached to each individual leg.
 | AS Roma | 5 | 0 | 3 | 0 | 3 | 3 | 60.0% |
 | Coventry City FC | 2 | 0 | 2 | 0 | 2 | 2 | 100.0% |
 | Paris FC | 2 | 0 | 2 | 0 | 2 | 2 | 100.0% |
-| AS Monaco FC | 4 | 0 | 2 | 0 | 2 | 2 | 50.0% |
+| AS Monaco FC | 5 | 0 | 2 | 0 | 2 | 2 | 40.0% |
 | RC Deportivo La Coruña | 1 | 1 | 0 | 0 | 1 | 1 | 100.0% |
 | Sunderland AFC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
-| Ipswich Town FC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
 | Getafe CF | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
 | Sevilla FC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
+| Atalanta BC | 1 | 1 | 0 | 0 | 1 | 1 | 100.0% |
 | Eintracht Frankfurt | 2 | 1 | 0 | 0 | 1 | 1 | 50.0% |
 | Villarreal CF | 2 | 1 | 0 | 0 | 1 | 1 | 50.0% |
 | Hull City AFC | 2 | 0 | 1 | 0 | 1 | 1 | 50.0% |
+| Ipswich Town FC | 2 | 0 | 1 | 0 | 1 | 1 | 50.0% |
+| Rayo Vallecano de Madrid | 2 | 1 | 0 | 0 | 1 | 1 | 50.0% |
 | RCD Espanyol de Barcelona | 3 | 1 | 0 | 0 | 1 | 1 | 33.3% |
 | Everton FC | 3 | 0 | 1 | 0 | 1 | 1 | 33.3% |
-| VfB Stuttgart | 3 | 1 | 0 | 0 | 1 | 1 | 33.3% |
-| SV Werder Bremen | 3 | 1 | 0 | 0 | 1 | 1 | 33.3% |
-| Nottingham Forest FC | 3 | 0 | 1 | 0 | 1 | 1 | 33.3% |
+| Real Sociedad de Fútbol | 3 | 1 | 0 | 0 | 1 | 1 | 33.3% |
 
 ## Current-season failed selections — market identification
 
@@ -80,6 +80,8 @@ Failures are separated according to the market attached to each individual leg.
 | 2026-11-07 | Cagliari Calcio vs Frosinone Calcio | OVER 1.5 | LOST | slip-4321c5c4fa65614a7e5be221 |
 | 2026-11-07 | Nottingham Forest FC vs Manchester City FC | UNDER 3.5 | LOST | slip-8945baa21b1e5781c890d89e |
 | 2026-11-07 | VfB Stuttgart vs SV Werder Bremen | OVER 1.5 | LOST | slip-4321c5c4fa65614a7e5be221 |
+| 2026-11-08 | AC Monza vs Atalanta BC | OVER 1.5 | LOST | slip-b321f678a0f723c1fba61a6f |
+| 2026-11-08 | Real Sociedad de Fútbol vs Rayo Vallecano de Madrid | OVER 1.5 | LOST | slip-240714925969d84b4072dc28 |
 
 ## Historical backtest team ranking
 
@@ -115,23 +117,23 @@ Failures are separated according to the market attached to each individual leg.
 | Brighton & Hove Albion FC | 3 | 3 | 3 | 100.0% |
 | Manchester City FC | 4 | 3 | 3 | 75.0% |
 | RC Deportivo La Coruña | 1 | 1 | 1 | 100.0% |
+| Atalanta BC | 1 | 1 | 1 | 100.0% |
+| Rayo Vallecano de Madrid | 1 | 1 | 1 | 100.0% |
 | Cagliari Calcio | 2 | 1 | 1 | 50.0% |
 | Eintracht Frankfurt | 2 | 1 | 1 | 50.0% |
 | Villarreal CF | 2 | 1 | 1 | 50.0% |
 | RCD Espanyol de Barcelona | 3 | 1 | 1 | 33.3% |
+| Real Sociedad de Fútbol | 3 | 1 | 1 | 33.3% |
 | VfB Stuttgart | 3 | 1 | 1 | 33.3% |
 | SV Werder Bremen | 3 | 1 | 1 | 33.3% |
 | Frosinone Calcio | 3 | 1 | 1 | 33.3% |
 | Borussia Dortmund | 5 | 1 | 1 | 20.0% |
-| Club Atlético de Madrid | 5 | 1 | 1 | 20.0% |
-| FC Internazionale Milano | 8 | 0 | 0 | 0.0% |
+| AC Monza | 7 | 1 | 1 | 14.3% |
+| Club Atlético de Madrid | 7 | 1 | 1 | 14.3% |
+| FC Internazionale Milano | 9 | 0 | 0 | 0.0% |
+| SC Freiburg | 8 | 0 | 0 | 0.0% |
 | FC Bayern München | 8 | 0 | 0 | 0.0% |
-| RC Strasbourg Alsace | 7 | 0 | 0 | 0.0% |
-| SV 07 Elversberg | 6 | 0 | 0 | 0.0% |
-| Manchester United FC | 6 | 0 | 0 | 0.0% |
-| SC Freiburg | 6 | 0 | 0 | 0.0% |
-| FC Barcelona | 6 | 0 | 0 | 0.0% |
-| AC Monza | 6 | 0 | 0 | 0.0% |
+| FC Barcelona | 8 | 0 | 0 | 0.0% |
 
 ### UNDER 3.5
 
@@ -216,10 +218,10 @@ Failures are separated according to the market attached to each individual leg.
 
 | Team | Current failed slips | Current failed legs | Historical failures | Historical failure rate |
 |---|---:|---:|---:|---:|
+| Atalanta BC | 1 | 1 | 15 | 26.3% |
 | Cagliari Calcio | 3 | 3 | 14 | 23.3% |
 | Everton FC | 1 | 1 | 11 | 33.3% |
 | AS Roma | 3 | 3 | 15 | 27.8% |
-| SV Werder Bremen | 1 | 1 | 12 | 23.5% |
 
 ### Exact fixture, date and market overlaps
 
@@ -237,7 +239,6 @@ Failures are separated according to the market attached to each individual leg.
 |---|---:|---:|---:|---:|
 | FC Barcelona | 0 | 0 | 10 | 14.1% |
 | Manchester City FC | 3 | 3 | 8 | 20.0% |
-| RC Strasbourg Alsace | 0 | 0 | 8 | 19.0% |
 | SV Werder Bremen | 1 | 1 | 12 | 24.0% |
 | VfB Stuttgart | 1 | 1 | 10 | 17.2% |
 
