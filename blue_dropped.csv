@@ -1,3 +1,4 @@
 date,league,home,away,market,side,p_raw,p_blue,bar,balance_home,balance_away,dropped_at,hg,ag,result
 2026-11-08,PL,Manchester United FC,Aston Villa FC,3.5,UNDER,0.6958,0.0000,0.6000,0.0,-1.0,2026-11-08T15:56:50.393941+00:00,4,4,MISS
 2026-11-08,PD,Villarreal CF,Getafe CF,3.5,UNDER,0.6068,0.0000,0.6000,-4.0,0.0,2026-11-08T15:56:50.394709+00:00,2,0,HIT
+2026-11-20,BL1,FC Bayern München,1. FC Köln,1.5,OVER,0.9402,0.0000,0.8000,0.0,-1.0,2026-11-14T13:19:15.192840+00:00,,,
