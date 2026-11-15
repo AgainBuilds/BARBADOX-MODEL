@@ -2489,3 +2489,9 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-08,FL1,Stade Brestois 29,Olympique Lyonnais,3.5,0.6272,0.6272,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-07T23:24:53.230182+00:00,2,0,HIT,CORE2_UNDER35|UPCOMING
 2026-11-08,FL1,Angers SCO,OGC Nice,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-07T23:24:53.230182+00:00,0,2,HIT,CORE2_UNDER35|UPCOMING
 2026-11-08,PD,RC Celta de Vigo,Levante UD,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-07T23:24:53.230182+00:00,0,0,HIT,CORE2_UNDER35|UPCOMING
+2026-11-21,BL1,SV 07 Elversberg,SC Freiburg,1.5,0.8830,0.8830,0.8527,0.9074,,core 88.3 | form 88 | base 82,2026-11-15T13:45:34.958933+00:00,,,,
+2026-11-21,PL,Tottenham Hotspur FC,Ipswich Town FC,1.5,0.8450,0.8450,0.8101,0.8739,,core 84.5 | form 82 | base 77,2026-11-15T13:45:34.958933+00:00,,,,
+2026-11-21,FL1,OGC Nice,Paris Saint-Germain FC,1.5,0.8109,0.8109,0.7728,0.8431,,core 81.1 | form 82 | base 81,2026-11-15T13:45:34.958933+00:00,,,,
+2026-11-21,FL1,AS Monaco FC,AJ Auxerre,1.5,0.8448,0.8448,0.8099,0.8738,,core 84.5 | form 88 | base 78,2026-11-15T13:45:34.958933+00:00,,,,
+2026-11-21,FL1,Racing Club de Lens,Toulouse FC,1.5,0.8077,0.8077,0.7695,0.8403,,core 80.8 | form 84 | base 77,2026-11-15T13:45:34.958933+00:00,,,,
+2026-11-21,FL1,RC Strasbourg Alsace,Stade Brestois 29,1.5,0.8263,0.8263,0.7896,0.8572,,core 82.6 | form 86 | base 80,2026-11-15T13:45:34.958933+00:00,,,,
