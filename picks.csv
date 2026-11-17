@@ -2503,3 +2503,7 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-21,PD,Real Madrid CF,RC Celta de Vigo,3.5,0.6340,0.6340,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-15T15:07:46.666410+00:00,,,,CORE2_UNDER35|UPCOMING
 2026-11-22,BL1,FC Augsburg,1. FSV Mainz 05,1.5,0.8669,0.8669,0.8345,0.8934,,core 86.7 | form 93 | base 78,2026-11-16T15:23:43.397423+00:00,,,,
 2026-11-22,FL1,Olympique de Marseille,Le Mans FC,1.5,0.8850,0.8850,0.8550,0.9092,,core 88.5 | form 89 | base 85,2026-11-16T15:23:43.397423+00:00,,,,
+2026-11-22,FL1,Paris FC,Angers SCO,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-17T12:05:23.089809+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-22,PD,CA Osasuna,Málaga CF,3.5,0.6751,0.6751,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-17T12:05:23.089809+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-22,PD,Getafe CF,Club Atlético de Madrid,3.5,0.6614,0.6614,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-17T12:05:23.089809+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-23,PL,Brentford FC,Everton FC,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-17T12:05:23.089809+00:00,,,,CORE2_UNDER35|UPCOMING
