@@ -102,7 +102,7 @@ DOMESTIC = ["PL", "PD", "FL1", "BL1", "SA", "SAUDI"]
 SKIP_STATUSES = ("POSTPONED", "SUSPENDED", "CANCELLED", "IN_PLAY", "PAUSED")
 
 CFG = {
-    "threshold": 0.80,
+    "threshold": 0.85,
     "market": 1.5,
     "baseline_games": 38,
     "shrink_games": 12,
