@@ -1,10 +1,10 @@
 {
- "generated_at": "2026-11-17T12:05:16.301356+00:00",
+ "generated_at": "2026-11-17T12:12:43.346957+00:00",
  "window": {
   "from": "2026-11-17",
   "to": "2026-11-23"
  },
- "threshold": 0.8,
+ "threshold": 0.85,
  "market": 1.5,
  "leagues": {
   "PL": "Premier League",
@@ -22,7 +22,7 @@
    "league": "BL1",
    "home": "FC Bayern M\u00fcnchen",
    "away": "1. FC K\u00f6ln",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-20T19:30:00+00:00",
    "decision": "blue-dropped",
    "lam_h": 3.6275,
@@ -47,7 +47,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 9C (logged only)"
    ]
   },
   {
@@ -56,7 +56,7 @@
    "league": "FL1",
    "home": "ES Troyes AC",
    "away": "Le Havre AC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-20T19:45:00+00:00",
    "decision": "below-line",
    "lam_h": 1.2941,
@@ -83,7 +83,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 13C (logged only)"
    ]
   },
   {
@@ -126,7 +126,7 @@
    "league": "PL",
    "home": "Manchester City FC",
    "away": "Fulham FC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T12:30:00+00:00",
    "decision": "below-line",
    "lam_h": 1.9787,
@@ -151,7 +151,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 11C (logged only)"
    ]
   },
   {
@@ -160,7 +160,7 @@
    "league": "PD",
    "home": "Deportivo Alav\u00e9s",
    "away": "RC Deportivo La Coru\u00f1a",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T13:00:00+00:00",
    "decision": "below-line",
    "lam_h": 1.3326,
@@ -186,7 +186,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 15C (logged only)"
    ]
   },
   {
@@ -195,7 +195,7 @@
    "league": "SA",
    "home": "Como 1907",
    "away": "Cagliari Calcio",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T14:00:00+00:00",
    "decision": "below-line",
    "lam_h": 1.8258,
@@ -220,7 +220,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 14C (logged only)"
    ]
   },
   {
@@ -229,7 +229,7 @@
    "league": "SA",
    "home": "SS Lazio",
    "away": "US Lecce",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T14:00:00+00:00",
    "decision": "below-line",
    "lam_h": 1.8542,
@@ -255,7 +255,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 14C (logged only)"
    ]
   },
   {
@@ -264,7 +264,7 @@
    "league": "BL1",
    "home": "Bayer 04 Leverkusen",
    "away": "SC Paderborn 07",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T14:30:00+00:00",
    "decision": "below-line",
    "lam_h": 1.8686,
@@ -290,7 +290,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 9C (logged only)"
    ]
   },
   {
@@ -299,9 +299,9 @@
    "league": "BL1",
    "home": "1. FC Union Berlin",
    "away": "RB Leipzig",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T14:30:00+00:00",
-   "decision": "blue-dropped",
+   "decision": "below-line",
    "lam_h": 1.3884,
    "lam_a": 1.7282,
    "core": 0.8176,
@@ -324,7 +324,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 9C (logged only)"
    ]
   },
   {
@@ -333,7 +333,7 @@
    "league": "BL1",
    "home": "SV 07 Elversberg",
    "away": "SC Freiburg",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T14:30:00+00:00",
    "decision": "logged",
    "lam_h": 2.091,
@@ -359,7 +359,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 9C (logged only)"
    ]
   },
   {
@@ -368,7 +368,7 @@
    "league": "BL1",
    "home": "Borussia M\u00f6nchengladbach",
    "away": "Borussia Dortmund",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T14:30:00+00:00",
    "decision": "below-line",
    "lam_h": 1.0564,
@@ -394,7 +394,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 9C (logged only)"
    ]
   },
   {
@@ -403,7 +403,7 @@
    "league": "BL1",
    "home": "Eintracht Frankfurt",
    "away": "TSG 1899 Hoffenheim",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T14:30:00+00:00",
    "decision": "blue-dropped",
    "lam_h": 1.9,
@@ -428,7 +428,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 9C (logged only)"
    ]
   },
   {
@@ -437,7 +437,7 @@
    "league": "PL",
    "home": "Chelsea FC",
    "away": "Leeds United FC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T15:00:00+00:00",
    "decision": "below-line",
    "lam_h": 1.6682,
@@ -462,7 +462,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 11C (logged only)"
    ]
   },
   {
@@ -471,7 +471,7 @@
    "league": "PL",
    "home": "Aston Villa FC",
    "away": "Sunderland AFC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T15:00:00+00:00",
    "decision": "below-line",
    "lam_h": 1.724,
@@ -497,7 +497,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 11C (logged only)"
    ]
   },
   {
@@ -506,7 +506,7 @@
    "league": "PL",
    "home": "AFC Bournemouth",
    "away": "Nottingham Forest FC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T15:00:00+00:00",
    "decision": "below-line",
    "lam_h": 1.5835,
@@ -531,7 +531,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 11C (logged only)"
    ]
   },
   {
@@ -540,7 +540,7 @@
    "league": "PL",
    "home": "Tottenham Hotspur FC",
    "away": "Ipswich Town FC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T15:00:00+00:00",
    "decision": "logged",
    "lam_h": 1.759,
@@ -566,7 +566,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 11C (logged only)"
    ]
   },
   {
@@ -575,7 +575,7 @@
    "league": "PL",
    "home": "Coventry City FC",
    "away": "Crystal Palace FC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T15:00:00+00:00",
    "decision": "below-line",
    "lam_h": 1.5834,
@@ -601,7 +601,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 11C (logged only)"
    ]
   },
   {
@@ -610,7 +610,7 @@
    "league": "PD",
    "home": "Rayo Vallecano de Madrid",
    "away": "Valencia CF",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T15:15:00+00:00",
    "decision": "below-line",
    "lam_h": 1.5434,
@@ -636,7 +636,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 15C (logged only)"
    ]
   },
   {
@@ -645,7 +645,7 @@
    "league": "FL1",
    "home": "OGC Nice",
    "away": "Paris Saint-Germain FC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T16:15:00+00:00",
    "decision": "logged",
    "lam_h": 1.0759,
@@ -670,7 +670,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 13C (logged only)"
    ]
   },
   {
@@ -679,7 +679,7 @@
    "league": "SA",
    "home": "Parma Calcio 1913",
    "away": "AS Roma",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T17:00:00+00:00",
    "decision": "below-line",
    "lam_h": 0.7378,
@@ -705,7 +705,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 14C (logged only)"
    ]
   },
   {
@@ -714,7 +714,7 @@
    "league": "PL",
    "home": "Newcastle United FC",
    "away": "Arsenal FC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T17:30:00+00:00",
    "decision": "below-line",
    "lam_h": 0.947,
@@ -740,7 +740,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 11C (logged only)"
    ]
   },
   {
@@ -749,7 +749,7 @@
    "league": "PD",
    "home": "Sevilla FC",
    "away": "Real Betis Balompi\u00e9",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T17:30:00+00:00",
    "decision": "below-line",
    "lam_h": 1.309,
@@ -759,11 +759,12 @@
    "p_base": 0.759,
    "point": 0.7542,
    "point_blue": 0.7542,
-   "low": 0.7125,
-   "high": 0.7907,
+   "low": 0.652,
+   "high": 0.8294,
    "upper": 0.8389,
-   "factors": "core 75.4 | form 75 | base 76",
+   "factors": "core 75.4 | form 75 | base 76 | derby",
    "notes": [
+    "derby: range widened",
     "low/high are a rough xG sensitivity band, not a confidence interval"
    ],
    "sheet": [
@@ -773,8 +774,8 @@
     "3 formation effect: home +0 | away +0",
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
-    "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "5 derby: YES, range widened",
+    "  field temperature: 15C (logged only)"
    ]
   },
   {
@@ -819,7 +820,7 @@
    "league": "FL1",
    "home": "AS Monaco FC",
    "away": "AJ Auxerre",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T19:45:00+00:00",
    "decision": "logged",
    "lam_h": 2.2128,
@@ -845,7 +846,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 13C (logged only)"
    ]
   },
   {
@@ -854,7 +855,7 @@
    "league": "FL1",
    "home": "Racing Club de Lens",
    "away": "Toulouse FC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T19:45:00+00:00",
    "decision": "logged",
    "lam_h": 1.8429,
@@ -879,7 +880,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 13C (logged only)"
    ]
   },
   {
@@ -923,7 +924,7 @@
    "league": "FL1",
    "home": "RC Strasbourg Alsace",
    "away": "Stade Brestois 29",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T19:45:00+00:00",
    "decision": "logged",
    "lam_h": 1.8743,
@@ -948,7 +949,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 13C (logged only)"
    ]
   },
   {
@@ -957,7 +958,7 @@
    "league": "SA",
    "home": "SSC Napoli",
    "away": "Torino FC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T19:45:00+00:00",
    "decision": "below-line",
    "lam_h": 1.885,
@@ -982,7 +983,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 14C (logged only)"
    ]
   },
   {
@@ -991,7 +992,7 @@
    "league": "PD",
    "home": "Real Madrid CF",
    "away": "RC Celta de Vigo",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-21T20:00:00+00:00",
    "decision": "below-line",
    "lam_h": 1.862,
@@ -1016,7 +1017,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 15C (logged only)"
    ]
   },
   {
@@ -1025,7 +1026,7 @@
    "league": "SA",
    "home": "Juventus FC",
    "away": "Venezia FC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-22T11:30:00+00:00",
    "decision": "below-line",
    "lam_h": 2.0388,
@@ -1051,7 +1052,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 14C (logged only)"
    ]
   },
   {
@@ -1060,7 +1061,7 @@
    "league": "PD",
    "home": "FC Barcelona",
    "away": "Villarreal CF",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-22T13:00:00+00:00",
    "decision": "blue-dropped",
    "lam_h": 2.887,
@@ -1086,7 +1087,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 15C (logged only)"
    ]
   },
   {
@@ -1095,7 +1096,7 @@
    "league": "PL",
    "home": "Hull City AFC",
    "away": "Brighton & Hove Albion FC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-22T14:00:00+00:00",
    "decision": "below-line",
    "lam_h": 1.1563,
@@ -1121,7 +1122,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 11C (logged only)"
    ]
   },
   {
@@ -1130,7 +1131,7 @@
    "league": "FL1",
    "home": "Paris FC",
    "away": "Angers SCO",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-22T14:00:00+00:00",
    "decision": "below-line",
    "lam_h": 1.9362,
@@ -1156,7 +1157,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 13C (logged only)"
    ]
   },
   {
@@ -1165,7 +1166,7 @@
    "league": "SA",
    "home": "Bologna FC 1909",
    "away": "Udinese Calcio",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-22T14:00:00+00:00",
    "decision": "below-line",
    "lam_h": 1.5714,
@@ -1191,7 +1192,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 14C (logged only)"
    ]
   },
   {
@@ -1200,7 +1201,7 @@
    "league": "SA",
    "home": "US Sassuolo Calcio",
    "away": "Genoa CFC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-22T14:00:00+00:00",
    "decision": "below-line",
    "lam_h": 1.5145,
@@ -1226,7 +1227,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 14C (logged only)"
    ]
   },
   {
@@ -1235,7 +1236,7 @@
    "league": "BL1",
    "home": "FC Augsburg",
    "away": "1. FSV Mainz 05",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-22T14:30:00+00:00",
    "decision": "logged",
    "lam_h": 1.7826,
@@ -1261,7 +1262,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 9C (logged only)"
    ]
   },
   {
@@ -1270,7 +1271,7 @@
    "league": "PD",
    "home": "Real Racing Club de Santander",
    "away": "Real Sociedad de F\u00fatbol",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-22T15:15:00+00:00",
    "decision": "blue-dropped",
    "lam_h": 1.8855,
@@ -1297,7 +1298,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 15C (logged only)"
    ]
   },
   {
@@ -1306,7 +1307,7 @@
    "league": "FL1",
    "home": "FC Lorient",
    "away": "Stade Rennais FC 1901",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-22T16:15:00+00:00",
    "decision": "blue-dropped",
    "lam_h": 1.8947,
@@ -1331,7 +1332,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 13C (logged only)"
    ]
   },
   {
@@ -1340,7 +1341,7 @@
    "league": "PL",
    "home": "Liverpool FC",
    "away": "Manchester United FC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-22T16:30:00+00:00",
    "decision": "below-line",
    "lam_h": 1.629,
@@ -1350,12 +1351,13 @@
    "p_base": 0.812,
    "point": 0.7757,
    "point_blue": 0.0,
-   "low": 0.7351,
-   "high": 0.8107,
+   "low": 0.6758,
+   "high": 0.8476,
    "upper": 0.8565,
-   "factors": "core 77.6 | form 72 | base 81",
+   "factors": "core 77.6 | form 72 | base 81 | derby",
    "notes": [
     "checks 1 and 2 disagree by 9 pts",
+    "derby: range widened",
     "low/high are a rough xG sensitivity band, not a confidence interval"
    ],
    "sheet": [
@@ -1365,8 +1367,8 @@
     "3 formation effect: home +0 | away +0",
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
-    "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "5 derby: YES, range widened",
+    "  field temperature: 11C (logged only)"
    ]
   },
   {
@@ -1375,7 +1377,7 @@
    "league": "BL1",
    "home": "SV Werder Bremen",
    "away": "Hamburger SV",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-22T16:30:00+00:00",
    "decision": "below-line",
    "lam_h": 1.8096,
@@ -1401,7 +1403,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 9C (logged only)"
    ]
   },
   {
@@ -1410,7 +1412,7 @@
    "league": "SA",
    "home": "AC Milan",
    "away": "Frosinone Calcio",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-22T17:00:00+00:00",
    "decision": "blue-dropped",
    "lam_h": 1.8902,
@@ -1437,7 +1439,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 14C (logged only)"
    ]
   },
   {
@@ -1482,7 +1484,7 @@
    "league": "FL1",
    "home": "Olympique de Marseille",
    "away": "Le Mans FC",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-22T19:45:00+00:00",
    "decision": "logged",
    "lam_h": 2.5844,
@@ -1508,7 +1510,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 13C (logged only)"
    ]
   },
   {
@@ -1517,9 +1519,9 @@
    "league": "SA",
    "home": "Atalanta BC",
    "away": "FC Internazionale Milano",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-22T19:45:00+00:00",
-   "decision": "blue-dropped",
+   "decision": "below-line",
    "lam_h": 1.2576,
    "lam_a": 1.9285,
    "core": 0.827,
@@ -1543,7 +1545,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 14C (logged only)"
    ]
   },
   {
@@ -1587,7 +1589,7 @@
    "league": "SA",
    "home": "AC Monza",
    "away": "ACF Fiorentina",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-23T19:45:00+00:00",
    "decision": "blue-dropped",
    "lam_h": 2.0375,
@@ -1614,7 +1616,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 14C (logged only)"
    ]
   },
   {
@@ -1657,9 +1659,9 @@
    "league": "PD",
    "home": "Levante UD",
    "away": "Elche CF",
-   "checked": false,
+   "checked": true,
    "kickoff_utc": "2026-11-23T20:00:00+00:00",
-   "decision": "blue-dropped",
+   "decision": "below-line",
    "lam_h": 1.7572,
    "lam_a": 1.5796,
    "core": 0.8458,
@@ -1683,7 +1685,7 @@
     "4 home absences: none | goals -0% / opp +0% | rotation 0",
     "  away absences: none | goals -0% / opp +0% | rotation 0",
     "5 derby: no",
-    "  field temperature: not entered (logged only)"
+    "  field temperature: 15C (logged only)"
    ]
   }
  ],
@@ -46759,6 +46761,78 @@
    "ag": "",
    "result": "",
    "note": ""
+  },
+  {
+   "date": "2026-11-22",
+   "league": "FL1",
+   "home": "Paris FC",
+   "away": "Angers SCO",
+   "market": "3.5",
+   "probability": "0.6477",
+   "core_probability": "0.6477",
+   "low": "",
+   "high": "",
+   "field_temp_c": "",
+   "factors": "Core 2 Under 3.5 live (blue-adjusted)",
+   "logged_at": "2026-11-17T12:05:23.089809+00:00",
+   "hg": "",
+   "ag": "",
+   "result": "",
+   "note": "CORE2_UNDER35|UPCOMING"
+  },
+  {
+   "date": "2026-11-22",
+   "league": "PD",
+   "home": "CA Osasuna",
+   "away": "M\u00e1laga CF",
+   "market": "3.5",
+   "probability": "0.6751",
+   "core_probability": "0.6751",
+   "low": "",
+   "high": "",
+   "field_temp_c": "",
+   "factors": "Core 2 Under 3.5 live (blue-adjusted)",
+   "logged_at": "2026-11-17T12:05:23.089809+00:00",
+   "hg": "",
+   "ag": "",
+   "result": "",
+   "note": "CORE2_UNDER35|UPCOMING"
+  },
+  {
+   "date": "2026-11-22",
+   "league": "PD",
+   "home": "Getafe CF",
+   "away": "Club Atl\u00e9tico de Madrid",
+   "market": "3.5",
+   "probability": "0.6614",
+   "core_probability": "0.6614",
+   "low": "",
+   "high": "",
+   "field_temp_c": "",
+   "factors": "Core 2 Under 3.5 live (blue-adjusted)",
+   "logged_at": "2026-11-17T12:05:23.089809+00:00",
+   "hg": "",
+   "ag": "",
+   "result": "",
+   "note": "CORE2_UNDER35|UPCOMING"
+  },
+  {
+   "date": "2026-11-23",
+   "league": "PL",
+   "home": "Brentford FC",
+   "away": "Everton FC",
+   "market": "3.5",
+   "probability": "0.6477",
+   "core_probability": "0.6477",
+   "low": "",
+   "high": "",
+   "field_temp_c": "",
+   "factors": "Core 2 Under 3.5 live (blue-adjusted)",
+   "logged_at": "2026-11-17T12:05:23.089809+00:00",
+   "hg": "",
+   "ag": "",
+   "result": "",
+   "note": "CORE2_UNDER35|UPCOMING"
   }
  ],
  "context_added": 0,
