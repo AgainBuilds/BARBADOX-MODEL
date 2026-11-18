@@ -2507,3 +2507,4 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-22,PD,CA Osasuna,Málaga CF,3.5,0.6751,0.6751,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-17T12:05:23.089809+00:00,,,,CORE2_UNDER35|UPCOMING
 2026-11-22,PD,Getafe CF,Club Atlético de Madrid,3.5,0.6614,0.6614,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-17T12:05:23.089809+00:00,,,,CORE2_UNDER35|UPCOMING
 2026-11-23,PL,Brentford FC,Everton FC,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-17T12:05:23.089809+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-24,CL,RB Leipzig,Racing Club de Lens,1.5,0.9000,0.9200,0.8755,0.9390,,core 92.0 | form 95 | base 89,2026-11-18T15:26:30.468144+00:00,,,,
