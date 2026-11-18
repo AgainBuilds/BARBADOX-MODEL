@@ -2516,3 +2516,17 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-22,SA,AC Milan,Frosinone Calcio,1.5,0.8541,0.8541,0.8202,0.8820,14,core 85.4 | form 90 | base 70,2026-11-18T22:03:03.510659+00:00,,,,
 2026-11-23,SA,AC Monza,ACF Fiorentina,1.5,0.8977,0.8977,0.8695,0.9201,14,core 89.8 | form 94 | base 72,2026-11-18T22:03:03.510659+00:00,,,,
 2026-11-24,CL,Manchester City FC,SSC Napoli,1.5,0.8866,0.9066,0.8598,0.9277,,core 90.7 | form 94 | base 85,2026-11-18T22:03:03.510659+00:00,,,,
+2026-11-20,PD,Athletic Club,RCD Espanyol de Barcelona,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-21,PL,Manchester City FC,Fulham FC,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-21,PD,Deportivo Alavés,RC Deportivo La Coruña,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-21,SA,Como 1907,Cagliari Calcio,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-21,PL,Aston Villa FC,Sunderland AFC,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-21,PL,Coventry City FC,Crystal Palace FC,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-21,PD,Rayo Vallecano de Madrid,Valencia CF,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-21,PL,Newcastle United FC,Arsenal FC,3.5,0.6614,0.6614,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-21,SA,SSC Napoli,Torino FC,3.5,0.6136,0.6136,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-22,SA,Juventus FC,Venezia FC,3.5,0.6340,0.6340,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-22,PL,Hull City AFC,Brighton & Hove Albion FC,3.5,0.6614,0.6614,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-22,PL,Liverpool FC,Manchester United FC,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-22,SA,Atalanta BC,FC Internazionale Milano,3.5,0.6038,0.6038,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-23,PD,Levante UD,Elche CF,3.5,0.6408,0.6408,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
