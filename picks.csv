@@ -2508,3 +2508,11 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-22,PD,Getafe CF,Club Atlético de Madrid,3.5,0.6614,0.6614,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-17T12:05:23.089809+00:00,,,,CORE2_UNDER35|UPCOMING
 2026-11-23,PL,Brentford FC,Everton FC,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-17T12:05:23.089809+00:00,,,,CORE2_UNDER35|UPCOMING
 2026-11-24,CL,RB Leipzig,Racing Club de Lens,1.5,0.9000,0.9200,0.8755,0.9390,,core 92.0 | form 95 | base 89,2026-11-18T15:26:30.468144+00:00,,,,
+2026-11-20,BL1,FC Bayern München,1. FC Köln,1.5,0.9402,0.9402,0.9197,0.9556,9,core 94.0 | form 91 | base 96,2026-11-18T22:03:03.510659+00:00,,,,
+2026-11-21,BL1,Eintracht Frankfurt,TSG 1899 Hoffenheim,1.5,0.8813,0.8813,0.8508,0.9060,9,core 88.1 | form 88 | base 88,2026-11-18T22:03:03.510659+00:00,,,,
+2026-11-22,PD,FC Barcelona,Villarreal CF,1.5,0.9010,0.9010,0.8734,0.9229,15,core 90.1 | form 93 | base 84,2026-11-18T22:03:03.510659+00:00,,,,
+2026-11-22,PD,Real Racing Club de Santander,Real Sociedad de Fútbol,1.5,0.9067,0.9067,0.8800,0.9278,15,core 90.7 | form 93 | base 78,2026-11-18T22:03:03.510659+00:00,,,,
+2026-11-22,FL1,FC Lorient,Stade Rennais FC 1901,1.5,0.8602,0.8602,0.8270,0.8875,13,core 86.0 | form 82 | base 89,2026-11-18T22:03:03.510659+00:00,,,,
+2026-11-22,SA,AC Milan,Frosinone Calcio,1.5,0.8541,0.8541,0.8202,0.8820,14,core 85.4 | form 90 | base 70,2026-11-18T22:03:03.510659+00:00,,,,
+2026-11-23,SA,AC Monza,ACF Fiorentina,1.5,0.8977,0.8977,0.8695,0.9201,14,core 89.8 | form 94 | base 72,2026-11-18T22:03:03.510659+00:00,,,,
+2026-11-24,CL,Manchester City FC,SSC Napoli,1.5,0.8866,0.9066,0.8598,0.9277,,core 90.7 | form 94 | base 85,2026-11-18T22:03:03.510659+00:00,,,,
