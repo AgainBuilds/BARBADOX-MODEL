@@ -7,8 +7,8 @@ Rules:
 - Failed recommendation: both teams receive -2.
 - Successful recommendation: each participating team recovers +1, capped at 0.
 - One universal balance across OVER 1.5 and UNDER 3.5.
-- Adjusted probability = original probability + home balance + away balance.
-- Thresholds remain 80% (Core 1) and 60% (Core 2).
+- Adjusted probability = original probability (TRACKING-ONLY since
+  Nov 18, 2026: balances no longer gate qualification; see adjust()).
 - Balances update chronologically. Same-day settlements are applied at
   day's end, so a fixture only sees settlements from strictly earlier days.
 
@@ -269,21 +269,24 @@ def balances_for(home, away, as_of=None):
 
 def adjust(home, away, probability, as_of=None):
     """
-    Blue-adjusted probability: original + home balance + away balance,
-    clamped to [0, 1].
+    Blue-adjusted probability. TRACKING-ONLY since Nov 18, 2026:
 
-    Balances are never positive (recovery is capped at 0), so Blue can
-    only lower a probability, never inflate one. That is intentional.
+    Blue no longer gates pick qualification. Full-history replays
+    (2,490 picks, 2024-25..2026-27) showed every balance-based veto
+    variant (penalty sizes, soft scaling, veto-settlements) wrongly
+    rejects ~80% of vetoed picks while cutting slip volume by 80-90%,
+    and hit rate by balance bucket is non-monotonic (zero-balance
+    teams do not hit more often). The ledger + balances now exist
+    purely to TRACK how teams perform after Blue-flagged misses; the
+    entry bars (Core 1 threshold, Core 2 0.60) select picks on the
+    raw model probability alone.
+
+    The signature and return contract are unchanged so Core 1
+    (export_snapshot.py), Core 2 (barbadox_under35.py) and the daily
+    pipeline need no edits: they still call adjust() and compare the
+    result to their threshold.
     """
-    home_balance, away_balance = balances_for(home, away, as_of)
-
-    adjusted = (
-        float(probability)
-        + home_balance
-        + away_balance
-    )
-
-    return min(max(adjusted, 0.0), 1.0)
+    return min(max(float(probability), 0.0), 1.0)
 
 
 def write_balances(balances_file=BALANCES_FILE):
