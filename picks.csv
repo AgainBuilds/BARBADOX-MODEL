@@ -2533,3 +2533,6 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-25,CL,FC Internazionale Milano,VfB Stuttgart,1.5,0.9503,0.9703,0.9374,0.9793,,core 97.0 | form 97 | base 97,2026-11-19T15:32:17.344519+00:00,,,,
 2026-11-25,CL,Paris Saint-Germain FC,AS Roma,1.5,0.8749,0.8949,0.8463,0.9177,,core 89.5 | form 93 | base 86,2026-11-19T15:32:17.344519+00:00,,,,
 2026-11-27,PD,Levante UD,Real Racing Club de Santander,1.5,0.9156,0.9156,0.8903,0.9353,,core 91.6 | form 94 | base 77,2026-11-21T14:28:02.458523+00:00,,,,
+2026-11-27,FL1,Stade Brestois 29,Paris FC,3.5,0.6600,0.6600,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-21T20:14:19.471454+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-27,SA,Venezia FC,Bologna FC 1909,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-21T20:14:19.471454+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-27,PL,Nottingham Forest FC,Chelsea FC,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-21T20:14:19.471454+00:00,,,,CORE2_UNDER35|UPCOMING
