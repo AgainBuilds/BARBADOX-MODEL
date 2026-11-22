@@ -2489,18 +2489,18 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-08,FL1,Stade Brestois 29,Olympique Lyonnais,3.5,0.6272,0.6272,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-07T23:24:53.230182+00:00,2,0,HIT,CORE2_UNDER35|UPCOMING
 2026-11-08,FL1,Angers SCO,OGC Nice,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-07T23:24:53.230182+00:00,0,2,HIT,CORE2_UNDER35|UPCOMING
 2026-11-08,PD,RC Celta de Vigo,Levante UD,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-07T23:24:53.230182+00:00,0,0,HIT,CORE2_UNDER35|UPCOMING
-2026-11-21,BL1,SV 07 Elversberg,SC Freiburg,1.5,0.8830,0.8830,0.8527,0.9074,,core 88.3 | form 88 | base 82,2026-11-15T13:45:34.958933+00:00,,,,
-2026-11-21,PL,Tottenham Hotspur FC,Ipswich Town FC,1.5,0.8450,0.8450,0.8101,0.8739,,core 84.5 | form 82 | base 77,2026-11-15T13:45:34.958933+00:00,,,,
-2026-11-21,FL1,OGC Nice,Paris Saint-Germain FC,1.5,0.8109,0.8109,0.7728,0.8431,,core 81.1 | form 82 | base 81,2026-11-15T13:45:34.958933+00:00,,,,
-2026-11-21,FL1,AS Monaco FC,AJ Auxerre,1.5,0.8448,0.8448,0.8099,0.8738,,core 84.5 | form 88 | base 78,2026-11-15T13:45:34.958933+00:00,,,,
-2026-11-21,FL1,Racing Club de Lens,Toulouse FC,1.5,0.8077,0.8077,0.7695,0.8403,,core 80.8 | form 84 | base 77,2026-11-15T13:45:34.958933+00:00,,,,
-2026-11-21,FL1,RC Strasbourg Alsace,Stade Brestois 29,1.5,0.8263,0.8263,0.7896,0.8572,,core 82.6 | form 86 | base 80,2026-11-15T13:45:34.958933+00:00,,,,
+2026-11-21,BL1,SV 07 Elversberg,SC Freiburg,1.5,0.8830,0.8830,0.8527,0.9074,,core 88.3 | form 88 | base 82,2026-11-15T13:45:34.958933+00:00,0,1,MISS,
+2026-11-21,PL,Tottenham Hotspur FC,Ipswich Town FC,1.5,0.8450,0.8450,0.8101,0.8739,,core 84.5 | form 82 | base 77,2026-11-15T13:45:34.958933+00:00,2,0,HIT,
+2026-11-21,FL1,OGC Nice,Paris Saint-Germain FC,1.5,0.8109,0.8109,0.7728,0.8431,,core 81.1 | form 82 | base 81,2026-11-15T13:45:34.958933+00:00,2,3,HIT,
+2026-11-21,FL1,AS Monaco FC,AJ Auxerre,1.5,0.8448,0.8448,0.8099,0.8738,,core 84.5 | form 88 | base 78,2026-11-15T13:45:34.958933+00:00,1,1,HIT,
+2026-11-21,FL1,Racing Club de Lens,Toulouse FC,1.5,0.8077,0.8077,0.7695,0.8403,,core 80.8 | form 84 | base 77,2026-11-15T13:45:34.958933+00:00,1,1,HIT,
+2026-11-21,FL1,RC Strasbourg Alsace,Stade Brestois 29,1.5,0.8263,0.8263,0.7896,0.8572,,core 82.6 | form 86 | base 80,2026-11-15T13:45:34.958933+00:00,0,1,MISS,
 2026-11-20,FL1,ES Troyes AC,Le Havre AC,3.5,0.6719,0.6719,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-15T15:07:46.666410+00:00,3,1,MISS,CORE2_UNDER35|UPCOMING
-2026-11-21,PL,Chelsea FC,Leeds United FC,3.5,0.6751,0.6751,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-15T15:07:46.666410+00:00,,,,CORE2_UNDER35|UPCOMING
-2026-11-21,PL,AFC Bournemouth,Nottingham Forest FC,3.5,0.6751,0.6751,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-15T15:07:46.666410+00:00,,,,CORE2_UNDER35|UPCOMING
-2026-11-21,PD,Sevilla FC,Real Betis Balompié,3.5,0.6614,0.6614,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-15T15:07:46.666410+00:00,,,,CORE2_UNDER35|UPCOMING
-2026-11-21,FL1,Lille OSC,Olympique Lyonnais,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-15T15:07:46.666410+00:00,,,,CORE2_UNDER35|UPCOMING
-2026-11-21,PD,Real Madrid CF,RC Celta de Vigo,3.5,0.6340,0.6340,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-15T15:07:46.666410+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-21,PL,Chelsea FC,Leeds United FC,3.5,0.6751,0.6751,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-15T15:07:46.666410+00:00,1,4,MISS,CORE2_UNDER35|UPCOMING
+2026-11-21,PL,AFC Bournemouth,Nottingham Forest FC,3.5,0.6751,0.6751,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-15T15:07:46.666410+00:00,2,0,HIT,CORE2_UNDER35|UPCOMING
+2026-11-21,PD,Sevilla FC,Real Betis Balompié,3.5,0.6614,0.6614,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-15T15:07:46.666410+00:00,1,1,HIT,CORE2_UNDER35|UPCOMING
+2026-11-21,FL1,Lille OSC,Olympique Lyonnais,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-15T15:07:46.666410+00:00,0,1,HIT,CORE2_UNDER35|UPCOMING
+2026-11-21,PD,Real Madrid CF,RC Celta de Vigo,3.5,0.6340,0.6340,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-15T15:07:46.666410+00:00,2,1,HIT,CORE2_UNDER35|UPCOMING
 2026-11-22,BL1,FC Augsburg,1. FSV Mainz 05,1.5,0.8669,0.8669,0.8345,0.8934,,core 86.7 | form 93 | base 78,2026-11-16T15:23:43.397423+00:00,,,,
 2026-11-22,FL1,Olympique de Marseille,Le Mans FC,1.5,0.8850,0.8850,0.8550,0.9092,,core 88.5 | form 89 | base 85,2026-11-16T15:23:43.397423+00:00,,,,
 2026-11-22,FL1,Paris FC,Angers SCO,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-17T12:05:23.089809+00:00,,,,CORE2_UNDER35|UPCOMING
@@ -2509,7 +2509,7 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-23,PL,Brentford FC,Everton FC,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-17T12:05:23.089809+00:00,,,,CORE2_UNDER35|UPCOMING
 2026-11-24,CL,RB Leipzig,Racing Club de Lens,1.5,0.9000,0.9200,0.8755,0.9390,,core 92.0 | form 95 | base 89,2026-11-18T15:26:30.468144+00:00,,,,
 2026-11-20,BL1,FC Bayern München,1. FC Köln,1.5,0.9402,0.9402,0.9197,0.9556,9,core 94.0 | form 91 | base 96,2026-11-18T22:03:03.510659+00:00,1,1,HIT,
-2026-11-21,BL1,Eintracht Frankfurt,TSG 1899 Hoffenheim,1.5,0.8813,0.8813,0.8508,0.9060,9,core 88.1 | form 88 | base 88,2026-11-18T22:03:03.510659+00:00,,,,
+2026-11-21,BL1,Eintracht Frankfurt,TSG 1899 Hoffenheim,1.5,0.8813,0.8813,0.8508,0.9060,9,core 88.1 | form 88 | base 88,2026-11-18T22:03:03.510659+00:00,1,0,MISS,
 2026-11-22,PD,FC Barcelona,Villarreal CF,1.5,0.9010,0.9010,0.8734,0.9229,15,core 90.1 | form 93 | base 84,2026-11-18T22:03:03.510659+00:00,,,,
 2026-11-22,PD,Real Racing Club de Santander,Real Sociedad de Fútbol,1.5,0.9067,0.9067,0.8800,0.9278,15,core 90.7 | form 93 | base 78,2026-11-18T22:03:03.510659+00:00,,,,
 2026-11-22,FL1,FC Lorient,Stade Rennais FC 1901,1.5,0.8602,0.8602,0.8270,0.8875,13,core 86.0 | form 82 | base 89,2026-11-18T22:03:03.510659+00:00,,,,
@@ -2518,14 +2518,14 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-24,CL,Manchester City FC,SSC Napoli,1.5,0.8866,0.9066,0.8598,0.9277,,core 90.7 | form 94 | base 85,2026-11-18T22:03:03.510659+00:00,,,,
 2026-11-20,PD,Athletic Club,RCD Espanyol de Barcelona,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,0,1,HIT,CORE2_UNDER35|UPCOMING
 2026-11-21,PL,Manchester City FC,Fulham FC,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,1,1,HIT,CORE2_UNDER35|UPCOMING
-2026-11-21,PD,Deportivo Alavés,RC Deportivo La Coruña,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
-2026-11-21,SA,Como 1907,Cagliari Calcio,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
-2026-11-21,PL,Aston Villa FC,Sunderland AFC,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
-2026-11-21,PL,Coventry City FC,Crystal Palace FC,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
-2026-11-21,PD,Rayo Vallecano de Madrid,Valencia CF,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
-2026-11-21,PL,Newcastle United FC,Arsenal FC,3.5,0.6614,0.6614,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
-2026-11-21,SA,SSC Napoli,Torino FC,3.5,0.6136,0.6136,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
-2026-11-22,SA,Juventus FC,Venezia FC,3.5,0.6340,0.6340,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-21,PD,Deportivo Alavés,RC Deportivo La Coruña,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,3,1,MISS,CORE2_UNDER35|UPCOMING
+2026-11-21,SA,Como 1907,Cagliari Calcio,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,2,0,HIT,CORE2_UNDER35|UPCOMING
+2026-11-21,PL,Aston Villa FC,Sunderland AFC,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,0,0,HIT,CORE2_UNDER35|UPCOMING
+2026-11-21,PL,Coventry City FC,Crystal Palace FC,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,3,2,MISS,CORE2_UNDER35|UPCOMING
+2026-11-21,PD,Rayo Vallecano de Madrid,Valencia CF,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,0,1,HIT,CORE2_UNDER35|UPCOMING
+2026-11-21,PL,Newcastle United FC,Arsenal FC,3.5,0.6614,0.6614,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,2,2,MISS,CORE2_UNDER35|UPCOMING
+2026-11-21,SA,SSC Napoli,Torino FC,3.5,0.6136,0.6136,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,1,0,HIT,CORE2_UNDER35|UPCOMING
+2026-11-22,SA,Juventus FC,Venezia FC,3.5,0.6340,0.6340,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,4,0,MISS,CORE2_UNDER35|UPCOMING
 2026-11-22,PL,Hull City AFC,Brighton & Hove Albion FC,3.5,0.6614,0.6614,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
 2026-11-22,PL,Liverpool FC,Manchester United FC,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
 2026-11-22,SA,Atalanta BC,FC Internazionale Milano,3.5,0.6038,0.6038,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,,,,CORE2_UNDER35|UPCOMING
@@ -2536,3 +2536,5 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-27,FL1,Stade Brestois 29,Paris FC,3.5,0.6600,0.6600,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-21T20:14:19.471454+00:00,,,,CORE2_UNDER35|UPCOMING
 2026-11-27,SA,Venezia FC,Bologna FC 1909,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-21T20:14:19.471454+00:00,,,,CORE2_UNDER35|UPCOMING
 2026-11-27,PL,Nottingham Forest FC,Chelsea FC,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-21T20:14:19.471454+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-28,BL1,Hamburger SV,FC Bayern München,1.5,0.8717,0.8717,0.8399,0.8975,,core 87.2 | form 85 | base 88,2026-11-22T14:23:46.559843+00:00,,,,
+2026-11-28,BL1,VfB Stuttgart,Eintracht Frankfurt,1.5,0.8723,0.8723,0.8405,0.8981,,core 87.2 | form 86 | base 88,2026-11-22T14:23:46.559843+00:00,,,,
