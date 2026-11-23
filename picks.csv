@@ -2544,3 +2544,26 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-29,BL1,TSG 1899 Hoffenheim,FC Augsburg,1.5,0.9001,0.9001,0.8723,0.9222,,core 90.0 | form 94 | base 84,2026-11-23T17:49:05.116336+00:00,,,,
 2026-11-29,SA,AS Roma,AC Monza,1.5,0.9193,0.9193,0.8947,0.9384,,core 91.9 | form 95 | base 68,2026-11-23T17:49:05.116336+00:00,,,,
 2026-11-29,PD,Real Sociedad de Fútbol,Sevilla FC,1.5,0.8635,0.8635,0.8307,0.8903,,core 86.3 | form 85 | base 87,2026-11-23T17:49:05.116336+00:00,,,,
+2026-11-28,PD,Real Betis Balompié,Rayo Vallecano de Madrid,3.5,0.6340,0.6340,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-28,BL1,SC Paderborn 07,FC Schalke 04,3.5,0.6453,0.6453,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-28,PL,Leeds United FC,Coventry City FC,3.5,0.6682,0.6682,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-28,PL,Manchester United FC,Brentford FC,3.5,0.6408,0.6408,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-28,PD,Málaga CF,Athletic Club,3.5,0.6751,0.6751,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-28,FL1,Angers SCO,Racing Club de Lens,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-28,PL,Ipswich Town FC,Aston Villa FC,3.5,0.6614,0.6614,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-28,PD,Elche CF,Club Atlético de Madrid,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-28,FL1,Le Mans FC,Lille OSC,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-28,FL1,OGC Nice,ES Troyes AC,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-28,FL1,Paris Saint-Germain FC,FC Lorient,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-28,PD,Real Madrid CF,Deportivo Alavés,3.5,0.6525,0.6525,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-29,PL,Everton FC,Liverpool FC,3.5,0.6889,0.6889,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-29,PD,Valencia CF,CA Osasuna,3.5,0.6340,0.6340,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-29,SA,US Sassuolo Calcio,SSC Napoli,3.5,0.6000,0.6000,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-29,PL,Fulham FC,AFC Bournemouth,3.5,0.6820,0.6820,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-29,PL,Brighton & Hove Albion FC,Newcastle United FC,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-29,PL,Sunderland AFC,Tottenham Hotspur FC,3.5,0.7304,0.7304,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-29,PL,Crystal Palace FC,Hull City AFC,3.5,0.6408,0.6408,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-29,PL,Arsenal FC,Manchester City FC,3.5,0.6614,0.6614,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-29,PD,RC Celta de Vigo,Villarreal CF,3.5,0.6751,0.6751,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-29,FL1,Olympique Lyonnais,AS Monaco FC,3.5,0.6614,0.6614,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
+2026-11-29,SA,Como 1907,Juventus FC,3.5,0.6585,0.6585,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-23T21:03:04.542213+00:00,,,,CORE2_UNDER35|UPCOMING
