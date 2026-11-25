@@ -1,6 +1,6 @@
 # BARBADOX XGBOOST OBSERVER
 
-Generated: 2026-11-23 07:42 UTC
+Generated: 2026-11-25 08:38 UTC
 Current season: 2026/2027
 
 ## DATA COVERAGE
@@ -9,11 +9,11 @@ Current season: 2026/2027
 - Core 2 historical settled selections: 984
 - Historical unique selections: 2249
 - Historical seasons found: 2024/2025, 2025/2026, 2026/2027
-- Current archive: Read 155 settled legs from slips_browser.csv.
-- Current-season settled slip legs: 155
-- Current-season slips represented: 43
-- Current OVER 1.5 legs: 113
-- Current UNDER 3.5 legs: 42
+- Current archive: Read 173 settled legs from slips_browser.csv.
+- Current-season settled slip legs: 173
+- Current-season slips represented: 45
+- Current OVER 1.5 legs: 128
+- Current UNDER 3.5 legs: 45
 - Current unrecognized-market legs: 0
 
 ## MARKET DEFINITIONS
@@ -46,17 +46,17 @@ Failures are separated according to the market attached to each individual leg.
 | Paris FC | 2 | 0 | 2 | 0 | 2 | 2 | 100.0% |
 | Le Havre AC | 2 | 0 | 2 | 0 | 2 | 2 | 100.0% |
 | ES Troyes AC | 4 | 0 | 2 | 0 | 2 | 2 | 50.0% |
-| AS Monaco FC | 5 | 0 | 2 | 0 | 2 | 2 | 40.0% |
 | Leeds United FC | 5 | 0 | 2 | 0 | 2 | 2 | 40.0% |
+| AS Monaco FC | 6 | 0 | 2 | 0 | 2 | 2 | 33.3% |
 | Chelsea FC | 6 | 0 | 2 | 0 | 2 | 2 | 33.3% |
 | TSG 1899 Hoffenheim | 7 | 2 | 0 | 0 | 2 | 2 | 28.6% |
 | SV 07 Elversberg | 8 | 2 | 0 | 0 | 2 | 2 | 25.0% |
 | SC Freiburg | 10 | 2 | 0 | 0 | 2 | 2 | 20.0% |
 | RC Deportivo La Coruña | 1 | 1 | 0 | 0 | 1 | 1 | 100.0% |
 | Sunderland AFC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
-| Getafe CF | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
 | Sevilla FC | 1 | 0 | 1 | 0 | 1 | 1 | 100.0% |
 | Atalanta BC | 1 | 1 | 0 | 0 | 1 | 1 | 100.0% |
+| Hull City AFC | 2 | 0 | 1 | 0 | 1 | 1 | 50.0% |
 
 ## Current-season failed selections — market identification
 
@@ -88,6 +88,7 @@ Failures are separated according to the market attached to each individual leg.
 | 2026-11-21 | Chelsea FC vs Leeds United FC | UNDER 3.5 | LOST | slip-22bad66429916b975a90b5f4 |
 | 2026-11-21 | Eintracht Frankfurt vs TSG 1899 Hoffenheim | OVER 1.5 | LOST | slip-a432a90293f29e420855f303 |
 | 2026-11-21 | Eintracht Frankfurt vs TSG 1899 Hoffenheim | OVER 1.5 | LOST | slip-c655da82c84fd548d6ac25ee |
+| 2026-11-21 | RC Strasbourg Alsace vs Stade Brestois 29 | OVER 1.5 | LOST | slip-757ab36258d7c4710ea8ae2f |
 | 2026-11-21 | SV 07 Elversberg vs SC Freiburg | OVER 1.5 | LOST | slip-12136507a6426e0cf305fd03 |
 | 2026-11-21 | SV 07 Elversberg vs SC Freiburg | OVER 1.5 | LOST | slip-22bad66429916b975a90b5f4 |
 
@@ -131,17 +132,17 @@ Failures are separated according to the market attached to each individual leg.
 | RC Deportivo La Coruña | 1 | 1 | 1 | 100.0% |
 | Atalanta BC | 1 | 1 | 1 | 100.0% |
 | Rayo Vallecano de Madrid | 1 | 1 | 1 | 100.0% |
+| Stade Brestois 29 | 1 | 1 | 1 | 100.0% |
 | Cagliari Calcio | 2 | 1 | 1 | 50.0% |
-| Villarreal CF | 2 | 1 | 1 | 50.0% |
 | RCD Espanyol de Barcelona | 3 | 1 | 1 | 33.3% |
-| Real Sociedad de Fútbol | 3 | 1 | 1 | 33.3% |
 | VfB Stuttgart | 3 | 1 | 1 | 33.3% |
 | SV Werder Bremen | 3 | 1 | 1 | 33.3% |
-| Frosinone Calcio | 3 | 1 | 1 | 33.3% |
+| Villarreal CF | 4 | 1 | 1 | 25.0% |
+| Frosinone Calcio | 4 | 1 | 1 | 25.0% |
+| Real Sociedad de Fútbol | 5 | 1 | 1 | 20.0% |
 | Borussia Dortmund | 5 | 1 | 1 | 20.0% |
-| AC Monza | 7 | 1 | 1 | 14.3% |
 | Club Atlético de Madrid | 7 | 1 | 1 | 14.3% |
-| FC Bayern München | 10 | 0 | 0 | 0.0% |
+| RC Strasbourg Alsace | 8 | 1 | 1 | 12.5% |
 
 ### UNDER 3.5
 
@@ -159,10 +160,10 @@ Failures are separated according to the market attached to each individual leg.
 | SSC Napoli | 1 | 1 | 1 | 100.0% |
 | Sunderland AFC | 1 | 1 | 1 | 100.0% |
 | Ipswich Town FC | 1 | 1 | 1 | 100.0% |
-| Getafe CF | 1 | 1 | 1 | 100.0% |
 | Sevilla FC | 1 | 1 | 1 | 100.0% |
 | Manchester City FC | 1 | 1 | 1 | 100.0% |
 | Hull City AFC | 2 | 1 | 1 | 50.0% |
+| Getafe CF | 2 | 1 | 1 | 50.0% |
 | Everton FC | 3 | 1 | 1 | 33.3% |
 | Nottingham Forest FC | 5 | 1 | 1 | 20.0% |
 | Arsenal FC | 4 | 0 | 0 | 0.0% |
@@ -246,6 +247,8 @@ Failures are separated according to the market attached to each individual leg.
 | Team | Current failed slips | Current failed legs | Historical failures | Historical failure rate |
 |---|---:|---:|---:|---:|
 | Manchester City FC | 3 | 3 | 8 | 20.0% |
+| RC Strasbourg Alsace | 1 | 1 | 8 | 19.0% |
+| Stade Brestois 29 | 1 | 1 | 7 | 17.9% |
 | SV Werder Bremen | 1 | 1 | 12 | 24.0% |
 | TSG 1899 Hoffenheim | 2 | 2 | 8 | 12.1% |
 | VfB Stuttgart | 1 | 1 | 10 | 17.2% |
@@ -291,7 +294,7 @@ Accuracy: 0.834
 Brier score: 0.144
 Baseline Brier score: 0.139
 Brier improvement: -0.006
-ROC-AUC: 0.518
+ROC-AUC: 0.520
 
 INTERPRETATION
 - Lower Brier score is better.
