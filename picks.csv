@@ -2530,8 +2530,8 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-22,PL,Liverpool FC,Manchester United FC,3.5,0.6477,0.6477,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,4,0,MISS,CORE2_UNDER35|UPCOMING
 2026-11-22,SA,Atalanta BC,FC Internazionale Milano,3.5,0.6038,0.6038,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,4,4,MISS,CORE2_UNDER35|UPCOMING
 2026-11-23,PD,Levante UD,Elche CF,3.5,0.6408,0.6408,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-18T22:03:10.712634+00:00,1,1,HIT,CORE2_UNDER35|UPCOMING
-2026-11-25,CL,FC Internazionale Milano,VfB Stuttgart,1.5,0.9503,0.9703,0.9374,0.9793,,core 97.0 | form 97 | base 97,2026-11-19T15:32:17.344519+00:00,,,,
-2026-11-25,CL,Paris Saint-Germain FC,AS Roma,1.5,0.8749,0.8949,0.8463,0.9177,,core 89.5 | form 93 | base 86,2026-11-19T15:32:17.344519+00:00,,,,
+2026-11-25,CL,FC Internazionale Milano,VfB Stuttgart,1.5,0.9503,0.9703,0.9374,0.9793,,core 97.0 | form 97 | base 97,2026-11-19T15:32:17.344519+00:00,2,0,HIT,
+2026-11-25,CL,Paris Saint-Germain FC,AS Roma,1.5,0.8749,0.8949,0.8463,0.9177,,core 89.5 | form 93 | base 86,2026-11-19T15:32:17.344519+00:00,2,2,HIT,
 2026-11-27,PD,Levante UD,Real Racing Club de Santander,1.5,0.9156,0.9156,0.8903,0.9353,,core 91.6 | form 94 | base 77,2026-11-21T14:28:02.458523+00:00,,,,
 2026-11-27,FL1,Stade Brestois 29,Paris FC,3.5,0.6600,0.6600,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-21T20:14:19.471454+00:00,,,,CORE2_UNDER35|UPCOMING
 2026-11-27,SA,Venezia FC,Bologna FC 1909,3.5,0.6545,0.6545,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-21T20:14:19.471454+00:00,,,,CORE2_UNDER35|UPCOMING
@@ -2570,3 +2570,4 @@ date,league,home,away,market,probability,core_probability,low,high,field_temp_c,
 2026-11-30,SA,Cagliari Calcio,AC Milan,3.5,0.6000,0.6000,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-24T18:40:03.959986+00:00,,,,CORE2_UNDER35|UPCOMING
 2026-11-30,PD,RCD Espanyol de Barcelona,Getafe CF,3.5,0.6408,0.6408,,,,Core 2 Under 3.5 live (blue-adjusted),2026-11-24T18:40:03.959986+00:00,,,,CORE2_UNDER35|UPCOMING
 2026-12-01,PL,Coventry City FC,Ipswich Town FC,1.5,0.8853,0.8853,0.8553,0.9094,,core 88.5 | form 89 | base 76,2026-11-25T16:59:49.709852+00:00,,,,
+2026-12-02,PD,FC Barcelona,Club Atlético de Madrid,1.5,0.8744,0.8744,0.8430,0.9000,,core 87.4 | form 90 | base 83,2026-11-26T16:40:56.606638+00:00,,,,
