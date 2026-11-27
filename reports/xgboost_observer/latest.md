@@ -1,6 +1,6 @@
 # BARBADOX XGBOOST OBSERVER
 
-Generated: 2026-11-25 08:38 UTC
+Generated: 2026-11-27 08:38 UTC
 Current season: 2026/2027
 
 ## DATA COVERAGE
